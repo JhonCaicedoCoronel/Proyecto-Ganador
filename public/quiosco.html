@@ -21,7 +21,6 @@
         .card-producto:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
         .card-producto img { width: 100%; height: 130px; object-fit: cover; }
         
-        /* Estilos cuando un producto está agotado */
         .card-producto.agotado { opacity: 0.6; transform: none; box-shadow: none; }
         .card-producto.agotado img { filter: grayscale(1); }
 
@@ -31,8 +30,6 @@
         
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-agregar:hover { background: #ee3848; }
-        
-        /* Botón de agotado */
         .btn-agregar:disabled { background: #a4b0be !important; cursor: not-allowed; }
 
         .checkout-container { width: 35%; background: white; border-left: 1px solid #e0e0e0; padding: 25px; display: flex; flex-direction: column; height: 100%; box-shadow: -4px 0 10px rgba(0,0,0,0.02); }
@@ -69,7 +66,7 @@
 
     <div class="menu-container">
         <div class="header">
-            <h1>Frank's Food</h1>
+            <h1>🍔 Frank's Burgers</h1>
             <p>Pide rápido, come delicioso | Sistema de Autocobro en Tiempo Real</p>
         </div>
         <div class="seccion-titulo">Combos Populares</div>
@@ -106,7 +103,7 @@
             </select>
         </div>
         <div class="form-grupo">
-            <label for="cliente-notas">Notas o instrucciones especiales</label>
+            <label for="cliente-notes">Notas o instrucciones especiales</label>
             <input type="text" id="cliente-notes" placeholder="Ej. Sin cebolla, carne bien cocida...">
         </div>
         <button class="btn-finalizar" onclick="procesarPedido()">ENVIAR A COCINA 🚀</button>
@@ -119,10 +116,11 @@
         let tipoEntrega = "Comer Aquí";
 
         socket.on('cargar-menu-inicial', (menuServidor) => { productos = menuServidor; cargarMenu(); });
+        
         socket.on('menu-actualizado-completo', (menuServidor) => {
             productos = menuServidor;
             
-            // Ajustar cantidades del carrito si el stock bajó repentinamente por otra compra
+            // Si el stock bajó en el servidor por otro cliente, ajustar el carrito local
             carrito.forEach(item => {
                 const prodSrv = productos.find(p => p.id === item.id);
                 if (prodSrv && item.cantidad > prodSrv.stock) {
@@ -143,14 +141,13 @@
             contenedorBebidas.innerHTML = "";
 
             if(productos.length === 0) {
-                contenedorCombos.innerHTML = "<p style='color:#999; padding: 10px;'>No hay menús disponibles.</p>";
+                contenedorCombos.innerHTML = "<p style='color:#999; padding: 10px;'>No hay menús registrados por el administrador.</p>";
                 return;
             }
 
             productos.forEach(p => {
                 const tieneStock = p.stock > 0;
                 
-                // Texto dinámico para advertir las porciones restantes
                 let stockTexto = `<span style="color:#2ed573; font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">🟢 Disponibles: ${p.stock}</span>`;
                 if(p.stock <= 3 && p.stock > 0) {
                     stockTexto = `<span style="color:#ff4757; font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">🔥 ¡Solo quedan ${p.stock}!</span>`;
@@ -181,11 +178,10 @@
 
             const existe = carrito.find(item => item.id === id);
             if (existe) {
-                // No permitir agregar más de lo que hay en cocina
                 if(existe.cantidad < producto.stock) {
                     existe.cantidad++;
                 } else {
-                    alert(`¡Lo sentimos! Solo nos quedan ${producto.stock} porciones de este plato.`);
+                    alert(`¡Alerta! Solo quedan ${producto.stock} porciones físicas disponibles.`);
                 }
             } else {
                 carrito.push({ ...producto, cantidad: 1 });
@@ -193,9 +189,9 @@
             actualizarInterfazCarrito();
         }
 
+        // FUNCIÓN CORREGIDA: Limpieza limpia del array nativo 'carrito'
         function eliminarDelCarrito(id) {
-            carrito = carriage.filter(item => item.id !== id);
-            carrito = carrito.filter(item => item.id !== id); // Doble filtro de limpieza limpia
+            carrito = carrito.filter(item => item.id !== id);
             actualizarInterfazCarrito();
         }
 
@@ -238,8 +234,6 @@
             if (!nombre) return alert("Ingresa tu nombre para el pedido.");
 
             const listaItemsTexto = carrito.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
-            
-            // Empaquetar la lista compacta de lo comprado para que el servidor reste stock
             const productosComprados = carrito.map(i => ({ id: i.id, cantidad: i.cantidad }));
 
             const pedidoFinal = {
@@ -249,7 +243,7 @@
                 tipo: tipoEntrega,
                 pago: pago,
                 notes: notas || "Ninguna",
-                productosComprados: productosComprados // Nuevo canal de descuento de inventario
+                productosComprados: productosComprados 
             };
 
             socket.emit('enviar-pedido', pedidoFinal);

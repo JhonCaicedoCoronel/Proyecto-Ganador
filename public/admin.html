@@ -27,9 +27,7 @@
     <h1>⚙️ Gestión de Menús y Control de Porciones Disponibles</h1>
 
     <div class="form-crear">
-        <!-- Input oculto para saber si estamos editando o creando uno nuevo -->
         <input type="hidden" id="plato-id">
-        
         <div class="form-grupo">
             <label>Nombre del Menú</label>
             <input type="text" id="plato-nombre" placeholder="Ej. Seco de Pollo Criollo">
@@ -40,7 +38,7 @@
         </div>
         <div class="form-grupo">
             <label>Porciones Disponibles (Stock)</label>
-            <input type="number" id="plato-stock" placeholder="Cantidad de platos hechos">
+            <input type="number" id="plato-stock" placeholder="Cantidad hecha">
         </div>
         <div class="form-grupo">
             <label>Categoría</label>
@@ -51,7 +49,7 @@
         </div>
         <div class="form-grupo">
             <label>Foto URL</label>
-            <input type="text" id="plato-img" placeholder="Opcional...">
+            <input type="text" id="plato-img" placeholder="Enlace de la imagen...">
         </div>
         <button class="btn-guardar" id="btn-submit" onclick="guardarPlato()">Publicar Menú 🚀</button>
     </div>
@@ -118,21 +116,19 @@
             const category = document.getElementById('plato-categoria').value;
             let img = document.getElementById('plato-img').value.trim();
 
-            if (!nombre || isNaN(precio) || isNaN(stock)) return alert("Completa los campos correctamente.");
+            if (!nombre || isNaN(precio) || isNaN(stock)) return alert("Por favor completa todos los campos correctamente.");
             if (!img) img = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
 
             const datosPlato = { nombre, precio, stock, category, img };
 
             if(id) {
-                // Modo Edición
                 datosPlato.id = parseInt(id);
                 socket.emit('editar-producto', datosPlato);
             } else {
-                // Modo Nuevo Plato
                 socket.emit('agregar-nuevo-producto', datosPlato);
             }
 
-            // Resetear el formulario
+            // Resetear el formulario limpio
             document.getElementById('plato-id').value = "";
             document.getElementById('plato-nombre').value = "";
             document.getElementById('plato-precio').value = "";
@@ -143,7 +139,7 @@
         }
 
         function eliminarPlato(id) {
-            if(confirm("¿Quitar este plato?")) socket.emit('eliminar-producto', id);
+            if(confirm("¿Quitar este plato de la lista?")) socket.emit('eliminar-producto', id);
         }
     </script>
 </body>

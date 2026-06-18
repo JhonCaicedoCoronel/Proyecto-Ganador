@@ -11,7 +11,7 @@ app.get('/', (req, res) => {
     res.redirect('/quiosco.html');
 });
 
-// NUEVO MENÚ BASE CON CANTIDADES DE STOCK (Modifica tu array actual)
+// Lista oficial del menú con stock numérico controlado en el servidor
 let menuProductos = [
     { id: 1, nombre: "Combo Frank's Triple", precio: 11.50, category: "combos", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500", stock: 15 },
     { id: 2, nombre: "Combo Hamburguesa Guayaca", precio: 9.00, category: "combos", img: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500", stock: 8 },
@@ -21,9 +21,32 @@ let menuProductos = [
 ];
 
 io.on('connection', (socket) => {
-    // ... mantén tus otros eventos igual ...
+    console.log('📱 Dispositivo conectado: ' + socket.id);
 
-    // EVENTO 1: Cuando el administrador edita un plato existente
+    // Mandar el menú actual con el stock real al conectarse
+    socket.emit('cargar-menu-inicial', menuProductos);
+
+    // Escuchar cuando entra una orden del quiosco
+    socket.on('enviar-pedido', (pedido) => {
+        const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
+        
+        // Restar el stock si el pedido incluye los productos comprados
+        if (pedido.productosComprados) {
+            pedido.productosComprados.forEach(itemComprado => {
+                const producto = menuProductos.find(p => p.id === itemComprado.id);
+                if (producto) {
+                    producto.stock = Math.max(0, producto.stock - itemComprado.cantidad);
+                }
+            });
+            // Notificar a todos los dispositivos el nuevo stock disponible
+            io.emit('menu-actualizado-completo', menuProductos);
+        }
+        
+        io.emit('notificar-cocina', pedido);
+    });
+
+    // Editar un plato o cambiarle el stock desde el panel de admin
     socket.on('editar-producto', (productoEditado) => {
         const producto = menuProductos.find(p => p.id === productoEditado.id);
         if (producto) {
@@ -32,29 +55,22 @@ io.on('connection', (socket) => {
             producto.stock = parseInt(productoEditado.stock);
             if(productoEditado.img) producto.img = productoEditado.img;
             
-            // Avisar a todos los clientes del cambio de datos y stock
             io.emit('menu-actualizado-completo', menuProductos);
         }
     });
 
-    // EVENTO 2: Descontar stock automáticamente cuando entra un pedido
-    socket.on('enviar-pedido', (pedido) => {
-        // ... aquí procesas la hora de Ecuador ...
+    // Agregar un plato completamente nuevo para el menú del día
+    socket.on('agregar-nuevo-producto', (nuevoPlato) => {
+        nuevoPlato.id = menuProductos.length > 0 ? Math.max(...menuProductos.map(p => p.id)) + 1 : 1;
+        nuevoPlato.stock = parseInt(nuevoPlato.stock) || 0;
+        menuProductos.push(nuevoPlato);
+        io.emit('menu-actualizado-completo', menuProductos);
+    });
 
-        // Lógica para restar stock (pedido.itemsArray debe procesarse, pero para el MVP
-        // el quiosco nos mandará un array ordenado de IDs comprados para restarles stock)
-        if (pedido.productosComprados) {
-            pedido.productosComprados.forEach(itemComprado => {
-                const producto = menuProductos.find(p => p.id === itemComprado.id);
-                if (producto) {
-                    producto.stock = Math.max(0, producto.stock - itemComprado.cantidad);
-                }
-            });
-            // Notificar a todos el nuevo stock disponible
-            io.emit('menu-actualizado-completo', menuProductos);
-        }
-        
-        io.emit('notificar-cocina', pedido);
+    // Eliminar un plato de la lista
+    socket.on('eliminar-producto', (id) => {
+        menuProductos = menuProductos.filter(p => p.id !== id);
+        io.emit('menu-actualizado-completo', menuProductos);
     });
 });
 
