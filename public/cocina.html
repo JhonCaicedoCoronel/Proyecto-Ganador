@@ -1,0 +1,26 @@
+socket.on('notificar-cocina', (pedido) => {
+    const div = document.createElement('div');
+    const esEfectivo = pedido.pago && pedido.pago.includes('Efectivo');
+    div.className = `tarjeta-pedido ${esEfectivo ? 'pendiente' : ''}`;
+    
+    div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:18px; margin-bottom:8px;">
+            <span>🆔 Pedido #${pedido.id}</span>
+            <span style="color: #ffa502;">${pedido.tipo === 'Para Llevar' ? '🛍️' : '🍽️'}</span>
+        </div>
+        <p><strong>Cliente:</strong> ${pedido.cliente}</p>
+        <p style="background: #2f3542; padding: 8px; border-radius: 4px; margin: 8px 0; color: #fff;">
+            <strong>Orden:</strong> ${pedido.item}
+        </p>
+        <p><strong>Notas:</strong> <span style="color:#ff4757; font-style:italic;">${pedido.notas}</span></p>
+        <p><strong>Pago:</strong> ${pedido.pago}</p>
+        <div style="text-align:right; margin-top:10px;">
+            <small>⏰ ${pedido.horaRegistro}</small>
+        </div>
+    `;
+
+    listaPedidos.prepend(div);
+
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
+    audio.play().catch(e => console.log("Audio en espera"));
+});
