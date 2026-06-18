@@ -2,19 +2,36 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Pantalla de Cocina (KDS)</title>
+    <title>Pantalla de Cocina (KDS) - Frank's Burgers</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #2f3542; color: white; padding: 20px; margin: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #2f3542; color: white; padding: 20px; margin: 0; }
         h1 { border-bottom: 2px solid #747d8c; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; }
         .contenedor-pedidos { display: flex; flex-wrap: wrap; gap: 20px; }
-        .tarjeta-pedido { background: #57606f; border-left: 8px solid #2ed573; padding: 15px; border-radius: 8px; width: 280px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        
+        /* Tarjeta Estándar (Pagado/Local) */
+        .tarjeta-pedido { background: #57606f; border-left: 8px solid #2ed573; padding: 15px; border-radius: 8px; width: 290px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; }
+        
+        /* Tarjeta Pendiente de Pago en Efectivo */
         .tarjeta-pedido.pendiente { border-left-color: #ffa502; background: #4b5261; } 
+        
+        /* Tarjeta Fantasma (Innovación Pre-orden) */
+        .tarjeta-pedido.fantasma { background: #3d3d5c; border-left: 8px dashed #a8a8ff; box-shadow: 0 4px 15px rgba(168,168,255,0.15); }
+        
+        .badge-status { background: #2ed573; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge-status.efectivo { background: #ffa502; color: #2f3542; }
+        .badge-status.fantasma { background: #a8a8ff; color: #1e1e2f; animation: parpadeo 2s infinite; }
+
+        @keyframes parpadeo {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
     </style>
 </head>
 <body>
 
-    <h1>👨‍🍳 Panel de Cocina en Tiempo Real (KDS)</h1>
+    <h1>👨‍🍳 Panel de Cocina en Tiempo Real (KDS con Lógica Fantasma)</h1>
     <div class="contenedor-pedidos" id="listaPedidos"></div>
 
     <script>
@@ -23,32 +40,48 @@
 
         socket.on('notificar-cocina', (pedido) => {
             const div = document.createElement('div');
-            const esEfectivo = pedido.pago && pedido.pago.includes('Efectivo');
-            div.className = `tarjeta-pedido ${esEfectivo ? 'pendiente' : ''}`;
             
+            // Determinar clases visuales según los metadatos de la orden
+            let claseTarjeta = "tarjeta-pedido";
+            let htmlBadge = "";
+
+            if (pedido.esFantasma) {
+                claseTarjeta += " fantasma";
+                htmlBadge = `<span class="badge-status fantasma">👻 FANTASMA (Arribo: ${pedido.horaLlegadaEstimada})</span>`;
+            } else if (pedido.pago && pedido.pago.includes('Efectivo')) {
+                claseTarjeta += " pendiente";
+                htmlBadge = `<span class="badge-status efectivo">💵 COBRAR EN CAJA</span>`;
+            } else {
+                htmlBadge = `<span class="badge-status">✅ PAGADO WEB</span>`;
+            }
+            
+            div.className = claseTarjeta;
             div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px; margin-bottom:10px; border-bottom: 1px dashed #747d8c; padding-bottom: 5px;">
-                    <span>🆔 Pedido #${pedido.id}</span>
-                    <span>${pedido.tipo === 'Para Llevar' ? '🛍️' : '🍽️'}</span>
-                </div>
-                <p style="margin: 5px 0;"><strong>Cliente:</strong> ${pedido.cliente}</p>
-                
-                <div style="background: #2f3542; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 15px; border-left: 3px solid #ff4757;">
-                    <strong>Orden:</strong> ${pedido.item}
+                <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:15px; margin-bottom:10px; border-bottom: 1px dashed #747d8c; padding-bottom: 5px;">
+                    <span>🆔 #${pedido.id}</span>
+                    <span>${pedido.tipo.includes('Llevar') ? '🛍️' : pedido.tipo.includes('Remota') ? '🚗' : '🍽️'}</span>
                 </div>
                 
-                <p style="font-size: 13px; margin: 5px 0;"><strong>Notas:</strong> <span style="color:#ffa502; font-style:italic;">${pedido.notes || "Ninguna"}</span></p>
-                <p style="font-size: 13px; margin: 5px 0;"><strong>Pago:</strong> ${pedido.pago}</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>Cliente:</strong> ${pedido.cliente}</p>
+                <p style="margin: 3px 0; font-size: 12px; color: #a4b0be;"><strong>Modalidad:</strong> ${pedido.tipo}</p>
                 
-                <div style="text-align:right; margin-top:12px; font-size:11px; color:#a4b0be;">
-                    ⏰ ${pedido.horaRegistro}
+                <div style="background: #2f3542; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 15px; border-left: 4px solid #ff4757; font-weight: bold;">
+                    ${pedido.item}
+                </div>
+                
+                <p style="font-size: 12px; margin: 5px 0;"><strong>Notas:</strong> <span style="color:#ffa502; font-style:italic;">${pedido.notes}</span></p>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; border-top: 1px solid #4b5261; padding-top:8px;">
+                    ${htmlBadge}
+                    <span style="font-size:10px; color:#cbd5e1;">Pedió: ${pedido.horaRegistro}</span>
                 </div>
             `;
 
             listaPedidos.prepend(div);
 
+            // Alerta sonora para avisar a los chefs
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
-            audio.play().catch(e => console.log("Audio esperando clic"));
+            audio.play().catch(e => console.log("Notificación visual inyectada con éxito. Audio bloqueado por el navegador hasta interacción."));
         });
     </script>
 </body>
