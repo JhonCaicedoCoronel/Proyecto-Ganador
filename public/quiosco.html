@@ -114,36 +114,25 @@
 
     <script>
         const socket = io();
-        let productos = []; // Ahora empieza vacío y se llena desde el servidor
+        let productos = [];
         let carrito = [];
         let tipoEntrega = "Comer Aquí";
 
-        // 1. Escuchar cuando cargue la página el menú del servidor
-        socket.on('cargar-menu-inicial', (menuServidor) => {
-            productos = menuServidor;
-            cargarMenu();
-        });
-
-        // 2. Escuchar si el admin metió un plato o borró uno
+        socket.on('cargar-menu-inicial', (menuServidor) => { productos = menuServidor; cargarMenu(); });
         socket.on('menu-actualizado-completo', (menuServidor) => {
             productos = menuServidor;
-            // Si borraron un producto que estaba en el carrito, lo limpiamos
-            carrito = carrito.filter(item => productos.some(p => p.id === item.id));
+            
+            // Ajustar cantidades del carrito si el stock bajó repentinamente por otra compra
+            carrito.forEach(item => {
+                const prodSrv = productos.find(p => p.id === item.id);
+                if (prodSrv && item.cantidad > prodSrv.stock) {
+                    item.cantidad = prodSrv.stock;
+                }
+            });
+            carrito = carrito.filter(item => item.cantidad > 0);
+            
             cargarMenu();
             actualizarInterfazCarrito();
-        });
-
-        // 3. Escuchar si solo apagaron el stock de un plato
-        socket.on('menu-disponibilidad-actualizada', (datos) => {
-            const producto = productos.find(p => p.id === datos.id);
-            if (producto) {
-                producto.disponible = datos.disponible;
-                if(!datos.disponible) {
-                    carrito = carrito.filter(item => item.id !== datos.id);
-                }
-                cargarMenu();
-                actualizarInterfazCarrito();
-            }
         });
 
         function cargarMenu() {
@@ -154,19 +143,30 @@
             contenedorBebidas.innerHTML = "";
 
             if(productos.length === 0) {
-                contenedorCombos.innerHTML = "<p style='color:#999; padding: 10px;'>No hay menús registrados para hoy.</p>";
+                contenedorCombos.innerHTML = "<p style='color:#999; padding: 10px;'>No hay menús disponibles.</p>";
                 return;
             }
 
             productos.forEach(p => {
+                const tieneStock = p.stock > 0;
+                
+                // Texto dinámico para advertir las porciones restantes
+                let stockTexto = `<span style="color:#2ed573; font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">🟢 Disponibles: ${p.stock}</span>`;
+                if(p.stock <= 3 && p.stock > 0) {
+                    stockTexto = `<span style="color:#ff4757; font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">🔥 ¡Solo quedan ${p.stock}!</span>`;
+                } else if(p.stock === 0) {
+                    stockTexto = `<span style="color:#a4b0be; font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">❌ Agotado por hoy</span>`;
+                }
+
                 const html = `
-                    <div class="card-producto ${p.disponible ? '' : 'agotado'}" id="prod-card-${p.id}">
+                    <div class="card-producto ${tieneStock ? '' : 'agotado'}" id="prod-card-${p.id}">
                         <img src="${p.img}">
                         <div class="info-producto">
                             <h3>${p.nombre}</h3>
                             <p>$${p.precio.toFixed(2)}</p>
-                            <button class="btn-agregar" id="btn-prod-${p.id}" onclick="agregarAlCarrito(${p.id})" ${p.disponible ? '' : 'disabled'}>
-                                ${p.disponible ? 'Agregar +' : 'Agotado ❌'}
+                            ${stockTexto}
+                            <button class="btn-agregar" id="btn-prod-${p.id}" onclick="agregarAlCarrito(${p.id})" ${tieneStock ? '' : 'disabled'}>
+                                ${tieneStock ? 'Agregar +' : 'Agotado'}
                             </button>
                         </div>
                     </div>`;
@@ -177,16 +177,25 @@
 
         function agregarAlCarrito(id) {
             const producto = productos.find(p => p.id === id);
-            if (!producto || !producto.disponible) return;
+            if (!producto || producto.stock <= 0) return;
 
             const existe = carrito.find(item => item.id === id);
-            if (existe) { existe.cantidad++; } 
-            else { carrito.push({ ...producto, cantidad: 1 }); }
+            if (existe) {
+                // No permitir agregar más de lo que hay en cocina
+                if(existe.cantidad < producto.stock) {
+                    existe.cantidad++;
+                } else {
+                    alert(`¡Lo sentimos! Solo nos quedan ${producto.stock} porciones de este plato.`);
+                }
+            } else {
+                carrito.push({ ...producto, cantidad: 1 });
+            }
             actualizarInterfazCarrito();
         }
 
         function eliminarDelCarrito(id) {
-            carrito = carrito.filter(item => item.id !== id);
+            carrito = carriage.filter(item => item.id !== id);
+            carrito = carrito.filter(item => item.id !== id); // Doble filtro de limpieza limpia
             actualizarInterfazCarrito();
         }
 
@@ -229,13 +238,18 @@
             if (!nombre) return alert("Ingresa tu nombre para el pedido.");
 
             const listaItemsTexto = carrito.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
+            
+            // Empaquetar la lista compacta de lo comprado para que el servidor reste stock
+            const productosComprados = carrito.map(i => ({ id: i.id, cantidad: i.cantidad }));
+
             const pedidoFinal = {
                 id: Math.floor(Math.random() * 9000) + 1000, 
                 cliente: nombre,
                 item: listaItemsTexto,
                 tipo: tipoEntrega,
                 pago: pago,
-                notes: notas || "Ninguna"
+                notes: notas || "Ninguna",
+                productosComprados: productosComprados // Nuevo canal de descuento de inventario
             };
 
             socket.emit('enviar-pedido', pedidoFinal);
