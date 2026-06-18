@@ -5,54 +5,90 @@
     <title>Panel de Administración - Frank's Burgers</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f1f2f6; padding: 30px; color: #2f3542; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f1f2f6; padding: 30px; color: #2f3542; }
         h1 { border-bottom: 3px solid #ffa502; padding-bottom: 10px; margin-bottom: 25px; }
+        
+        /* Formulario para añadir platos */
+        .form-crear { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
+        .form-grupo { display: flex; flex-direction: column; flex: 1; min-width: 150px; }
+        .form-grupo label { font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #57606f; }
+        .form-grupo input, .form-grupo select { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+        .btn-guardar { background: #2ed573; color: white; border: none; padding: 11px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-guardar:hover { background: #26af5f; }
+
         .tabla-menu { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .tabla-menu th, .tabla-menu td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
         .tabla-menu th { background: #2f3542; color: white; }
         
-        /* Switch de disponibilidad */
         .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #2ed573; }
         input:checked + .slider:before { transform: translateX(24px); }
+        .btn-borrar { background: none; border: none; color: #ff4757; cursor: pointer; font-weight: bold; font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <h1>⚙️ Panel de Control de Menú (Tiempo Real)</h1>
+    <h1>⚙️ Panel de Gestión del Menú Diario</h1>
+
+    <div class="form-crear">
+        <div class="form-grupo">
+            <label>Nombre del Plato/Menú</label>
+            <input type="text" id="plato-nombre" placeholder="Ej. Almuerzo Ejecutivo: Seco de Pollo">
+        </div>
+        <div class="form-grupo">
+            <label>Precio ($)</label>
+            <input type="number" step="0.01" id="plato-precio" placeholder="3.50">
+        </div>
+        <div class="form-grupo">
+            <label>Categoría</label>
+            <select id="plato-categoria">
+                <option value="combos">Plato Fuerte / Combo</option>
+                <option value="bebidas">Bebidas / Extras</option>
+            </select>
+        </div>
+        <div class="form-grupo">
+            <label>Foto URL (Opcional)</label>
+            <input type="text" id="plato-img" placeholder="Enlace de la imagen...">
+        </div>
+        <button class="btn-guardar" onclick="publicarPlato()">Agregar al Menú 🚀</button>
+    </div>
+
     <table class="tabla-menu">
         <thead>
             <tr>
                 <th>Producto</th>
                 <th>Precio</th>
                 <th>Categoría</th>
-                <th>Disponibilidad en Web/Celular</th>
+                <th>Disponibilidad</th>
+                <th>Quitar</th>
             </tr>
         </thead>
-        <tbody id="tabla-cuerpo">
-            <!-- Los productos se cargarán aquí -->
-        </tbody>
+        <tbody id="tabla-cuerpo"></tbody>
     </table>
 
     <script>
         const socket = io();
+        let listaProductos = [];
 
-        // El menú base (En el futuro esto vendrá de una Base de Datos)
-        const productos = [
-            { id: 1, nombre: "Combo Frank's Triple", precio: 11.50, category: "combos" },
-            { id: 2, nombre: "Combo Hamburguesa Guayaca", precio: 9.00, category: "combos" },
-            { id: 3, nombre: "Combo Crispy Chicken", precio: 9.50, category: "combos" },
-            { id: 4, nombre: "Coca-Cola Personal", precio: 1.50, category: "bebidas" },
-            { id: 5, nombre: "Té Frío de la Casa", precio: 1.75, category: "bebidas" }
-        ];
+        // Escuchar el menú que nos manda el servidor
+        socket.on('cargar-menu-inicial', (productos) => {
+            listaProductos = productos;
+            renderizarTabla();
+        });
 
-        function inicializarPanel() {
+        socket.on('menu-actualizado-completo', (productos) => {
+            listaProductos = productos;
+            renderizarTabla();
+        });
+
+        function renderizarTabla() {
             const tbody = document.getElementById('tabla-cuerpo');
             tbody.innerHTML = "";
-            productos.forEach(p => {
+            listaProductos.forEach(p => {
                 tbody.innerHTML += `
                     <tr>
                         <td><strong>${p.nombre}</strong></td>
@@ -60,21 +96,49 @@
                         <td>${p.category.toUpperCase()}</td>
                         <td>
                             <label class="switch">
-                                <input type="checkbox" checked onchange="alternarStock(${p.id}, this.checked)">
+                                <input type="checkbox" ${p.disponible ? 'checked' : ''} onchange="alternarStock(${p.id}, this.checked)">
                                 <span class="slider"></span>
                             </label>
+                        </td>
+                        <td>
+                            <button class="btn-borrar" onclick="eliminarPlato(${p.id})">🗑️</button>
                         </td>
                     </tr>
                 `;
             });
         }
 
+        function publicarPlato() {
+            const nombre = document.getElementById('plato-nombre').value.trim();
+            const precio = parseFloat(document.getElementById('plato-precio').value);
+            const category = document.getElementById('plato-categoria').value;
+            let img = document.getElementById('plato-img').value.trim();
+
+            if (!nombre || isNaN(precio)) return alert("Por favor, pon un nombre y un precio válido.");
+
+            // Imagen por defecto si no ponen una
+            if (!img) img = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
+
+            const nuevoPlato = { nombre, precio, category, img };
+
+            // Mandar al servidor en tiempo real
+            socket.emit('agregar-nuevo-producto', nuevoPlato);
+
+            // Limpiar inputs
+            document.getElementById('plato-nombre').value = "";
+            document.getElementById('plato-precio').value = "";
+            document.getElementById('plato-img').value = "";
+        }
+
         function alternarStock(id, disponible) {
-            // ENVIAR EVENTO EN TIEMPO REAL AL SERVIDOR
             socket.emit('actualizar-disponibilidad', { id, disponible });
         }
 
-        window.onload = inicializarPanel;
+        function eliminarPlato(id) {
+            if(confirm("¿Seguro que quieres quitar este plato del menú de hoy?")) {
+                socket.emit('eliminar-producto', id);
+            }
+        }
     </script>
 </body>
 </html>

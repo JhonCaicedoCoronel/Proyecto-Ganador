@@ -114,26 +114,49 @@
 
     <script>
         const socket = io();
-        
-        // Base de datos de productos local con propiedad dinámicas de disponibilidad
-        const productos = [
-            { id: 1, nombre: "Combo Frank's Triple", precio: 11.50, category: "combos", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500", disponible: true },
-            { id: 2, nombre: "Combo Hamburguesa Guayaca", precio: 9.00, category: "combos", img: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500", disponible: true },
-            { id: 3, nombre: "Combo Crispy Chicken", precio: 9.50, category: "combos", img: "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=500", disponible: true },
-            { id: 4, nombre: "Coca-Cola Personal", precio: 1.50, category: "bebidas", img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500", disponible: true },
-            { id: 5, nombre: "Té Frío de la Casa", precio: 1.75, category: "bebidas", img: "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=500", disponible: true }
-        ];
-
+        let productos = []; // Ahora empieza vacío y se llena desde el servidor
         let carrito = [];
         let tipoEntrega = "Comer Aquí";
 
-        // Renderiza el menú completo evaluando si está disponible o no
+        // 1. Escuchar cuando cargue la página el menú del servidor
+        socket.on('cargar-menu-inicial', (menuServidor) => {
+            productos = menuServidor;
+            cargarMenu();
+        });
+
+        // 2. Escuchar si el admin metió un plato o borró uno
+        socket.on('menu-actualizado-completo', (menuServidor) => {
+            productos = menuServidor;
+            // Si borraron un producto que estaba en el carrito, lo limpiamos
+            carrito = carrito.filter(item => productos.some(p => p.id === item.id));
+            cargarMenu();
+            actualizarInterfazCarrito();
+        });
+
+        // 3. Escuchar si solo apagaron el stock de un plato
+        socket.on('menu-disponibilidad-actualizada', (datos) => {
+            const producto = productos.find(p => p.id === datos.id);
+            if (producto) {
+                producto.disponible = datos.disponible;
+                if(!datos.disponible) {
+                    carrito = carrito.filter(item => item.id !== datos.id);
+                }
+                cargarMenu();
+                actualizarInterfazCarrito();
+            }
+        });
+
         function cargarMenu() {
             const contenedorCombos = document.getElementById('menu-combos');
             const contenedorBebidas = document.getElementById('menu-bebidas');
             
             contenedorCombos.innerHTML = "";
             contenedorBebidas.innerHTML = "";
+
+            if(productos.length === 0) {
+                contenedorCombos.innerHTML = "<p style='color:#999; padding: 10px;'>No hay menús registrados para hoy.</p>";
+                return;
+            }
 
             productos.forEach(p => {
                 const html = `
@@ -154,7 +177,7 @@
 
         function agregarAlCarrito(id) {
             const producto = productos.find(p => p.id === id);
-            if (!producto.disponible) return; // Validación extra de seguridad
+            if (!producto || !producto.disponible) return;
 
             const existe = carrito.find(item => item.id === id);
             if (existe) { existe.cantidad++; } 
@@ -223,26 +246,6 @@
             document.getElementById('cliente-notes').value = "";
             actualizarInterfazCarrito();
         }
-
-        // ========================================================
-        // CANAL DE ESCUCHA: ACTUALIZACIÓN INTERACTIVA EN TIEMPO REAL
-        // ========================================================
-        socket.on('menu-disponibilidad-actualizada', (datos) => {
-            const producto = productos.find(p => p.id === datos.id);
-            if (producto) {
-                producto.disponible = datos.disponible; // Mutar el estado local
-                
-                // Si el producto se agotó y el usuario lo tenía en el carrito, lo sacamos automáticamente
-                if(!datos.disponible) {
-                    eliminarDelCarrito(datos.id);
-                }
-                
-                // Volver a renderizar la vista de los platos al instante
-                cargarMenu();
-            }
-        });
-
-        window.onload = cargarMenu;
     </script>
 </body>
 </html>
