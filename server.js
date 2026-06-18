@@ -16,6 +16,22 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
     console.log('📱 Un dispositivo se ha conectado: ' + socket.id);
 
+    // ESCUCHAR CAMBIOS EN EL MENÚ (Admin -> Servidor -> Clientes)
+
+    // 1. Cuando el admin cambia la disponibilidad (Agotado / Disponible)
+    socket.on('actualizar-disponibilidad', (datos) => {
+        console.log(`🔄 Cambio de stock para producto ${datos.id}: Disponible = ${datos.disponible}`);
+        // Retransmite a todos los clientes la actualización
+        io.emit('menu-disponibilidad-actualizada', datos);
+    });
+
+    // 2. Cuando el admin añade un plato nuevo o edita precios
+    socket.on('actualizar-menu-completo', (nuevoMenu) => {
+        console.log('🍔 El menú global ha sido actualizado por el administrador');
+        // Manda el nuevo menú a todos los quioscos y teléfonos
+        io.emit('actualizar-pantalla-clientes', nuevoMenu);
+    });
+    
     // 1. Escuchar cuando el Quiosco o la Web envían un pedido
     socket.on('enviar-pedido', (pedido) => {
         console.log('🍔 ¡Nuevo pedido recibido en el servidor!', pedido);

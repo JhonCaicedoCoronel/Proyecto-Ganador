@@ -20,11 +20,20 @@
         .card-producto { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #eee; transition: 0.2s; }
         .card-producto:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
         .card-producto img { width: 100%; height: 130px; object-fit: cover; }
+        
+        /* Estilos cuando un producto está agotado */
+        .card-producto.agotado { opacity: 0.6; transform: none; box-shadow: none; }
+        .card-producto.agotado img { filter: grayscale(1); }
+
         .info-producto { padding: 12px; }
         .info-producto h3 { font-size: 16px; margin-bottom: 5px; color: #2f3542; }
         .info-producto p { font-size: 14px; color: #ff4757; font-weight: bold; margin-bottom: 10px; }
+        
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-agregar:hover { background: #ee3848; }
+        
+        /* Botón de agotado */
+        .btn-agregar:disabled { background: #a4b0be !important; cursor: not-allowed; }
 
         .checkout-container { width: 35%; background: white; border-left: 1px solid #e0e0e0; padding: 25px; display: flex; flex-direction: column; height: 100%; box-shadow: -4px 0 10px rgba(0,0,0,0.02); }
         .checkout-container h2 { margin-bottom: 15px; color: #2f3542; border-bottom: 2px solid #f1f2f6; padding-bottom: 10px; }
@@ -105,28 +114,37 @@
 
     <script>
         const socket = io();
+        
+        // Base de datos de productos local con propiedad dinámicas de disponibilidad
         const productos = [
-            { id: 1, nombre: "Combo Frank's Triple", precio: 11.50, category: "combos", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500" },
-            { id: 2, nombre: "Combo Hamburguesa Guayaca", precio: 9.00, category: "combos", img: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500" },
-            { id: 3, nombre: "Combo Crispy Chicken", precio: 9.50, category: "combos", img: "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=500" },
-            { id: 4, nombre: "Coca-Cola Personal", precio: 1.50, category: "bebidas", img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500" },
-            { id: 5, nombre: "Té Frío de la Casa", precio: 1.75, category: "bebidas", img: "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=500" }
+            { id: 1, nombre: "Combo Frank's Triple", precio: 11.50, category: "combos", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500", disponible: true },
+            { id: 2, nombre: "Combo Hamburguesa Guayaca", precio: 9.00, category: "combos", img: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500", disponible: true },
+            { id: 3, nombre: "Combo Crispy Chicken", precio: 9.50, category: "combos", img: "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=500", disponible: true },
+            { id: 4, nombre: "Coca-Cola Personal", precio: 1.50, category: "bebidas", img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500", disponible: true },
+            { id: 5, nombre: "Té Frío de la Casa", precio: 1.75, category: "bebidas", img: "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=500", disponible: true }
         ];
 
         let carrito = [];
         let tipoEntrega = "Comer Aquí";
 
+        // Renderiza el menú completo evaluando si está disponible o no
         function cargarMenu() {
             const contenedorCombos = document.getElementById('menu-combos');
             const contenedorBebidas = document.getElementById('menu-bebidas');
+            
+            contenedorCombos.innerHTML = "";
+            contenedorBebidas.innerHTML = "";
+
             productos.forEach(p => {
                 const html = `
-                    <div class="card-producto">
+                    <div class="card-producto ${p.disponible ? '' : 'agotado'}" id="prod-card-${p.id}">
                         <img src="${p.img}">
                         <div class="info-producto">
                             <h3>${p.nombre}</h3>
                             <p>$${p.precio.toFixed(2)}</p>
-                            <button class="btn-agregar" onclick="agregarAlCarrito(${p.id})">Agregar +</button>
+                            <button class="btn-agregar" id="btn-prod-${p.id}" onclick="agregarAlCarrito(${p.id})" ${p.disponible ? '' : 'disabled'}>
+                                ${p.disponible ? 'Agregar +' : 'Agotado ❌'}
+                            </button>
                         </div>
                     </div>`;
                 if(p.category === "combos") contenedorCombos.innerHTML += html;
@@ -136,6 +154,8 @@
 
         function agregarAlCarrito(id) {
             const producto = productos.find(p => p.id === id);
+            if (!producto.disponible) return; // Validación extra de seguridad
+
             const existe = carrito.find(item => item.id === id);
             if (existe) { existe.cantidad++; } 
             else { carrito.push({ ...producto, cantidad: 1 }); }
@@ -146,10 +166,6 @@
             carrito = carrito.filter(item => item.id !== id);
             actualizarInterfazCarrito();
         }
-
-        document.addEventListener("DOMContentLoaded", () => {
-             actualizarInterfazCarrito();
-        });
 
         function actualizarInterfazCarrito() {
             const contenedor = document.getElementById('carrito-items');
@@ -207,6 +223,24 @@
             document.getElementById('cliente-notes').value = "";
             actualizarInterfazCarrito();
         }
+
+        // ========================================================
+        // CANAL DE ESCUCHA: ACTUALIZACIÓN INTERACTIVA EN TIEMPO REAL
+        // ========================================================
+        socket.on('menu-disponibilidad-actualizada', (datos) => {
+            const producto = productos.find(p => p.id === datos.id);
+            if (producto) {
+                producto.disponible = datos.disponible; // Mutar el estado local
+                
+                // Si el producto se agotó y el usuario lo tenía en el carrito, lo sacamos automáticamente
+                if(!datos.disponible) {
+                    eliminarDelCarrito(datos.id);
+                }
+                
+                // Volver a renderizar la vista de los platos al instante
+                cargarMenu();
+            }
+        });
 
         window.onload = cargarMenu;
     </script>

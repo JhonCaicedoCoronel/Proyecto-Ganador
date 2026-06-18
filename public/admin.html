@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Administración - Frank's Burgers</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f2f6; padding: 30px; color: #2f3542; }
+        h1 { border-bottom: 3px solid #ffa502; padding-bottom: 10px; margin-bottom: 25px; }
+        .tabla-menu { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .tabla-menu th, .tabla-menu td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .tabla-menu th { background: #2f3542; color: white; }
+        
+        /* Switch de disponibilidad */
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2ed573; }
+        input:checked + .slider:before { transform: translateX(24px); }
+    </style>
+</head>
+<body>
+
+    <h1>⚙️ Panel de Control de Menú (Tiempo Real)</h1>
+    <table class="tabla-menu">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Categoría</th>
+                <th>Disponibilidad en Web/Celular</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-cuerpo">
+            <!-- Los productos se cargarán aquí -->
+        </tbody>
+    </table>
+
+    <script>
+        const socket = io();
+
+        // El menú base (En el futuro esto vendrá de una Base de Datos)
+        const productos = [
+            { id: 1, nombre: "Combo Frank's Triple", precio: 11.50, category: "combos" },
+            { id: 2, nombre: "Combo Hamburguesa Guayaca", precio: 9.00, category: "combos" },
+            { id: 3, nombre: "Combo Crispy Chicken", precio: 9.50, category: "combos" },
+            { id: 4, nombre: "Coca-Cola Personal", precio: 1.50, category: "bebidas" },
+            { id: 5, nombre: "Té Frío de la Casa", precio: 1.75, category: "bebidas" }
+        ];
+
+        function inicializarPanel() {
+            const tbody = document.getElementById('tabla-cuerpo');
+            tbody.innerHTML = "";
+            productos.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${p.nombre}</strong></td>
+                        <td>$${p.precio.toFixed(2)}</td>
+                        <td>${p.category.toUpperCase()}</td>
+                        <td>
+                            <label class="switch">
+                                <input type="checkbox" checked onchange="alternarStock(${p.id}, this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function alternarStock(id, disponible) {
+            // ENVIAR EVENTO EN TIEMPO REAL AL SERVIDOR
+            socket.emit('actualizar-disponibilidad', { id, disponible });
+        }
+
+        window.onload = inicializarPanel;
+    </script>
+</body>
+</html>
