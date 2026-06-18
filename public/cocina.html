@@ -1,26 +1,57 @@
-socket.on('notificar-cocina', (pedido) => {
-    const div = document.createElement('div');
-    const esEfectivo = pedido.pago && pedido.pago.includes('Efectivo');
-    div.className = `tarjeta-pedido ${esEfectivo ? 'pendiente' : ''}`;
-    
-    div.innerHTML = `
-        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:18px; margin-bottom:8px;">
-            <span>🆔 Pedido #${pedido.id}</span>
-            <span style="color: #ffa502;">${pedido.tipo === 'Para Llevar' ? '🛍️' : '🍽️'}</span>
-        </div>
-        <p><strong>Cliente:</strong> ${pedido.cliente}</p>
-        <p style="background: #2f3542; padding: 8px; border-radius: 4px; margin: 8px 0; color: #fff;">
-            <strong>Orden:</strong> ${pedido.item}
-        </p>
-        <p><strong>Notas:</strong> <span style="color:#ff4757; font-style:italic;">${pedido.notas}</span></p>
-        <p><strong>Pago:</strong> ${pedido.pago}</p>
-        <div style="text-align:right; margin-top:10px;">
-            <small>⏰ ${pedido.horaRegistro}</small>
-        </div>
-    `;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pantalla de Cocina (KDS)</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #2f3542; color: white; padding: 20px; margin: 0; }
+        h1 { border-bottom: 2px solid #747d8c; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; }
+        .contenedor-pedidos { display: flex; flex-wrap: wrap; gap: 20px; }
+        .tarjeta-pedido { background: #57606f; border-left: 8px solid #2ed573; padding: 15px; border-radius: 8px; width: 280px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .tarjeta-pedido.pendiente { border-left-color: #ffa502; background: #4b5261; } 
+    </style>
+</head>
+<body>
 
-    listaPedidos.prepend(div);
+    <h1>👨‍🍳 Panel de Cocina en Tiempo Real (KDS)</h1>
+    <div class="contenedor-pedidos" id="listaPedidos"></div>
 
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
-    audio.play().catch(e => console.log("Audio en espera"));
-});
+    <script>
+        const socket = io();
+        const listaPedidos = document.getElementById('listaPedidos');
+
+        socket.on('notificar-cocina', (pedido) => {
+            const div = document.createElement('div');
+            
+            // Escudo protector contra errores de undefined
+            const esEfectivo = pedido.pago && pedido.pago.includes('Efectivo');
+            div.className = `tarjeta-pedido ${esEfectivo ? 'pendiente' : ''}`;
+            
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px; margin-bottom:10px; border-bottom: 1px dashed #747d8c; padding-bottom: 5px;">
+                    <span>🆔 Pedido #${pedido.id}</span>
+                    <span>${pedido.tipo === 'Para Llevar' ? '🛍️' : '🍽️'}</span>
+                </div>
+                <p style="margin: 5px 0;"><strong>Cliente:</strong> ${pedido.cliente}</p>
+                
+                <div style="background: #2f3542; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 15px; border-left: 3px solid #ff4757;">
+                    <strong>Orden:</strong> ${pedido.item}
+                </div>
+                
+                <p style="font-size: 13px; margin: 5px 0;"><strong>Notas:</strong> <span style="color:#ffa502; font-style:italic;">${pedido.notes || "Ninguna"}</span></p>
+                <p style="font-size: 13px; margin: 5px 0;"><strong>Pago:</strong> ${pedido.pago}</p>
+                
+                <div style="text-align:right; margin-top:12px; font-size:11px; color:#a4b0be;">
+                    ⏰ ${pedido.horaRegistro}
+                </div>
+            `;
+
+            listaPedidos.prepend(div);
+
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
+            audio.play().catch(e => console.log("Audio en espera de interacción"));
+        });
+    </script>
+</body>
+</html>

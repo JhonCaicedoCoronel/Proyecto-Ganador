@@ -9,7 +9,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #f8f9fa; display: flex; height: 100vh; color: #333; }
         
-        /* Contenedor Izquierdo: Menú */
         .menu-container { width: 65%; padding: 25px; overflow-y: auto; height: 100%; }
         .header { margin-bottom: 25px; border-bottom: 3px solid #ff4757; padding-bottom: 10px; }
         .header h1 { color: #ff4757; font-size: 28px; }
@@ -27,7 +26,6 @@
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-agregar:hover { background: #ee3848; }
 
-        /* Contenedor Derecho: Carrito y Pago */
         .checkout-container { width: 35%; background: white; border-left: 1px solid #e0e0e0; padding: 25px; display: flex; flex-direction: column; height: 100%; box-shadow: -4px 0 10px rgba(0,0,0,0.02); }
         .checkout-container h2 { margin-bottom: 15px; color: #2f3542; border-bottom: 2px solid #f1f2f6; padding-bottom: 10px; }
         
@@ -37,7 +35,6 @@
         
         .total-box { background: #f1f2f6; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 20px; }
         
-        /* Formulario de cliente */
         .form-grupo { margin-bottom: 12px; }
         .form-grupo label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #57606f; }
         .form-grupo input, .form-grupo select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
@@ -56,7 +53,7 @@
             .card-producto img { height: 100px; }
             .info-producto h3 { font-size: 14px; }
             .checkout-container { width: 100%; height: auto; border-left: none; border-top: 2px solid #ff4757; padding: 20px; background: #ffffff; }
-    
+        }
     </style>
 </head>
 <body>
@@ -66,39 +63,32 @@
             <h1>🍔 Frank's Burgers</h1>
             <p>Pide rápido, come delicioso | Sistema de Autocobro en Tiempo Real</p>
         </div>
-
         <div class="seccion-titulo">Combos Populares</div>
         <div class="grid-productos" id="menu-combos"></div>
-
         <div class="seccion-titulo">Bebidas Frías</div>
         <div class="grid-productos" id="menu-bebidas"></div>
     </div>
 
     <div class="checkout-container">
         <h2>Tu Pedido</h2>
-        
         <div class="lista-carrito" id="carrito-items">
             <p style="color: #999; text-align: center; margin-top: 20px;">El carrito está vacío</p>
         </div>
-
         <div class="total-box">
             <span>Total:</span>
             <span id="total-precio">$0.00</span>
         </div>
-
         <div class="form-grupo">
             <label for="cliente-nombre">¿A nombre de quién el pedido?</label>
             <input type="text" id="cliente-nombre" placeholder="Escribe tu nombre">
         </div>
-
         <div class="form-grupo">
             <label>Opciones de entrega</label>
             <div class="opciones-flex">
-                <div class="radio-btn active" id="opt-aqui" onclick="setEntrega('Para servirse')">Para servirse 🍽️</div>
+                <div class="radio-btn active" id="opt-aqui" onclick="setEntrega('Comer Aquí')">Comer Aquí 🍽️</div>
                 <div class="radio-btn" id="opt-llevar" onclick="setEntrega('Para Llevar')">Para Llevar 🛍️</div>
             </div>
         </div>
-
         <div class="form-grupo">
             <label>Método de Pago</label>
             <select id="metodo-pago">
@@ -106,61 +96,49 @@
                 <option value="Efectivo (Pendiente)">💵 Pagar en Efectivo (En Caja)</option>
             </select>
         </div>
-
         <div class="form-grupo">
             <label for="cliente-notas">Notas o instrucciones especiales</label>
             <input type="text" id="cliente-notes" placeholder="Ej. Sin cebolla, carne bien cocida...">
         </div>
-
         <button class="btn-finalizar" onclick="procesarPedido()">ENVIAR A COCINA 🚀</button>
     </div>
 
     <script>
         const socket = io();
-
-        // Base de datos local de productos (Simulada para el frontend)
         const productos = [
-            { id: 1, nombre: "Combo Frank's Triple", precio: 11.50, categoria: "combos", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500" },
-            { id: 2, nombre: "Combo Hamburguesa Guayaca", precio: 9.00, categoria: "combos", img: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500" },
-            { id: 3, nombre: "Combo Crispy Chicken", precio: 9.50, categoria: "combos", img: "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=500" },
-            { id: 4, nombre: "Coca-Cola Personal", precio: 1.50, categoria: "bebidas", img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500" },
-            { id: 5, nombre: "Té Frío de la Casa", precio: 1.75, categoria: "bebidas", img: "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=500" }
+            { id: 1, nombre: "Combo Frank's Triple", precio: 11.50, category: "combos", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500" },
+            { id: 2, nombre: "Combo Hamburguesa Guayaca", precio: 9.00, category: "combos", img: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500" },
+            { id: 3, nombre: "Combo Crispy Chicken", precio: 9.50, category: "combos", img: "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=500" },
+            { id: 4, nombre: "Coca-Cola Personal", precio: 1.50, category: "bebidas", img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500" },
+            { id: 5, nombre: "Té Frío de la Casa", precio: 1.75, category: "bebidas", img: "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=500" }
         ];
 
         let carrito = [];
-        let tipoEntrega = "Para servirse";
+        let tipoEntrega = "Comer Aquí";
 
-        // Renderizar el menú dinámicamente
         function cargarMenu() {
             const contenedorCombos = document.getElementById('menu-combos');
             const contenedorBebidas = document.getElementById('menu-bebidas');
-
             productos.forEach(p => {
                 const html = `
                     <div class="card-producto">
-                        <img src="${p.img}" alt="${p.nombre}">
+                        <img src="${p.img}">
                         <div class="info-producto">
                             <h3>${p.nombre}</h3>
                             <p>$${p.precio.toFixed(2)}</p>
                             <button class="btn-agregar" onclick="agregarAlCarrito(${p.id})">Agregar +</button>
                         </div>
-                    </div>
-                `;
-                if(p.categoria === "combos") contenedorCombos.innerHTML += html;
+                    </div>`;
+                if(p.category === "combos") contenedorCombos.innerHTML += html;
                 else contenedorBebidas.innerHTML += html;
             });
         }
 
-        // Manejo del Carrito
         function agregarAlCarrito(id) {
             const producto = productos.find(p => p.id === id);
             const existe = carrito.find(item => item.id === id);
-
-            if (existe) {
-                existe.cantidad++;
-            } else {
-                carrito.push({ ...producto, cantidad: 1 });
-            }
+            if (existe) { existe.cantidad++; } 
+            else { carrito.push({ ...producto, cantidad: 1 }); }
             actualizarInterfazCarrito();
         }
 
@@ -169,83 +147,67 @@
             actualizarInterfazCarrito();
         }
 
+        document.addEventListener("DOMContentLoaded", () => {
+             actualizarInterfazCarrito();
+        });
+
         function actualizarInterfazCarrito() {
             const contenedor = document.getElementById('carrito-items');
             const totalTxt = document.getElementById('total-precio');
-            
             if (carrito.length === 0) {
                 contenedor.innerHTML = `<p style="color: #999; text-align: center; margin-top: 20px;">El carrito está vacío</p>`;
                 totalTxt.innerText = "$0.00";
                 return;
             }
-
             contenedor.innerHTML = "";
             let total = 0;
-
             carrito.forEach(item => {
                 total += item.precio * item.cantidad;
                 contenedor.innerHTML += `
                     <div class="item-carrito">
-                        <div>
-                            <strong>${item.cantidad}x</strong> ${item.nombre}
-                        </div>
+                        <div><strong>${item.cantidad}x</strong> ${item.nombre}</div>
                         <div>
                             <span>$${(item.precio * item.cantidad).toFixed(2)}</span>
                             <button class="btn-eliminar" onclick="eliminarDelCarrito(${item.id})">❌</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
-
             totalTxt.innerText = `$${total.toFixed(2)}`;
         }
 
         function setEntrega(tipo) {
             tipoEntrega = tipo;
-            document.getElementById('opt-aqui').classList.toggle('active', tipo === 'Para servirse');
+            document.getElementById('opt-aqui').classList.toggle('active', tipo === 'Comer Aquí');
             document.getElementById('opt-llevar').classList.toggle('active', tipo === 'Para Llevar');
         }
 
-        // Construir el paquete completo del pedido y mandarlo por WebSockets
         function procesarPedido() {
             const nombre = document.getElementById('cliente-nombre').value.trim();
             const pago = document.getElementById('metodo-pago').value;
             const notas = document.getElementById('cliente-notes').value.trim();
 
-            if (carrito.length === 0) {
-                alert("Por favor, agrega al menos un producto a tu pedido.");
-                return;
-            }
-            if (!nombre) {
-                alert("Por favor, ingresa tu nombre para llamarte cuando el pedido esté listo.");
-                return;
-            }
+            if (carrito.length === 0) return alert("Agrega productos a tu pedido.");
+            if (!nombre) return alert("Ingresa tu nombre para el pedido.");
 
-            // Mapeamos los ítems para enviarlos de forma limpia
             const listaItemsTexto = carrito.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
-
             const pedidoFinal = {
-                id: Math.floor(Math.random() * 9000) + 1000, // Número de pedido de 4 dígitos tipo McDonald's
+                id: Math.floor(Math.random() * 9000) + 1000, 
                 cliente: nombre,
                 item: listaItemsTexto,
                 tipo: tipoEntrega,
                 pago: pago,
-                notas: notas || "Ninguna"
+                notes: notas || "Ninguna"
             };
 
-            // ¡VIAJE EN TIEMPO REAL AL SERVIDOR!
             socket.emit('enviar-pedido', pedidoFinal);
-
-            alert(`🚀 ¡Pedido #${pedidoFinal.id} enviado con éxito! \nMétodo: ${pago}\nEstado: Enviado a cocina.`);
+            alert(`🚀 ¡Pedido #${pedidoFinal.id} enviado con éxito!`);
             
-            // Limpiar todo para el siguiente cliente
             carrito = [];
             document.getElementById('cliente-nombre').value = "";
             document.getElementById('cliente-notes').value = "";
             actualizarInterfazCarrito();
         }
 
-        // Inicializar el catálogo al cargar la página
         window.onload = cargarMenu;
     </script>
 </body>
