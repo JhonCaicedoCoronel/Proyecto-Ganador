@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Monitor de Sala Pro</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1e222b; color: white; padding: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 25px; }
+        .box { background: #2f3542; padding: 20px; border-radius: 12px; text-align: center; border-top: 8px solid #2ed573; }
+        .box.disponible { border-top-color: #2ed573; }
+        .box.ocupada { border-top-color: #ff4757; }
+        .box.sucia { border-top-color: #ffa502; }
+        select { width: 100%; padding: 8px; background: #3d4452; color: white; border: none; border-radius: 4px; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1 style="margin-bottom:25px;">🪑 Gestión Operativa de Distribución de Mesas</h1>
+    <div class="grid" id="mesas-box"></div>
+
+    <script>
+        const socket = io();
+        socket.on('cargar-mesas-inicial', drawMesas);
+        socket.on('mesas-actualizadas', drawMesas);
+
+        function drawMesas(mesas) {
+            const c = document.getElementById('mesas-box'); c.innerHTML = "";
+            mesas.forEach(m => {
+                c.innerHTML += `
+                    <div class="box ${m.estado}">
+                        <h3>Mesa ${m.numero}</h3>
+                        <p style="font-size:12px; color:#a4b0be; margin:5px 0;">📍 Ubicación: <strong>${m.ubicacion}</strong></p>
+                        <p style="font-size:12px; color:#ccc;">Capacidad: ${m.capacity || m.capacidad} pers.</p>
+                        <select onchange="updateMesa(${m.numero}, this.value)">
+                            <option value="disponible" ${m.estado==='disponible'?'selected':''}>🟢 Libre</option>
+                            <option value="ocupada" ${m.estado==='ocupada'?'selected':''}>🔴 Ocupada</option>
+                            <option value="sucia" ${m.estado==='sucia'?'selected':''}>🟡 Sucia</option>
+                        </select>
+                    </div>`;
+            });
+        }
+        function updateMesa(n, est) { socket.emit('cambiar-estado-mesa', { numero: n, estado: est }); }
+    </script>
+</body>
+</html>
