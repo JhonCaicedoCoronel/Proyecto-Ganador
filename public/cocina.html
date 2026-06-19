@@ -2,72 +2,262 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>KDS - Pantalla de Cocina Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frank's Burgers - Quiosco de Flujo Rápido</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1e222b; color: white; padding: 20px; margin: 0; }
-        .grid-kds { display: flex; flex-wrap: wrap; gap: 20px; }
-        .card-kds { background: #2f3542; padding: 15px; border-radius: 8px; width: 310px; border-left: 8px solid #2ed573; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .card-kds.remoto-tarjeta { border-left-color: #a8a8ff; background: #222533; }
-        .card-kds.remoto-efectivo { border-left-color: #ffa502; background: #3a3225; }
-        .card-kds.local-efectivo { border-left-color: #ff4757; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 5px; background: #57606f; }
-        .alergia-alert { background: #ff4757; color: white; padding: 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-top: 5px; border: 1px dashed white; }
-        .btn-ready { background: #2ed573; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f8f9fa; min-height: 100vh; overflow-x: hidden; }
+        
+        .main-layout { width: 100%; padding: 30px 10% 80px 10%; position: relative; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 15px; margin-bottom: 30px; }
+        
+        .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 14px 28px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(255,71,87,0.3); display: flex; align-items: center; gap: 8px; }
+        
+        .seccion-titulo { margin: 25px 0 15px 0; color: #2f3542; font-size: 22px; border-left: 5px solid #ffa502; padding-left: 10px; }
+        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 20px; }
+        .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .card-producto img { width: 100%; height: 140px; object-fit: cover; }
+        .info-producto { padding: 15px; }
+        .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+
+        /* VENTANAS MODALES EMERGENTES (CARRITO Y POST-VENTA) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none; }
+        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; }
+        .close-modal { position: absolute; top: 15px; right: 15px; font-size: 22px; cursor: pointer; background: none; border: none; color: #57606f; }
+
+        .lista-items { margin: 15px 0; background: #f1f2f6; padding: 15px; border-radius: 8px; }
+        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ced4da; font-size: 15px; }
+        .form-grupo { margin-bottom: 15px; }
+        .form-grupo label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #2f3542; }
+        .form-grupo input, .form-grupo select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+
+        /* BOT INTEGRADO */
+        .frank-bot { background: #2f3542; color: white; padding: 20px; border-radius: 12px; margin-top: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .frank-bot select { width: 100%; padding: 8px; margin-top: 10px; border-radius: 6px; border: none; font-size: 14px; }
+
+        /* VISTA FILA VIRTUAL */
+        .turno-badge { font-size: 48px; font-weight: bold; color: #ff4757; text-align: center; margin: 20px 0; background: #fff1f2; border-radius: 10px; padding: 10px; border: 2px dashed #ff4757; }
+        .btn-opcional { background: #2ed573; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; }
+        .btn-saltar { background: none; border: none; color: #57606f; text-decoration: underline; width: 100%; margin-top: 15px; cursor: pointer; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <h1 style="margin-bottom:20px;">👨‍🍳 KDS - Control de Producción y Tiempos de Arribo</h1>
-    <div class="grid-kds" id="kds-contenedor"></div>
+    <div class="main-layout">
+        <div class="header">
+            <div>
+                <h1 style="color:#ff4757; font-size: 32px;">🍔 Frank's Burgers</h1>
+                <p style="color:#666; font-size:14px;">Quiosco Digital Autónomo</p>
+            </div>
+            <button class="btn-ver-carrito" onclick="abrirCarrito()">
+                🛒 Ver Mi Carrito (<span id="cart-count">0</span>)
+            </button>
+        </div>
+
+        <div class="seccion-titulo">Platos Disponibles</div>
+        <div class="grid-productos" id="menu-combos"></div>
+        
+        <div class="seccion-titulo">Bebidas Heladas</div>
+        <div class="grid-productos" id="menu-bebidas"></div>
+
+        <!-- BOT DE CONSULTAS -->
+        <div class="frank-bot">
+            <strong style="color:#ffa502; font-size:16px;">🤖 FrankBot - Asistente de Menú</strong>
+            <select onchange="preguntarBot(this.value)">
+                <option value="">-- Haz una pregunta rápida aquí --</option>
+                <option value="ingredientes">¿Qué ingredientes tienen las hamburguesas?</option>
+                <option value="alergias">¿Tienen opciones sin gluten o lactosa?</option>
+                <option value="promocion">¿Cómo gano la promoción del día?</option>
+            </select>
+            <div id="bot-respuesta" style="font-size:14px; margin-top:12px; color:#ffa502; font-style:italic;"></div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: DETALLES DEL CARRITO ARCHIVADO (SOLO EN CLIC) -->
+    <div class="modal-overlay" id="modal-carrito">
+        <div class="modal-content">
+            <button class="close-modal" onclick="cerrarCarrito()">✕</button>
+            <h2 style="color:#2f3542; margin-bottom:15px;">🛒 Tu Carrito de Compras</h2>
+            
+            <div class="lista-items" id="carrito-contenedor">
+                <p style="color:#999; text-align:center;">No has añadido productos aún.</p>
+            </div>
+
+            <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:20px; padding:0 5px;">
+                <span>Total de la Orden:</span><span id="total-txt" style="color:#ff4757;">$0.00</span>
+            </div>
+
+            <div class="form-grupo">
+                <label>Tu Nombre completo</label>
+                <input type="text" id="cliente-nombre" placeholder="Ej. Juan Pérez">
+            </div>
+
+            <div class="form-grupo">
+                <label>¿Dónde vas a consumir?</label>
+                <select id="cliente-tipo" onchange="cambiarModalidad(this.value)">
+                    <option value="Comer Aquí">🍽️ Comer Aquí (Sujeto a disponibilidad de mesas)</option>
+                    <option value="Para Llevar">🛍️ Para Llevar</option>
+                    <option value="Pre-orden Remota 👻">🚗 Pre-orden Remota / En camino 👻</option>
+                </select>
+                <input type="number" id="tiempo-eta" value="15" min="5" placeholder="¿En cuántos minutos llegas?" style="display:none; margin-top:8px;">
+            </div>
+
+            <div class="form-grupo">
+                <label>Forma de Pago</label>
+                <select id="cliente-pago">
+                    <option value="Tarjeta">💳 Tarjeta (Procesar de inmediato)</option>
+                    <option value="Efectivo">💵 Efectivo (Pagar al retirar en caja)</option>
+                </select>
+            </div>
+
+            <button style="background:#2ed573; color:white; border:none; width:100%; padding:14px; border-radius:8px; font-weight:bold; font-size:16px; margin-top:15px; cursor:pointer;" onclick="enviarOrdenFinal()">
+                CONFIRMAR Y PEDIR 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 2: FILA VIRTUAL + ENCUESTA OPCIONAL POST-PEDIDO -->
+    <div class="modal-overlay" id="modal-postventa">
+        <div class="modal-content" style="text-align: center;">
+            <h2 style="color:#2ed573;">🎉 ¡Pedido Recibido Exitosamente!</h2>
+            <p style="color:#57606f; margin-top:5px; font-size:14px;">Tu orden ya se encuentra en los monitores de cocina.</p>
+            
+            <!-- FILA VIRTUAL INTEGRADA -->
+            <p style="margin-top:20px; font-weight:bold; color:#2f3542;">TU TURNO EN LA FILA VIRTUAL:</p>
+            <div class="turno-badge" id="txt-turno-asignado">#00</div>
+
+            <div style="background:#f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-top:25px; text-align: left;">
+                <strong style="color:#26af5f; display:block; font-size:14px; margin-bottom:10px; text-align:center;">🎁 Encuesta Opcional (¡Gana Papas de la Casa!)</strong>
+                
+                <div class="form-grupo">
+                    <label>¿Tienes alguna alergia alimentaria?</label>
+                    <input type="text" id="encuesta-alergia" placeholder="Ej. Maní, Mariscos, Gluten (O deja vacío)">
+                </div>
+                
+                <div class="form-grupo">
+                    <label>¿Cuál es tu tipo de hamburguesa favorita?</label>
+                    <select id="encuesta-gusto">
+                        <option value="Carne Res">Res Premium Jugosa 🥩</option>
+                        <option value="Pollo Crispy">Pollo Crocante / Crispy 🍗</option>
+                        <option value="Vegetariana">Opciones ligeras / Veggie 🍃</option>
+                    </select>
+                </div>
+                
+                <button class="btn-opcional" onclick="guardarEncuestaOpcional()">Enviar Encuesta y Reclamar Premio 🎁</button>
+            </div>
+
+            <button class="btn-saltar" onclick="finalizarTodoSinEncuesta()">Saltar paso / No deseo la promoción</button>
+        </div>
+    </div>
 
     <script>
         const socket = io();
-        const cont = document.getElementById('kds-contenedor');
+        let productos = []; let carrito = []; let mesasDisponibles = 0; let ultimoNombreCliente = "";
 
-        socket.on('notificar-cocina', (p) => {
-            const div = document.createElement('div');
-            div.id = `kds-${p.id}`;
-            
-            // Lógica de asignación de clases según las especificaciones operativas fijadas
-            let claseEspecial = "card-kds";
-            if(p.esFantasma) {
-                claseEspecial += (p.pago === 'Tarjeta') ? " remoto-tarjeta" : " remoto-efectivo";
-            } else {
-                if(p.pago === 'Efectivo') claseEspecial += " local-efectivo";
-            }
+        socket.on('cargar-menu-inicial', (data) => { productos = data; renderMenu(); });
+        socket.on('menu-actualizado-completo', (data) => { productos = data; renderMenu(); });
+        socket.on('cargar-mesas-inicial', (m) => { mesasDisponibles = m.filter(x => x.estado === 'disponible').length; });
+        socket.on('mesas-actualizadas', (m) => { mesasDisponibles = m.filter(x => x.estado === 'disponible').length; });
 
-            // Validar si el cliente reportó alergias críticas
-            let htmlAlergia = "";
-            if(p.perfilCliente && p.perfilCliente.alergias.toLowerCase() !== "ninguna" && p.perfilCliente.alergias !== "") {
-                htmlAlergia = `<div class="alergia-alert">⚠️ ALERGIA REPORTE: ${p.perfilCliente.alergias.toUpperCase()}</div>`;
-            }
-
-            div.className = claseEspecial;
-            div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; font-weight:bold; border-bottom:1px solid #4b5261; padding-bottom:5px;">
-                    <span>🆔 Orden #${p.id}</span>
-                    <span>${p.tipo.includes('Remota') ? '🚗' : '🍽️'}</span>
-                </div>
-                <p style="margin:8px 0 3px 0;"><strong>Cliente:</strong> ${p.cliente}</p>
-                <div style="font-size:12px; color:#ffa502; font-weight:bold;">⚙️ Estado: ${p.estadoCocinaTexto}</div>
-                <div style="font-size:12px; color:#a4b0be;">⏱️ Arribo Estimado: ${p.horaLlegadaEstimada}</div>
-                
-                ${htmlAlergia}
-
-                <div style="background:#1e222b; padding:10px; border-radius:6px; margin:10px 0; font-size:14px; font-weight:bold; border-left:3px solid #ff4757;">
-                    ${p.item}
-                </div>
-
-                <div style="font-size:11px; color:#a4b0be; text-align:right;">Ingreso: ${p.horaRegistro}</div>
-                <button class="btn-ready" onclick="despachar(${p.id})">✓ Despachar / Entregado 🚀</button>
-            `;
-            cont.prepend(div);
+        // Escuchar el número de turno exacto de la fila virtual desde el servidor
+        socket.on('confirmacion-turno-cliente', (data) => {
+            document.getElementById('txt-turno-asignado').innerText = `#${data.turno}`;
+            document.getElementById('modal-postventa').style.display = 'flex';
         });
 
-        function despachar(id) {
-            const el = document.getElementById(`kds-${id}`);
-            if(el) { el.remove(); socket.emit('pedido-despachado-cocina', id); }
+        function renderMenu() {
+            const combos = document.getElementById('menu-combos'); const bebidas = document.getElementById('menu-bebidas');
+            combos.innerHTML = ""; bebidas.innerHTML = "";
+            productos.forEach(p => {
+                const html = `
+                    <div class="card-producto">
+                        <img src="${p.img}">
+                        <div class="info-producto">
+                            <strong style="font-size:15px; display:block; height:40px;">${p.nombre}</strong>
+                            <p style="color:#ff4757; font-size:14px; font-weight:bold; margin-top:5px;">$${p.precio.toFixed(2)} <span style="font-size:11px; color:#666; font-weight:normal;">(${p.stock} disp.)</span></p>
+                            <button class="btn-agregar" onclick="addToCart(${p.id})" ${p.stock>0?'':'disabled'}>${p.stock>0?'Agregar +':'Agotado'}</button>
+                        </div>
+                    </div>`;
+                if(p.category === 'combos') combos.innerHTML += html; else bebidas.innerHTML += html;
+            });
+        }
+
+        function addToCart(id) {
+            const p = productos.find(x => x.id === id);
+            const existe = carrito.find(x => x.id === id);
+            if(existe) { if(existe.cantidad < p.stock) existe.cantidad++; } else { carrito.push({...p, cantidad:1}); }
+            document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const cont = document.getElementById('carrito-contenedor'); cont.innerHTML = "";
+            let total = 0;
+            if(carrito.length === 0) { cont.innerHTML = "<p style='color:#999; text-align:center;'>El carrito está vacío</p>"; document.getElementById('total-txt').innerText = "$0.00"; return; }
+            carrito.forEach(c => {
+                total += c.precio * c.cantidad;
+                cont.innerHTML += `<div class="item-row"><span>${c.cantidad}x ${c.nombre}</span><span>$${(c.precio*c.cantidad).toFixed(2)}</span></div>`;
+            });
+            document.getElementById('total-txt').innerText = `$${total.toFixed(2)}`;
+        }
+
+        function abrirCarrito() { document.getElementById('modal-carrito').style.display = 'flex'; }
+        function cerrarCarrito() { document.getElementById('modal-carrito').style.display = 'none'; }
+        function cambiarModalidad(val) { document.getElementById('tiempo-eta').style.display = (val.includes('Remota')) ? 'block' : 'none'; }
+
+        function preguntarBot(tipo) {
+            const res = document.getElementById('bot-respuesta');
+            if(tipo === 'ingredientes') res.innerText = "🍔 Carne de res artesanal de 180g, queso cheddar fundido y pan suave de masa madre.";
+            else if(tipo === 'alergias') res.innerText = "🌾 ¡Importante! Al finalizar tu pedido podrás rellenar la encuesta opcional indicando tus alergias para alertar a los chefs.";
+            else if(tipo === 'promocion') res.innerText = "🎁 Completa el formulario de perfil opcional tras enviar tu pedido y reclama una porción de papas fritas crujientes.";
+            else res.innerText = "";
+        }
+
+        function enviarOrdenFinal() {
+            const nombre = document.getElementById('cliente-nombre').value.trim();
+            const tipo = document.getElementById('cliente-tipo').value;
+            const pago = document.getElementById('cliente-pago').value;
+
+            if(carrito.length === 0 || !nombre) return alert("Por favor ingresa tu nombre y añade artículos al carrito.");
+            if(tipo === "Comer Aquí" && mesasDisponibles === 0) return alert("Establecimiento lleno. Elige 'Para Llevar' o 'Pre-orden Remota' para asegurar tu comida sin esperar mesa.");
+
+            ultimoNombreCliente = nombre;
+
+            const pedido = {
+                id: Math.floor(Math.random() * 9000) + 1000,
+                cliente: nombre,
+                item: carrito.map(c => `${c.cantidad}x ${c.nombre}`).join(', '),
+                tipo: tipo,
+                pago: pago,
+                minutosEstimados: document.getElementById('tiempo-eta').value,
+                productosComprados: carrito.map(c => ({id: c.id, cantidad: c.cantidad}))
+            };
+
+            const canal = tipo.includes('Remota') ? 'enviar-preorden-fantasma' : 'enviar-pedido';
+            socket.emit(canal, pedido);
+            
+            // Limpieza inicial y cierre del carrito
+            carrito = []; document.getElementById('cart-count').innerText = "0";
+            updateCartUI(); document.getElementById('cliente-nombre').value = "";
+            cerrarCarrito();
+        }
+
+        function guardarEncuestaOpcional() {
+            const alergia = document.getElementById('encuesta-alergia').value.trim() || "Ninguna";
+            const gusto = document.getElementById('encuesta-gusto').value;
+            
+            socket.emit('guardar-encuesta-opcional', {
+                cliente: ultimoNombreCliente,
+                alergias: alergia,
+                preferencias: gusto
+            });
+            alert("🎁 ¡Encuesta registrada! Reclama tus papas fritas gratis en caja mostrando tu número de turno.");
+            document.getElementById('modal-postventa').style.display = 'none';
+        }
+
+        function finalizarTodoSinEncuesta() {
+            document.getElementById('modal-postventa').style.display = 'none';
         }
     </script>
 </body>

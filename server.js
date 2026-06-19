@@ -18,70 +18,77 @@ let menuProductos = [
 let estadoMesas = [
     { numero: 1, capacidad: 2, ubicacion: "Interior", estado: "disponible" },
     { numero: 2, capacidad: 4, ubicacion: "Terraza", estado: "disponible" },
-    { numero: 3, capacidad: 4, ubicacion: "Ventana", estado: "disponible" },
-    { numero: 4, capacidad: 6, ubicacion: "Interior", estado: "disponible" }
+    { numero: 3, capacity: 4, ubicacion: "Ventana", estado: "disponible" }
 ];
 
-// 3. BASE DE DATOS DE CLIENTES (Fidelización, Alergias y Encuestas)
 let baseDatosClientes = [];
+let contadorTurnos = 1; // Fila virtual global
 
 io.on('connection', (socket) => {
-    // Envíos iniciales
     socket.emit('cargar-menu-inicial', menuProductos);
     socket.emit('cargar-mesas-inicial', estadoMesas);
 
-    // RECEPCIÓN DE ÓRDENES (Manejo estricto de las reglas solicitadas)
+    // CANAL UNIFICADO: Recibe pedidos normales y físicos
     socket.on('enviar-pedido', (pedido) => {
+        pedido.turnoFila = contadorTurnos++;
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
-        
-        // Regla de Pago e Indicadores para la cocina
-        if (pedido.tipo === 'Pre-orden Remota 👻') {
-            pedido.esFantasma = true;
-            let horaArribo = new Date();
-            horaArribo.setMinutes(horaArribo.getMinutes() + (parseInt(pedido.minutosEstimados) || 15));
-            pedido.horaLlegadaEstimada = horaArribo.toLocaleTimeString('en-US', opciones);
-            
-            // Si es remoto: Tarjeta = Procesando / Efectivo = Pendiente
-            pedido.estadoCocinaTexto = (pedido.pago === 'Tarjeta') ? "Procesando Pre-orden ⏳" : "Pendiente de Pago (Remoto) ⚠️";
-        } else {
-            // Si ya está en el lugar (Físico)
-            pedido.esFantasma = false;
-            pedido.horaLlegadaEstimada = "Ya en el local";
-            // Si está en el local: Tarjeta = Pedido Pagado / Efectivo = Pendiente Pago
-            pedido.estadoCocinaTexto = (pedido.pago === 'Tarjeta') ? "Pedido Pagado (En Local) ✅" : "Pedido Pendiente Pago (En Caja) 💵";
-        }
+        pedido.esFantasma = false;
+        pedido.horaLlegadaEstimada = "Ya en el local";
+        pedido.estadoCocinaTexto = (pedido.pago === 'Tarjeta') ? "Pedido Pagado (En Local) ✅" : "Pedido Pendiente Pago (En Caja) 💵";
 
-        // Restar Stock
-        if (pedido.productosComprados) {
-            pedido.productosComprados.forEach(item => {
+        descontarStock(pedido.productosComprados);
+        
+        // Confirmar turno de regreso al cliente que ordenó
+        socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
+        // Enviar a la pantalla de cocina por el canal correcto
+        io.emit('notificar-cocina', pedido);
+    });
+
+    // CORRECCIÓN CANAL FANTASMA: Ahora dispara la alerta al KDS sin pérdidas
+    socket.on('enviar-preorden-fantasma', (pedido) => {
+        pedido.turnoFila = contadorTurnos++;
+        const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
+        
+        let horaArribo = new Date();
+        horaArribo.setMinutes(horaArribo.getMinutes() + (parseInt(pedido.minutosEstimados) || 15));
+        
+        pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
+        pedido.horaLlegadaEstimada = horaArribo.toLocaleTimeString('en-US', opciones);
+        pedido.esFantasma = true;
+        pedido.estadoCocinaTexto = (pedido.pago === 'Tarjeta') ? "Procesando Pre-orden ⏳" : "Pendiente de Pago (Remoto) ⚠️";
+
+        descontarStock(pedido.productosComprados);
+
+        socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
+        // Inyección directa y corregida en la pantalla de cocina
+        io.emit('notificar-cocina', pedido);
+    });
+
+    // Registrar datos de la encuesta opcional post-venta
+    socket.on('guardar-encuesta-opcional', (datosEncuesta) => {
+        baseDatosClientes.push({
+            fecha: new Date().toLocaleDateString(),
+            ...datosEncuesta
+        });
+        console.log("📊 Encuesta opcional guardada en la base de datos:", datosEncuesta);
+    });
+
+    socket.on('pedido-despachado-cocina', (id) => { io.emit('pedido-listo-retirar', id); });
+    socket.on('cambiar-estado-mesa', (datos) => {
+        const mesa = estadoMesas.find(m => m.numero === datos.numero);
+        if (mesa) { mesa.estado = datos.estado; io.emit('mesas-actualizadas', estadoMesas); }
+    });
+
+    function descontarStock(productosComprados) {
+        if (productosComprados) {
+            productosComprados.forEach(item => {
                 const p = menuProductos.find(prod => prod.id === item.id);
                 if (p) p.stock = Math.max(0, p.stock - item.cantidad);
             });
             io.emit('menu-actualizado-completo', menuProductos);
         }
-
-        // Si el cliente completó la encuesta de perfil, la guardamos en la base de datos
-        if (pedido.perfilCliente) {
-            baseDatosClientes.push({
-                fecha: new Date().toLocaleDateString(),
-                ...pedido.perfilCliente,
-                pedidoId: pedido.id
-            });
-            console.log("📊 Nuevo cliente registrado en la Base de Datos:", pedido.perfilCliente);
-        }
-
-        io.emit('notificar-cocina', pedido);
-    });
-
-    // Despachar pedido manual de cocina
-    socket.on('pedido-despachado-cocina', (id) => { io.emit('pedido-listo-retirar', id); });
-
-    // Gestión de mesas desde modulo de sala
-    socket.on('cambiar-estado-mesa', (datos) => {
-        const mesa = estadoMesas.find(m => m.numero === datos.numero);
-        if (mesa) { mesa.estado = datos.estado; io.emit('mesas-actualizadas', estadoMesas); }
-    });
+    }
 
     // CRUD MENÚ
     socket.on('agregar-nuevo-producto', (p) => { p.id = Date.now(); menuProductos.push(p); io.emit('menu-actualizado-completo', menuProductos); });
@@ -93,4 +100,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3090;
-http.listen(PORT, () => console.log(`🚀 SaaS corriendo en puerto ${PORT}`));
+http.listen(PORT, () => console.log(`🚀 SaaS centralizado corriendo en puerto ${PORT}`));
