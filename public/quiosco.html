@@ -3,139 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frank's Burgers - Quiosco Inteligente</title>
+    <title>J & J Foods - Quiosco de Flujo Rápido</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
+        /* --- ESTILOS GENERALES Y LIMPIEZA --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #f8f9fa; display: flex; height: 100vh; overflow: hidden; }
+        body { background: #f8f9fa; min-height: 100vh; color: #333; }
         
-        .main-layout { width: 70%; padding: 25px; overflow-y: auto; height: 100%; position: relative; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 15px; margin-bottom: 20px; }
+        /* --- APARTADO 1: PANTALLA PRINCIPAL DEL MENÚ --- */
+        .pantalla-menu { width: 100%; padding: 30px 8%; position: relative; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 15px; margin-bottom: 30px; }
+        .header h1 { color: #ff4757; font-size: 32px; }
         
-        /* Botón Flotante del Carrito */
-        .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(255,71,87,0.3); display: flex; align-items: center; gap: 8px; }
+        .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 14px 28px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(255,71,87,0.3); display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-ver-carrito:hover { transform: scale(1.05); }
         
-        .seccion-titulo { margin: 20px 0 10px 0; color: #2f3542; font-size: 18px; border-left: 5px solid #ffa502; padding-left: 10px; }
-        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
-        .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
-        .card-producto img { width: 100%; height: 120px; object-fit: cover; }
-        .info-producto { padding: 12px; }
-        .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .seccion-titulo { margin: 25px 0 15px 0; color: #2f3542; font-size: 22px; border-left: 5px solid #ffa502; padding-left: 10px; }
+        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 20px; }
+        
+        .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .card-producto img { width: 100%; height: 140px; object-fit: cover; }
+        .info-producto { padding: 15px; }
+        .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-agregar:disabled { background: #a4b0be; cursor: not-allowed; }
 
-        /* CARRITO SIDEBAR (OCULTO A LA DERECHA) */
-        .sidebar-carrito { width: 30%; background: white; border-left: 1px solid #ddd; height: 100%; padding: 25px; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.05); }
-        .lista-items { flex-grow: 1; overflow-y: auto; margin: 15px 0; }
-        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 14px; }
-        .form-grupo { margin-bottom: 10px; }
-        .form-grupo label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #57606f; }
-        .form-grupo input, .form-grupo select { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 6px; }
+        /* Asistente Inteligente FrankBot */
+        .frank-bot { background: #2f3542; color: white; padding: 20px; border-radius: 12px; margin-top: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .frank-bot select { width: 100%; padding: 10px; border-radius: 6px; border: none; margin-top: 10px; font-size: 14px; background: #3d4452; color: white; }
 
-        /* BOT INTEGRADO (Esquina inferior izquierda) */
-        .frank-bot { position: absolute; bottom: 20px; left: 25px; background: #2f3542; color: white; padding: 15px; border-radius: 10px; width: 280px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .frank-bot select { width: 100%; padding: 6px; margin-top: 8px; border-radius: 4px; border: none; }
+        /* --- CAPAS MODALES (APARTADOS INDEPENDIENTES) --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none; }
+        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 520px; max-width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.25); position: relative; color: #2f3542; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 26px; cursor: pointer; background: none; border: none; color: #a4b0be; transition: 0.2s; }
+        .close-modal:hover { color: #ff4757; }
 
-        /* MODAL ENCUESTA DE CONOCIMIENTO AL CLIENTE */
-        .encuesta-box { background: #e8fcf0; border: 2px dashed #2ed573; padding: 12px; border-radius: 8px; margin-top: 10px; }
+        /* --- APARTADO 2: ELEMENTOS INTERNOS DEL CARRITO --- */
+        .lista-items { margin: 15px 0; background: #f1f2f6; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; }
+        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ced4da; font-size: 15px; }
+        .form-grupo { margin-bottom: 15px; }
+        .form-grupo label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #2f3542; }
+        .form-grupo input, .form-grupo select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; background: #fcfcfc; }
+        
+        .box-tiempo { background: #fff2cc; border: 1px solid #ffd966; padding: 12px; border-radius: 6px; margin-top: 5px; display: none; }
+        .btn-confirmar-orden { background: #2ed573; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-top: 15px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(46,213,115,0.2); }
+        .btn-confirmar-orden:hover { background: #26af5f; }
+
+        /* --- APARTADO 3: ELEMENTOS DE LA PANTALLA POST-VENTA (FILA VIRTUAL) --- */
+        .turno-badge { font-size: 52px; font-weight: bold; color: #ff4757; text-align: center; margin: 20px 0; background: #fff1f2; border-radius: 12px; padding: 12px; border: 2px dashed #ff4757; letter-spacing: 1px; }
+        .encuesta-card { background: #e8fcf0; border: 1px solid #a3e9be; padding: 18px; border-radius: 10px; margin-top: 25px; text-align: left; }
+        .btn-enviar-encuesta { background: #2ed573; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; }
+        .btn-saltar { background: none; border: none; color: #57606f; text-decoration: underline; width: 100%; margin-top: 15px; cursor: pointer; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <!-- LADO IZQUIERDO: MENÚ PRINCIPAL LIMPIO -->
-    <div class="main-layout">
+    <!-- ================================================================= -->
+    <!-- APARTADO 1: PANTALLA PRINCIPAL (SÓLO MENÚ Y ASISTENTE BOT)        -->
+    <!-- ================================================================= -->
+    <div class="pantalla-menu">
         <div class="header">
             <div>
-                <h1 style="color:#ff4757;">🍔 Frank's Burgers</h1>
-                <p style="color:#666; font-size:13px;">SaaS de Gestión Gastronómica Omnicanal</p>
+                <h1>🍔 J & J Foods</h1>
+                <p style="color:#666; font-size:14px;">Menú Variable del Día en Tiempo Real</p>
             </div>
-            <button class="btn-ver-carrito">
-                🛒 Mi Carrito (<span id="cart-count">0</span>)
+            <!-- Botón exclusivo para invocar el carrito aislado -->
+            <button class="btn-ver-carrito" onclick="abrirCarrito()">
+                🛒 Ver Mi Carrito (<span id="cart-count">0</span>)
             </button>
         </div>
 
-        <div class="seccion-titulo">Platos del Día</div>
+        <div class="seccion-titulo">Platos Disponibles</div>
         <div class="grid-productos" id="menu-combos"></div>
-        <div class="seccion-titulo">Bebidas</div>
+        
+        <div class="seccion-titulo">Bebidas Heladas</div>
         <div class="grid-productos" id="menu-bebidas"></div>
 
-        <!-- BOT ASISTENTE DE DUDAS -->
+        <!-- ASISTENTE INTEGRADOR DE PREGUNTAS FRECUENTES -->
         <div class="frank-bot">
-            <strong style="color:#ffa502; font-size:14px;">🤖 FrankBot - Preguntas Frecuentes</strong>
-            <p style="font-size:11px; margin-top:4px; color:#ccc;">¿Tienes dudas sobre los platos o ingredientes?</p>
+            <strong style="color:#ffa502; font-size:16px;">🤖 FrankBot - Consultas de la Casa</strong>
             <select onchange="preguntarBot(this.value)">
-                <option value="">-- Haz una pregunta aquí --</option>
+                <option value="">-- ¿Tienes alguna duda? Pregúntame aquí --</option>
                 <option value="ingredientes">¿Qué ingredientes tienen las hamburguesas?</option>
                 <option value="alergias">¿Tienen opciones sin gluten o lactosa?</option>
-                <option value="mesas">¿Cómo funciona la asignación de mesas?</option>
                 <option value="promocion">¿Cómo gano la promoción del día?</option>
             </select>
-            <div id="bot-respuesta" style="font-size:12px; margin-top:10px; color:#ffa502; font-style:italic;"></div>
+            <div id="bot-respuesta" style="font-size:14px; margin-top:12px; color:#ffa502; font-style:italic;"></div>
         </div>
     </div>
 
-    <!-- LADO DERECHO: EL CARRITO ARCHIVADO -->
-    <div class="sidebar-carrito">
-        <h2>Detalle de tu Pedido</h2>
-        <div class="lista-items" id="carrito-contenedor">
-            <p style="color:#999; text-align:center; padding-top:20px;">El carrito está vacío</p>
-        </div>
-
-        <div style="background:#f1f2f6; padding:12px; font-weight:bold; display:flex; justify-content:space-between; border-radius:6px; margin-bottom:12px;">
-            <span>Total:</span><span id="total-txt">$0.00</span>
-        </div>
-
-        <div class="form-grupo">
-            <label>Tu Nombre</label>
-            <input type="text" id="cliente-nombre" placeholder="Para registrar la orden...">
-        </div>
-
-        <div class="form-grupo">
-            <label>Modalidad</label>
-            <select id="cliente-tipo" onchange="cambiarModalidad(this.value)">
-                <option value="Comer Aquí">🍽️ Comer Aquí (Verificar Sala)</option>
-                <option value="Para Llevar">🛍️ Para Llevar</option>
-                <option value="Pre-orden Remota 👻">🚗 En camino / Pre-orden Remota 👻</option>
-            </select>
-            <input type="number" id="tiempo-eta" value="15" placeholder="¿En cuántos minutos llegas?" style="display:none; margin-top:5px;">
-        </div>
-
-        <div class="form-grupo">
-            <label>Forma de Pago</label>
-            <select id="cliente-pago">
-                <option value="Tarjeta">💳 Tarjeta (Procesar de inmediato)</option>
-                <option value="Efectivo">💵 Efectivo (Registrar en Caja)</option>
-            </select>
-        </div>
-
-        <!-- SECCIÓN ENCUESTA INTELIGENTE: CONOCIENDO AL CLIENTE -->
-        <div class="encuesta-box">
-            <strong style="color:#26af5f; font-size:12px;">🎁 Encuesta de Perfil (¡Gana Papas Gratis!)</strong>
-            <div class="form-grupo" style="margin-top:5px;">
-                <label>¿Sufres de alguna alergia?</label>
-                <input type="text" id="encuesta-alergia" placeholder="Ej. Maní, Gluten, Lactosa o Ninguna">
+    <!-- ================================================================= -->
+    <!-- APARTADO 2: MODAL EMERGENTE DEL CARRITO (DETALLES DEL PEDIDO)     -->
+    <!-- ================================================================= -->
+    <div class="modal-overlay" id="modal-carrito">
+        <div class="modal-content">
+            <button class="close-modal" onclick="cerrarCarrito()">✕</button>
+            <h2>🛒 Resumen de tu Compra</h2>
+            
+            <!-- Resumen aislado de los artículos guardados -->
+            <div class="lista-items" id="carrito-contenedor">
+                <p style="color:#999; text-align:center;">El carrito está vacío en este momento.</p>
             </div>
+
+            <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:20px; padding:0 5px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <span>Total a pagar:</span><span id="total-txt" style="color:#ff4757;">$0.00</span>
+            </div>
+
+            <!-- FORMULARIO DE DETALLES (Aislado del menú) -->
             <div class="form-grupo">
-                <label>¿Qué es lo que más te gusta?</label>
-                <select id="encuesta-gusto">
-                    <option value="Carne Res">Hamburguesas de Res bien jugosas 🥩</option>
-                    <option value="Pollo Crispy">Pollo Crocante / Crispy 🍗</option>
-                    <option value="Opciones Ligeras">Porciones ligeras / Bebidas de la casa 🍃</option>
+                <label>Nombre del Cliente</label>
+                <input type="text" id="cliente-nombre" placeholder="Escribe tu nombre para la orden...">
+            </div>
+
+            <div class="form-grupo">
+                <label>¿Cómo vas a retirar tu orden?</label>
+                <select id="cliente-tipo" onchange="cambiarModalidad(this.value)">
+                    <option value="Comer Aquí">🍽️ Comer Aquí (Sujeto a disponibilidad de mesas)</option>
+                    <option value="Para Llevar">🛍️ Para Llevar</option>
+                    <option value="Pre-orden Remota 👻">🚗 Pre-orden Remota / En camino 👻</option>
+                </select>
+                <div class="box-tiempo" id="contenedor-tiempo-fantasma">
+                    <label style="color: #b45f06;">¿En cuántos minutos llegas al restaurante?</label>
+                    <input type="number" id="tiempo-eta" value="15" min="5" style="border-color:#ffd966;">
+                </div>
+            </div>
+
+            <div class="form-grupo">
+                <label>Forma de Pago preferida</label>
+                <select id="cliente-pago">
+                    <option value="Tarjeta">💳 Tarjeta (Procesar de inmediato en la Web)</option>
+                    <option value="Efectivo">💵 Efectivo (Pagar al retirar en Caja)</option>
                 </select>
             </div>
-        </div>
 
-        <button style="background:#2ed573; color:white; border:none; width:100%; padding:14px; border-radius:8px; font-weight:bold; font-size:16px; margin-top:10px; cursor:pointer;" onclick="enviarOrdenFinal()">
-            ENVIAR ORDEN AL SISTEMA 🚀
-        </button>
+            <button class="btn-confirmar-orden" onclick="enviarOrdenFinal()">
+                CONFIRMAR Y ENVIAR A COCINA 🚀
+            </button>
+        </div>
     </div>
 
+    <!-- ================================================================= -->
+    <!-- APARTADO 3: PANTALLA POST-VENTA (FILA VIRTUAL Y ENCUESTA)         -->
+    <!-- ================================================================= -->
+    <div class="modal-overlay" id="modal-postventa">
+        <div class="modal-content" style="text-align: center;">
+            <h2 style="color:#2ed573;">🎉 ¡Tu pedido ha sido procesado!</h2>
+            <p style="color:#57606f; margin-top:5px; font-size:14px;">Usa tu número de turno para retirar en barra.</p>
+            
+            <!-- PANTALLA DE FILA VIRTUAL -->
+            <p style="margin-top:20px; font-weight:bold; color:#2f3542; font-size: 15px;">NÚMERO DE TURNO ASIGNADO:</p>
+            <div class="turno-badge" id="txt-turno-asignado">#00</div>
+
+            <!-- ENCUESTA COMPLETAMENTE OPCIONAL -->
+            <div class="encuesta-card">
+                <strong style="color:#26af5f; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Encuesta de Preferencias (Gana Papas Gratis)</strong>
+                
+                <div class="form-grupo">
+                    <label>¿Padeces alguna alergia alimentaria? (Opcional)</label>
+                    <input type="text" id="encuesta-alergia" placeholder="Ej. Gluten, Mariscos, Lactosa o ninguna">
+                </div>
+                
+                <div class="form-grupo">
+                    <label>¿Qué tipo de hamburguesa prefieres? (Opcional)</label>
+                    <select id="encuesta-gusto">
+                        <option value="Carne Res">Carne de Res Jugosa 🥩</option>
+                        <option value="Pollo Crispy">Pollo Crocante / Crispy 🍗</option>
+                        <option value="Vegetariana">Opciones saludables / Veggie 🍃</option>
+                    </select>
+                </div>
+                
+                <button class="btn-enviar-encuesta" onclick="guardarEncuestaOpcional()">Enviar Encuesta y Canjear Premio 🎁</button>
+            </div>
+
+            <button class="btn-saltar" onclick="finalizarTodoSinEncuesta()">No deseo la promoción, salir</button>
+        </div>
+    </div>
+
+    <!-- --- LÓGICA DE PROGRAMACIÓN (SCRIPT) --- -->
     <script>
         const socket = io();
-        let productos = []; let carrito = []; let mesasDisponibles = 0;
+        let productos = []; let carrito = []; let mesasDisponibles = 0; let ultimoNombreCliente = "";
 
+        // Sincronización dinámica por WebSockets
         socket.on('cargar-menu-inicial', (data) => { productos = data; renderMenu(); });
         socket.on('menu-actualizado-completo', (data) => { productos = data; renderMenu(); });
         socket.on('cargar-mesas-inicial', (m) => { mesasDisponibles = m.filter(x => x.estado === 'disponible').length; });
         socket.on('mesas-actualizadas', (m) => { mesasDisponibles = m.filter(x => x.estado === 'disponible').length; });
+
+        // Capturar la confirmación del turno virtual emitida por el servidor
+        socket.on('confirmacion-turno-cliente', (data) => {
+            document.getElementById('txt-turno-asignado').innerText = `#${data.turno}`;
+            document.getElementById('modal-postventa').style.display = 'flex';
+        });
 
         function renderMenu() {
             const combos = document.getElementById('menu-combos'); const bebidas = document.getElementById('menu-bebidas');
@@ -145,8 +203,8 @@
                     <div class="card-producto">
                         <img src="${p.img}">
                         <div class="info-producto">
-                            <strong style="font-size:14px;">${p.nombre}</strong>
-                            <p style="color:#ff4757; font-size:13px;">$${p.precio.toFixed(2)} (${p.stock} un.)</p>
+                            <strong style="font-size:15px; display:block; height:40px;">${p.nombre}</strong>
+                            <p style="color:#ff4757; font-size:14px; font-weight:bold; margin-top:5px;">$${p.precio.toFixed(2)} <span style="font-size:11px; color:#666; font-weight:normal;">(${p.stock} un.)</span></p>
                             <button class="btn-agregar" onclick="addToCart(${p.id})" ${p.stock>0?'':'disabled'}>${p.stock>0?'Agregar +':'Agotado'}</button>
                         </div>
                     </div>`;
@@ -157,15 +215,15 @@
         function addToCart(id) {
             const p = productos.find(x => x.id === id);
             const existe = carrito.find(x => x.id === id);
-            if(existe) { if(existe.cantidad < p.stock) existe.cantidad++; } else { carrito.push({...p, cantidad:1}); }
+            if(existe) { if(existe.cantidad < p.stock) { existe.cantidad++; } } else { carrito.push({...p, cantidad:1}); }
+            document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0);
             updateCartUI();
         }
 
         function updateCartUI() {
-            document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0);
             const cont = document.getElementById('carrito-contenedor'); cont.innerHTML = "";
             let total = 0;
-            if(carrito.length === 0) { cont.innerHTML = "<p style='color:#999; text-align:center;'>El carrito está vacío</p>"; document.getElementById('total-txt').innerText = "$0.00"; return; }
+            if(carrito.length === 0) { cont.innerHTML = "<p style='color:#999; text-align:center; padding: 10px;'>El carrito está vacío</p>"; document.getElementById('total-txt').innerText = "$0.00"; return; }
             carrito.forEach(c => {
                 total += c.precio * c.cantidad;
                 cont.innerHTML += `<div class="item-row"><span>${c.cantidad}x ${c.nombre}</span><span>$${(c.precio*c.cantidad).toFixed(2)}</span></div>`;
@@ -173,15 +231,17 @@
             document.getElementById('total-txt').innerText = `$${total.toFixed(2)}`;
         }
 
-        function cambiarModalidad(val) { document.getElementById('tiempo-eta').style.display = (val.includes('Remota')) ? 'block' : 'none'; }
+        // Funciones de control de ventanas modales
+        function abrirCarrito() { document.getElementById('modal-carrito').style.display = 'flex'; }
+        function cerrarCarrito() { document.getElementById('modal-carrito').style.display = 'none'; }
+        function cambiarModalidad(val) { document.getElementById('contenedor-tiempo-fantasma').style.display = (val.includes('Remota')) ? 'block' : 'none'; }
 
-        // MÓDULO INTELIGENTE FRANKBOT
+        // Respuestas preprogramadas del FrankBot
         function preguntarBot(tipo) {
             const res = document.getElementById('bot-respuesta');
-            if(tipo === 'ingredientes') res.innerText = "🍔 Nuestras hamburguesas usan 180g de carne de res premium, pan de masa madre artesanal hecho en casa y queso cheddar fundido.";
-            else if(tipo === 'alergias') res.innerText = "🌾 ¡Atención! Puedes registrar tu alergia abajo en el formulario del carrito para que la cocina prepare tu pedido en un área libre de contaminación cruzada.";
-            else if(tipo === 'mesas') res.innerText = "🪑 Al elegir 'Comer Aquí' el sistema te asigna una ubicación disponible controlada por el monitor de sala.";
-            else if(tipo === 'promocion') res.innerText = "🎁 Llena las preguntas de perfil sobre tus alergias y gustos en el carrito antes de enviar la orden y reclama porciones de papas gratis en caja.";
+            if(tipo === 'ingredientes') res.innerText = "🍔 Carne premium de 180g molida a mano, queso cheddar fundido y pan suave artesanal de masa madre.";
+            else if(tipo === 'alergias') res.innerText = "🌾 ¡Importante! Al finalizar tu pedido podrás rellenar la encuesta opcional indicando tus alergias para alertar a la cocina.";
+            else if(tipo === 'promocion') res.innerText = "🎁 Completa el formulario de perfil opcional tras enviar tu pedido y reclama una porción de papas fritas crujientes.";
             else res.innerText = "";
         }
 
@@ -189,11 +249,11 @@
             const nombre = document.getElementById('cliente-nombre').value.trim();
             const tipo = document.getElementById('cliente-tipo').value;
             const pago = document.getElementById('cliente-pago').value;
-            const alergia = document.getElementById('encuesta-alergia').value.trim() || "Ninguna";
-            const gusto = document.getElementById('encuesta-gusto').value;
 
-            if(carrito.length === 0 || !nombre) return alert("Completa los datos y añade artículos.");
-            if(tipo === "Comer Aquí" && mesasDisponibles === 0) return alert("¡Local Lleno! Por favor selecciona la modalidad 'Para Llevar' o 'Pre-orden Remota' para asegurar tu comida.");
+            if(carrito.length === 0 || !nombre) return alert("Por favor ingresa tu nombre y añade artículos antes de consultar el carrito.");
+            if(tipo === "Comer Aquí" && mesasDisponibles === 0) return alert("Establecimiento lleno. Por favor selecciona la modalidad 'Para Llevar' o 'Pre-orden Remota' para asegurar tu comida sin esperar mesa libre.");
+
+            ultimoNombreCliente = nombre;
 
             const pedido = {
                 id: Math.floor(Math.random() * 9000) + 1000,
@@ -202,14 +262,34 @@
                 tipo: tipo,
                 pago: pago,
                 minutosEstimados: document.getElementById('tiempo-eta').value,
-                productosComprados: carrito.map(c => ({id: c.id, cantidad: c.cantidad})),
-                perfilCliente: { nombre: nombre, alergias: alergia, preferencias: gusto } // Guardado en base de datos estructural
+                productosComprados: carrito.map(c => ({id: c.id, cantidad: c.cantidad}))
             };
 
+            // Unificado: Enviar directamente por el canal correspondiente que escucha el servidor
             const canal = tipo.includes('Remota') ? 'enviar-preorden-fantasma' : 'enviar-pedido';
             socket.emit(canal, pedido);
-            alert("🚀 Orden transmitida de forma segura.");
-            carrito = []; updateCartUI(); document.getElementById('cliente-nombre').value = "";
+            
+            // Vaciar estructuras y cerrar apartado del carrito
+            carrito = []; document.getElementById('cart-count').innerText = "0";
+            updateCartUI(); document.getElementById('cliente-nombre').value = "";
+            cerrarCarrito();
+        }
+
+        function guardarEncuestaOpcional() {
+            const allergy = document.getElementById('encuesta-alergia').value.trim() || "Ninguna";
+            const preference = document.getElementById('encuesta-gusto').value;
+            
+            socket.emit('guardar-encuesta-opcional', {
+                cliente: ultimoNombreCliente,
+                alergias: allergy,
+                preferencias: preference
+            });
+            alert("🎁 ¡Encuesta guardada! Muestra tu número de turno en caja para reclamar tus papas fritas gratis.");
+            document.getElementById('modal-postventa').style.display = 'none';
+        }
+
+        function finalizarTodoSinEncuesta() {
+            document.getElementById('modal-postventa').style.display = 'none';
         }
     </script>
 </body>
