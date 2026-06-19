@@ -27,7 +27,7 @@
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .btn-agregar:disabled { background: #a4b0be; cursor: not-allowed; }
 
-        /* Asistente Inteligente FrankBot */
+        /* Asistente Inteligente J&J Bot */
         .frank-bot { background: #2f3542; color: white; padding: 20px; border-radius: 12px; margin-top: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .frank-bot select { width: 100%; padding: 10px; border-radius: 6px; border: none; margin-top: 10px; font-size: 14px; background: #3d4452; color: white; }
 
@@ -66,7 +66,6 @@
                 <h1>🍔 J & J Foods</h1>
                 <p style="color:#666; font-size:14px;">Menú Variable del Día en Tiempo Real</p>
             </div>
-            <!-- Botón exclusivo para invocar el carrito aislado -->
             <button class="btn-ver-carrito" onclick="abrirCarrito()">
                 🛒 Ver Mi Carrito (<span id="cart-count">0</span>)
             </button>
@@ -80,10 +79,10 @@
 
         <!-- ASISTENTE INTEGRADOR DE PREGUNTAS FRECUENTES -->
         <div class="frank-bot">
-            <strong style="color:#ffa502; font-size:16px;">🤖 FrankBot - Consultas de la Casa</strong>
+            <strong style="color:#ffa502; font-size:16px;">🤖 J & J Bot - Consultas de la Casa</strong>
             <select onchange="preguntarBot(this.value)">
                 <option value="">-- ¿Tienes alguna duda? Pregúntame aquí --</option>
-                <option value="ingredientes">¿Qué ingredientes tienen las hamburguesas?</option>
+                <option value="ingredientes">¿Qué ingredientes tienen los platos?</option>
                 <option value="alergias">¿Tienen opciones sin gluten o lactosa?</option>
                 <option value="promocion">¿Cómo gano la promoción del día?</option>
             </select>
@@ -99,7 +98,6 @@
             <button class="close-modal" onclick="cerrarCarrito()">✕</button>
             <h2>🛒 Resumen de tu Compra</h2>
             
-            <!-- Resumen aislado de los artículos guardados -->
             <div class="lista-items" id="carrito-contenedor">
                 <p style="color:#999; text-align:center;">El carrito está vacío en este momento.</p>
             </div>
@@ -108,7 +106,6 @@
                 <span>Total a pagar:</span><span id="total-txt" style="color:#ff4757;">$0.00</span>
             </div>
 
-            <!-- FORMULARIO DE DETALLES (Aislado del menú) -->
             <div class="form-grupo">
                 <label>Nombre del Cliente</label>
                 <input type="text" id="cliente-nombre" placeholder="Escribe tu nombre para la orden...">
@@ -149,11 +146,9 @@
             <h2 style="color:#2ed573;">🎉 ¡Tu pedido ha sido procesado!</h2>
             <p style="color:#57606f; margin-top:5px; font-size:14px;">Usa tu número de turno para retirar en barra.</p>
             
-            <!-- PANTALLA DE FILA VIRTUAL -->
             <p style="margin-top:20px; font-weight:bold; color:#2f3542; font-size: 15px;">NÚMERO DE TURNO ASIGNADO:</p>
-            <div class="turno-badge" id="txt-turno-asignado">#00</div>
+            <div class="turno-badge" id="txt-turno-assigned">#00</div>
 
-            <!-- ENCUESTA COMPLETAMENTE OPCIONAL -->
             <div class="encuesta-card">
                 <strong style="color:#26af5f; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Encuesta de Preferencias (Gana Papas Gratis)</strong>
                 
@@ -163,9 +158,9 @@
                 </div>
                 
                 <div class="form-grupo">
-                    <label>¿Qué tipo de hamburguesa prefieres? (Opcional)</label>
+                    <label>¿Cuál es tu especialidad favorita en J & J Foods? (Opcional)</label>
                     <select id="encuesta-gusto">
-                        <option value="Carne Res">Carne de Res Jugosa 🥩</option>
+                        <option value="Carne Res">Combos de Res Premium 🥩</option>
                         <option value="Pollo Crispy">Pollo Crocante / Crispy 🍗</option>
                         <option value="Vegetariana">Opciones saludables / Veggie 🍃</option>
                     </select>
@@ -178,20 +173,17 @@
         </div>
     </div>
 
-    <!-- --- LÓGICA DE PROGRAMACIÓN (SCRIPT) --- -->
     <script>
         const socket = io();
         let productos = []; let carrito = []; let mesasDisponibles = 0; let ultimoNombreCliente = "";
 
-        // Sincronización dinámica por WebSockets
         socket.on('cargar-menu-inicial', (data) => { productos = data; renderMenu(); });
         socket.on('menu-actualizado-completo', (data) => { productos = data; renderMenu(); });
         socket.on('cargar-mesas-inicial', (m) => { mesasDisponibles = m.filter(x => x.estado === 'disponible').length; });
         socket.on('mesas-actualizadas', (m) => { mesasDisponibles = m.filter(x => x.estado === 'disponible').length; });
 
-        // Capturar la confirmación del turno virtual emitida por el servidor
         socket.on('confirmacion-turno-cliente', (data) => {
-            document.getElementById('txt-turno-asignado').innerText = `#${data.turno}`;
+            document.getElementById('txt-turno-assigned').innerText = `#${data.turno}`;
             document.getElementById('modal-postventa').style.display = 'flex';
         });
 
@@ -231,24 +223,22 @@
             document.getElementById('total-txt').innerText = `$${total.toFixed(2)}`;
         }
 
-        // Funciones de control de ventanas modales
         function abrirCarrito() { document.getElementById('modal-carrito').style.display = 'flex'; }
         function cerrarCarrito() { document.getElementById('modal-carrito').style.display = 'none'; }
         function cambiarModalidad(val) { document.getElementById('contenedor-tiempo-fantasma').style.display = (val.includes('Remota')) ? 'block' : 'none'; }
 
-        // Respuestas preprogramadas del FrankBot
         function preguntarBot(tipo) {
             const res = document.getElementById('bot-respuesta');
-            if(tipo === 'ingredientes') res.innerText = "🍔 Carne premium de 180g molida a mano, queso cheddar fundido y pan suave artesanal de masa madre.";
+            if(tipo === 'ingredientes') res.innerText = "🍔 En J & J Foods usamos ingredientes frescos seleccionados, carnes premium y panes artesanales horneados a diario.";
             else if(tipo === 'alergias') res.innerText = "🌾 ¡Importante! Al finalizar tu pedido podrás rellenar la encuesta opcional indicando tus alergias para alertar a la cocina.";
-            else if(tipo === 'promocion') res.innerText = "🎁 Completa el formulario de perfil opcional tras enviar tu pedido y reclama una porción de papas fritas crujientes.";
+            else if(tipo === 'promocion') res.innerText = "🎁 Completa el formulario de perfil opcional tras enviar tu pedido y reclama una porción de papas fritas crujientes de la casa.";
             else res.innerText = "";
         }
 
         function enviarOrdenFinal() {
             const nombre = document.getElementById('cliente-nombre').value.trim();
             const tipo = document.getElementById('cliente-tipo').value;
-            const pago = document.getElementById('cliente-pago').value;
+            const pago = document.getElementById('pago') ? document.getElementById('pago').value : document.getElementById('cliente-pago').value;
 
             if(carrito.length === 0 || !nombre) return alert("Por favor ingresa tu nombre y añade artículos antes de consultar el carrito.");
             if(tipo === "Comer Aquí" && mesasDisponibles === 0) return alert("Establecimiento lleno. Por favor selecciona la modalidad 'Para Llevar' o 'Pre-orden Remota' para asegurar tu comida sin esperar mesa libre.");
@@ -262,14 +252,12 @@
                 tipo: tipo,
                 pago: pago,
                 minutosEstimados: document.getElementById('tiempo-eta').value,
-                productosComprados: carrito.map(c => ({id: c.id, cantidad: c.cantidad}))
+                productosComprados: carrito.map(c => ({id: c.id, quantity: c.cantidad, cantidad: c.cantidad}))
             };
 
-            // Unificado: Enviar directamente por el canal correspondiente que escucha el servidor
             const canal = tipo.includes('Remota') ? 'enviar-preorden-fantasma' : 'enviar-pedido';
             socket.emit(canal, pedido);
             
-            // Vaciar estructuras y cerrar apartado del carrito
             carrito = []; document.getElementById('cart-count').innerText = "0";
             updateCartUI(); document.getElementById('cliente-nombre').value = "";
             cerrarCarrito();
@@ -284,7 +272,7 @@
                 alergias: allergy,
                 preferencias: preference
             });
-            alert("🎁 ¡Encuesta guardada! Muestra tu número de turno en caja para reclamar tus papas fritas gratis.");
+            alert("🎁 ¡Encuesta guardada! Muestra tu número de turno en caja para reclamar tus papas fritas gratis en J & J Foods.");
             document.getElementById('modal-postventa').style.display = 'none';
         }
 
