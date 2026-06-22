@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de Ventas - J & J</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f2f6; padding: 30px; color: #2f3542; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 10px; margin-bottom: 25px; }
+        .btn-volver { background: #2f3542; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+        table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+        th { background: #2f3542; color: white; }
+        .badge { background: #2ed573; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>📊 Historial de Pedidos Entregados</h1>
+        <a href="/cocina.html" class="btn-volver">⬅ Volver a Cocina</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID Orden</th>
+                <th>Cliente</th>
+                <th>Artículos Preparados</th>
+                <th>Mesa / Modalidad</th>
+                <th>Pago</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-historial">
+            <tr><td colspan="6" style="text-align:center; color:#999;">Cargando historial desde la nube...</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        const socket = io();
+
+        // Pedir el historial al servidor apenas abra la página
+        socket.on('connect', () => {
+            socket.emit('obtener-historial-dia');
+        });
+
+        socket.on('cargar-historial', (pedidosEntregados) => {
+            const tbody = document.getElementById('tabla-historial');
+            tbody.innerHTML = "";
+
+            if (pedidosEntregados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999;">Aún no se han entregado pedidos hoy.</td></tr>`;
+                return;
+            }
+
+            pedidosEntregados.forEach(p => {
+                const mesaTexto = p.datos_reserva ? `Mesa #${p.datos_reserva.mesa.numero}` : "Barra";
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>#${p.id}</strong></td>
+                        <td>${p.cliente}</td>
+                        <td>${p.item}</td>
+                        <td>${mesaTexto}</td>
+                        <td>${p.pago}</td>
+                        <td><span class="badge">✅ Entregado</span></td>
+                    </tr>
+                `;
+            });
+        });
+    </script>
+</body>
+</html>

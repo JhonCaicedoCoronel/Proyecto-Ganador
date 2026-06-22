@@ -6,6 +6,9 @@
     <script src="/socket.io/socket.io.js"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #1e222b; color: white; padding: 20px; margin: 0; }
+        .header-kds { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-historial { background: #57606f; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; border: none; cursor: pointer; }
+        .btn-historial:hover { background: #747d8c; }
         .grid-kds { display: flex; flex-wrap: wrap; gap: 20px; }
         .card-kds { background: #2f3542; padding: 15px; border-radius: 12px; width: 330px; border-left: 8px solid #a8a8ff; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; flex-direction: column; justify-content: space-between;}
         .mesa-badge { background: #ff4757; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 15px; border: 2px dashed #fff; }
@@ -16,26 +19,32 @@
 </head>
 <body>
 
-    <h1 style="margin-bottom:20px;">👨‍🍳 KDS - Pre-Órdenes y Reservas (Persistencia Activa)</h1>
+    <div class="header-kds">
+        <h1 style="margin: 0;">👨‍🍳 KDS - Pre-Órdenes en Vivo</h1>
+        <a href="/historial.html" class="btn-historial">Ver Historial de Hoy 📊</a>
+    </div>
+
     <div class="grid-kds" id="kds-contenedor"></div>
 
     <script>
         const socket = io();
         const cont = document.getElementById('kds-contenedor');
 
-        // Recargar pedidos que se quedaron pendientes en la base de datos
+        // --- MAGIA ANTI-RECARGAS: EXIGIMOS LOS PEDIDOS AL CONECTAR ---
+        socket.on('connect', () => {
+            socket.emit('obtener-pedidos-cocina');
+        });
+
         socket.on('cargar-pedidos-cocina', (pedidos) => {
-            cont.innerHTML = ""; // Limpia la pantalla antes de recargar
+            cont.innerHTML = ""; // Limpiar pantalla
             pedidos.forEach(p => renderizarTarjeta(p, false));
         });
 
-        // Entra un pedido nuevo en vivo
         socket.on('notificar-cocina', (p) => {
             renderizarTarjeta(p, true);
         });
 
         function renderizarTarjeta(p, esNuevo) {
-            // Evitar duplicados por si acaso
             if(document.getElementById(`kds-${p.id}`)) return;
 
             const div = document.createElement('div');
@@ -66,8 +75,7 @@
                 </div>
             `;
             
-            // Si es un pedido viejo recuperado, va al final. Si es nuevo, va al principio.
-            if(esNuevo) {
+            if (esNuevo) {
                 cont.prepend(div);
                 new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(() => {});
             } else {
@@ -77,10 +85,7 @@
 
         function despachar(id) {
             const el = document.getElementById(`kds-${id}`);
-            if(el) { 
-                el.remove(); 
-                socket.emit('pedido-despachado-cocina', id); 
-            }
+            if(el) { el.remove(); socket.emit('pedido-despachado-cocina', id); }
         }
     </script>
 </body>
