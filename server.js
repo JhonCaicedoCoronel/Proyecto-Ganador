@@ -29,10 +29,23 @@ io.on('connection', (socket) => {
     socket.emit('cargar-menu-inicial', menuProductos);
     socket.emit('cargar-mesas-inicial', estadoMesas);
 
-    // --- MOTOR DE RESERVAS ---
+    // --- NUEVO: CONSULTOR DE HORARIOS EN VIVO ---
+    socket.on('consultar-horarios', (fecha) => {
+        const horariosEstado = horariosDisponibles.map(hora => {
+            const ocupadas = reservasGlobales.filter(r => r.fecha === fecha && r.hora === hora).length;
+            const totalMesas = estadoMesas.length;
+            return {
+                hora: hora,
+                lleno: ocupadas >= totalMesas,
+                disponibles: totalMesas - ocupadas
+            };
+        });
+        socket.emit('horarios-para-fecha', horariosEstado);
+    });
+
+    // --- VALIDACIÓN FINAL ANTI-HACKERS ---
     socket.on('verificar-disponibilidad', (datos) => {
         const reservasEnEseTurno = reservasGlobales.filter(r => r.fecha === datos.fecha && r.hora === datos.hora);
-        
         if (reservasEnEseTurno.length < estadoMesas.length) {
             socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora });
         } else {
@@ -71,16 +84,17 @@ io.on('connection', (socket) => {
 
         socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
         io.emit('notificar-cocina', pedido);
+
+        // NUEVO: Avisar a todos los celulares conectados que una mesa se ocupó en esta fecha
+        io.emit('reserva-confirmada-actualizar', pedido.datosReserva.fecha);
     });
 
-    // --- GESTIÓN DE SALA Y COCINA ---
     socket.on('pedido-despachado-cocina', (id) => { io.emit('pedido-listo-retirar', id); });
     socket.on('cambiar-estado-mesa', (datos) => {
         const mesa = estadoMesas.find(m => m.numero === datos.numero);
         if (mesa) { mesa.estado = datos.estado; io.emit('mesas-actualizadas', estadoMesas); }
     });
 
-    // --- CRUD MENÚ ADMIN ---
     socket.on('agregar-nuevo-producto', (p) => { p.id = Date.now(); menuProductos.push(p); io.emit('menu-actualizado-completo', menuProductos); });
     socket.on('editar-producto', (p) => {
         const prod = menuProductos.find(m => m.id === p.id);

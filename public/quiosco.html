@@ -9,7 +9,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: #f8f9fa; min-height: 100vh; color: #333; overflow-x: hidden; }
         
-        /* --- PASO 1: PANTALLA DE RESERVA --- */
+        /* PASO 1: RESERVA */
         #pantalla-reserva { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1550547660-d9450f859349?w=1600') center/cover; padding: 20px; }
         .reserva-box { background: white; padding: 40px; border-radius: 16px; width: 450px; max-width: 100%; box-shadow: 0 15px 35px rgba(0,0,0,0.3); text-align: center; }
         .reserva-box h1 { color: #ff4757; margin-bottom: 5px; font-size: 32px; }
@@ -18,6 +18,7 @@
         .form-grupo { margin-bottom: 18px; text-align: left; }
         .form-grupo label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #2f3542; }
         .form-grupo input, .form-grupo select { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 15px; background: #fcfcfc; }
+        .form-grupo select:disabled { background: #eee; cursor: not-allowed; }
         
         .btn-verificar { background: #ff4757; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
         .btn-verificar:hover { background: #ee3848; transform: scale(1.02); }
@@ -26,7 +27,7 @@
         .horario-btn { background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin: 5px 5px 0 0; font-weight: bold; transition: 0.2s; }
         .horario-btn:hover { background: #26af5f; }
 
-        /* --- PASO 2: PANTALLA DE PRE-ORDEN Y MENÚ --- */
+        /* PASO 2: MENÚ */
         #pantalla-menu { display: none; width: 100%; padding: 30px 8%; position: relative; }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 15px; margin-bottom: 30px; }
         .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
@@ -38,7 +39,7 @@
         .info-producto { padding: 15px; }
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
 
-        /* --- CHATBOT INTELIGENTE --- */
+        /* CHATBOT */
         .chatbot-container { position: fixed; bottom: 20px; right: 20px; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; border: 1px solid #ddd; z-index: 999; display: flex; flex-direction: column; }
         .chatbot-header { background: #2f3542; color: white; padding: 15px; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; }
         .chatbot-messages { height: 280px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
@@ -48,7 +49,7 @@
         .chatbot-input input { flex-grow: 1; border: none; padding: 14px; outline: none; }
         .chatbot-input button { background: #2f3542; color: white; border: none; padding: 0 15px; cursor: pointer; font-weight: bold; }
 
-        /* --- MODALES --- */
+        /* MODALES */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none; }
         .modal-content { background: white; padding: 30px; border-radius: 16px; width: 500px; max-width: 95%; max-height: 90vh; overflow-y: auto; position: relative; }
         .close-modal { position: absolute; top: 15px; right: 20px; font-size: 26px; cursor: pointer; background: none; border: none; color: #a4b0be; }
@@ -60,24 +61,20 @@
 </head>
 <body>
 
-    <!-- PASO 1: RESERVAS -->
+    <!-- PASO 1: RESERVAS REACTIVAS -->
     <div id="pantalla-reserva">
         <div class="reserva-box">
             <h1>J & J Foods</h1>
-            <p>Verifica la disponibilidad y reserva tu mesa.</p>
+            <p>Selecciona una fecha para ver mesas disponibles.</p>
 
             <div class="form-grupo">
                 <label>Fecha de la Reserva</label>
                 <input type="date" id="res-fecha" required>
             </div>
             <div class="form-grupo">
-                <label>Hora deseada</label>
-                <select id="res-hora">
-                    <option value="12:00">12:00 PM - Almuerzo</option>
-                    <option value="13:00">1:00 PM - Almuerzo</option>
-                    <option value="14:00">2:00 PM - Almuerzo</option>
-                    <option value="19:00">7:00 PM - Cena</option>
-                    <option value="20:00">8:00 PM - Cena</option>
+                <label>Hora deseada (Disponibilidad en vivo)</label>
+                <select id="res-hora" disabled>
+                    <option value="">Selecciona una fecha primero...</option>
                 </select>
             </div>
             <div class="form-grupo">
@@ -85,17 +82,17 @@
                 <input type="number" id="res-pax" min="1" max="10" value="2">
             </div>
 
-            <button class="btn-verificar" onclick="verificarDisponibilidad()">Verificar Disponibilidad 🔍</button>
+            <button class="btn-verificar" onclick="verificarDisponibilidad()">Avanzar al Menú 🔍</button>
 
             <div class="alerta-horarios" id="alerta-lleno">
-                <strong style="color:#d35400;">⚠️ Lo sentimos, ese horario está lleno.</strong><br>
-                <span style="font-size: 13px;">Selecciona una hora alternativa disponible para este día:</span>
+                <strong style="color:#d35400;">⚠️ Lo sentimos, el horario elegido se llenó.</strong><br>
+                <span style="font-size: 13px;">Intenta con una alternativa disponible:</span>
                 <div id="opciones-alternativas" style="margin-top: 10px;"></div>
             </div>
         </div>
     </div>
 
-    <!-- PASO 2: MENÚ DE PRE-ORDEN -->
+    <!-- PASO 2: MENÚ -->
     <div id="pantalla-menu">
         <div class="header">
             <div>
@@ -123,7 +120,7 @@
         </div>
     </div>
 
-    <!-- MODAL: CHECKOUT DEL CARRITO -->
+    <!-- MODAL CARRITO -->
     <div class="modal-overlay" id="modal-carrito">
         <div class="modal-content">
             <button class="close-modal" onclick="cerrarCarrito()">✕</button>
@@ -151,7 +148,7 @@
         </div>
     </div>
 
-    <!-- MODAL: EXITO -->
+    <!-- MODAL EXITO -->
     <div class="modal-overlay" id="modal-exito">
         <div class="modal-content" style="text-align: center;">
             <h2 style="color:#2ed573;">🎉 ¡Mesa Reservada con Éxito!</h2>
@@ -170,6 +167,44 @@
         // Restringir fechas anteriores a hoy
         document.getElementById('res-fecha').min = new Date().toISOString().split('T')[0];
 
+        // --- LÓGICA REACTIVA DE HORARIOS ---
+        document.getElementById('res-fecha').addEventListener('change', (e) => {
+            const fecha = e.target.value;
+            if(fecha) {
+                document.getElementById('res-hora').disabled = true;
+                document.getElementById('res-hora').innerHTML = '<option value="">Consultando disponibilidad en vivo...</option>';
+                socket.emit('consultar-horarios', fecha);
+            }
+        });
+
+        // Escuchar cuando el servidor nos devuelve las mesas libres
+        socket.on('horarios-para-fecha', (horarios) => {
+            const selectHora = document.getElementById('res-hora');
+            selectHora.innerHTML = "";
+            let hayOpciones = false;
+
+            horarios.forEach(h => {
+                if(h.lleno) {
+                    selectHora.innerHTML += `<option value="${h.hora}" disabled>❌ ${h.hora} (Agotado - Sin mesas libres)</option>`;
+                } else {
+                    selectHora.innerHTML += `<option value="${h.hora}">✅ ${h.hora} (${h.disponibles} mesas libres)</option>`;
+                    hayOpciones = true;
+                }
+            });
+
+            if(!hayOpciones) selectHora.innerHTML = `<option value="" disabled>Todos los horarios están llenos este día</option>`;
+            selectHora.disabled = false;
+        });
+
+        // Auto-actualizar si alguien más reserva mientras estoy mirando
+        socket.on('reserva-confirmada-actualizar', (fechaModificada) => {
+            const fechaActual = document.getElementById('res-fecha').value;
+            if (fechaActual === fechaModificada) {
+                socket.emit('consultar-horarios', fechaActual);
+            }
+        });
+
+        // --- FLUJO DE APLICACIÓN ---
         socket.on('cargar-menu-inicial', (data) => { productos = data; renderMenu(); });
         
         function verificarDisponibilidad() {
@@ -177,7 +212,9 @@
             const hora = document.getElementById('res-hora').value;
             const pax = document.getElementById('res-pax').value;
 
-            if(!fecha) return alert("Por favor, selecciona una fecha válida.");
+            if(!fecha || !hora) return alert("Por favor, selecciona una fecha y una hora disponible.");
+            
+            // Verificación final estricta por si la seleccionó en el milisegundo exacto en que se llenó
             socket.emit('verificar-disponibilidad', { fecha, hora, personas: pax });
         }
 
@@ -186,11 +223,14 @@
                 datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: res.horaExacta, personas: document.getElementById('res-pax').value };
                 avanzarAlMenu();
             } else {
+                // Forzar refresco visual si hubo colisión
+                socket.emit('consultar-horarios', document.getElementById('res-fecha').value);
+                
                 document.getElementById('alerta-lleno').style.display = 'block';
                 const contAlt = document.getElementById('opciones-alternativas');
                 contAlt.innerHTML = "";
                 if (res.alternativas.length === 0) {
-                    contAlt.innerHTML = "<span style='color:red;'>No hay mesas para esta fecha. Intenta otro día.</span>";
+                    contAlt.innerHTML = "<span style='color:red;'>No hay mesas. Intenta otro día.</span>";
                 } else {
                     res.alternativas.forEach(alt => {
                         contAlt.innerHTML += `<button class="horario-btn" onclick="seleccionarAlternativa('${alt}')">${alt}</button>`;
@@ -207,7 +247,7 @@
         function avanzarAlMenu() {
             document.getElementById('pantalla-reserva').style.display = 'none';
             document.getElementById('pantalla-menu').style.display = 'block';
-            document.getElementById('txt-resumen-reserva').innerText = `Mesa reservada para el ${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora} (${datosReservaConfirmada.personas} pax).`;
+            document.getElementById('txt-resumen-reserva').innerText = `Mesa asegurada para el ${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora} (${datosReservaConfirmada.personas} pax).`;
         }
 
         function renderMenu() {
@@ -286,7 +326,7 @@
             setTimeout(() => {
                 let respuesta = "Disculpa, no entendí bien. Puedes preguntarme sobre <strong>el menú, reservas, pagos o ingredientes.</strong>";
                 if (textoUsuario.includes("reserva") || textoUsuario.includes("mesa") || textoUsuario.includes("lleno")) {
-                    respuesta = "🗓️ Nuestro sistema gestiona las mesas en tiempo real. Si un horario está lleno, el sistema te ofrecerá horas alternativas cercanas para que no pierdas tu cupo.";
+                    respuesta = "🗓️ Nuestro sistema gestiona las mesas en tiempo real. Si un horario te aparece como 'Agotado', significa que todos los cupos fueron tomados.";
                 } else if (textoUsuario.includes("pago") || textoUsuario.includes("tarjeta") || textoUsuario.includes("efectivo")) {
                     respuesta = "💳 Aceptamos pagos con Tarjeta directamente en la web al finalizar tu pre-orden, o puedes pagar en Efectivo en la caja al llegar a tu hora reservada.";
                 } else if (textoUsuario.includes("alergia") || textoUsuario.includes("gluten") || textoUsuario.includes("lactosa")) {
