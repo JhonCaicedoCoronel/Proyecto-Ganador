@@ -7,20 +7,15 @@
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #1e222b; color: white; padding: 20px; margin: 0; }
         .grid-kds { display: flex; flex-wrap: wrap; gap: 20px; }
-        .card-kds { background: #2f3542; padding: 15px; border-radius: 8px; width: 310px; border-left: 8px solid #2ed573; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: all 0.4s ease; }
-        
-        .card-kds.pre-orden-espera { border-left: 8px dashed #ffa502; background: #3a3225; }
-        
-        .v-turno { background: #ff4757; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 18px; }
-        .badge-estado { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-top: 5px; }
-        .badge-estado.espera { background: #ffa502; color: #1e222b; }
-        
-        .btn-ready { background: #2ed573; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 14px; }
+        .card-kds { background: #2f3542; padding: 15px; border-radius: 12px; width: 330px; border-left: 8px solid #a8a8ff; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; flex-direction: column; justify-content: space-between;}
+        .mesa-badge { background: #ff4757; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 15px; border: 2px dashed #fff; }
+        .v-turno { background: #2ed573; color: #1e222b; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 16px; }
+        .btn-ready { background: #2ed573; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 15px; }
     </style>
 </head>
 <body>
 
-    <h1 style="margin-bottom:20px;">👨‍🍳 KDS - Control de Reservas J & J</h1>
+    <h1 style="margin-bottom:20px;">👨‍🍳 KDS - Pre-Órdenes y Reservas</h1>
     <div class="grid-kds" id="kds-contenedor"></div>
 
     <script>
@@ -30,48 +25,31 @@
         socket.on('notificar-cocina', (p) => {
             const div = document.createElement('div');
             div.id = `kds-${p.id}`;
-            
-            let claseEspecial = "card-kds";
-            let htmlEstructuraTiempo = "";
-            let estadoInicialTexto = p.estadoCocinaTexto;
-            let badgeClase = "badge-estado";
+            div.className = "card-kds";
 
-            // SI ES RESERVA REMOTA (Siempre entrará aquí por el nuevo flujo)
-            if(p.esFantasma) {
-                claseEspecial += " pre-orden-espera";
-                badgeClase += " espera";
-                estadoInicialTexto = "Reserva Agendada ⏳";
-                
-                htmlEstructuraTiempo = `
-                    <div style="margin: 5px 0;">
-                        <div style="background:#fff; color:#2f3542; padding:6px; border-radius:4px; font-weight:bold; font-size:14px;">
-                            📆 Para el: ${p.horaLlegadaEstimada}
-                        </div>
-                    </div>
-                `;
-            }
+            const numMesa = p.datosReserva ? p.datosReserva.mesa.numero : "Barra";
+            const ubicacionMesa = p.datosReserva ? p.datosReserva.mesa.ubicacion : "Para Llevar";
 
-            div.className = claseEspecial;
             div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; border-bottom:1px solid #4b5261; padding-bottom:8px;">
-                    <span class="v-turno">RESERVA #${p.turnoFila}</span>
-                    <span style="font-size: 20px;">🗓️</span>
+                <div>
+                    <div class="mesa-badge">📍 SERVIR EN: MESA #${numMesa} (${ubicacionMesa})</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #4b5261; padding-bottom:8px;">
+                        <span class="v-turno">TURNO #${p.turnoFila}</span>
+                        <span style="font-size: 13px; color: #a4b0be;">🗓️ ${p.horaLlegadaEstimada}</span>
+                    </div>
+                    <p style="margin:12px 0 5px 0; font-size: 16px;"><strong>Cliente:</strong> ${p.cliente}</p>
+                    <div style="font-size:12px; color:#cbd5e1;">💳 Pago: ${p.pago} - ${p.estadoCocinaTexto}</div>
+                    
+                    <div style="background:#1e222b; padding:15px; border-radius:8px; margin:15px 0; font-size:16px; font-weight:bold; color: #2ed573; border: 1px solid #4b5261;">
+                        📝 PRE-ORDEN A PREPARAR:<br>
+                        <span style="color:white; display:block; margin-top:8px;">${p.item}</span>
+                    </div>
                 </div>
-                <p style="margin:10px 0 3px 0; font-size: 15px;"><strong>Cliente:</strong> ${p.cliente}</p>
-                
-                <div class="${badgeClase}">${estadoInicialTexto}</div>
-                <div style="font-size:12px; color:#cbd5e1; margin-top:3px;">💳 Pago: ${p.pago}</div>
-                
-                ${htmlEstructuraTiempo}
-
-                <div style="background:#1e222b; padding:12px; border-radius:6px; margin:10px 0; font-size:15px; font-weight:bold; border-left:4px solid #ff4757;">
-                    ${p.item}
+                <div>
+                    <div style="font-size:11px; color:#a4b0be; text-align:right;">ID #${p.id} | Reg: ${p.horaRegistro}</div>
+                    <button class="btn-ready" onclick="despachar(${p.id})">✓ Plato Listo / Servido</button>
                 </div>
-
-                <div style="font-size:11px; color:#a4b0be; text-align:right;">ID Orden: #${p.id} | Reg: ${p.horaRegistro}</div>
-                <button class="btn-ready" onclick="despachar(${p.id})">✓ Pedido Entregado / Quitar</button>
             `;
-            
             cont.prepend(div);
             new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(() => {});
         });

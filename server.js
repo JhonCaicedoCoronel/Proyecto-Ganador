@@ -5,6 +5,7 @@ const io = require('socket.io')(http, { cors: { origin: "*" } });
 
 app.use(express.static('public'));
 
+// Redirigir la raíz al quiosco del cliente
 app.get('/', (req, res) => { res.redirect('/quiosco.html'); });
 
 // --- 1. BASE DE DATOS EN MEMORIA ---
@@ -14,14 +15,17 @@ let menuProductos = [
     { id: 4, nombre: "Coca-Cola Personal", precio: 1.50, category: "bebidas", img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500", stock: 30 }
 ];
 
+// Mesas con capacidades específicas
 let estadoMesas = [
     { numero: 1, capacidad: 2, ubicacion: "Interior", estado: "disponible" },
-    { numero: 2, capacidad: 4, ubicacion: "Terraza", estado: "disponible" },
-    { numero: 3, capacidad: 4, ubicacion: "Ventana", estado: "disponible" },
-    { numero: 4, capacidad: 6, ubicacion: "Interior", estado: "disponible" }
+    { numero: 2, capacidad: 2, ubicacion: "Ventana", estado: "disponible" },
+    { numero: 3, capacidad: 4, ubicacion: "Terraza", estado: "disponible" },
+    { numero: 4, capacidad: 4, ubicacion: "Terraza", estado: "disponible" },
+    { numero: 5, capacidad: 6, ubicacion: "Interior VIP", estado: "disponible" }
 ];
 
-let reservasGlobales = []; 
+let reservasGlobales = []; // { id, cliente, fecha, hora, personas, mesaId }
+let baseDatosClientes = []; // Encuestas
 let contadorTurnos = 1;
 const horariosDisponibles = ["12:00", "13:00", "14:00", "15:00", "18:00", "19:00", "20:00", "21:00"];
 
@@ -29,34 +33,50 @@ io.on('connection', (socket) => {
     socket.emit('cargar-menu-inicial', menuProductos);
     socket.emit('cargar-mesas-inicial', estadoMesas);
 
-    // --- NUEVO: CONSULTOR DE HORARIOS EN VIVO ---
-    socket.on('consultar-horarios', (fecha) => {
+    // --- ALGORITMO INTELIGENTE: CONSULTAR MESAS POR CAPACIDAD ---
+    socket.on('consultar-horarios', (datos) => {
+        const personasRequeridas = parseInt(datos.personas) || 1;
+        
         const horariosEstado = horariosDisponibles.map(hora => {
-            const ocupadas = reservasGlobales.filter(r => r.fecha === fecha && r.hora === hora).length;
-            const totalMesas = estadoMesas.length;
+            const reservasTurno = reservasGlobales.filter(r => r.fecha === datos.fecha && r.hora === hora);
+            const mesasOcupadasIds = reservasTurno.map(r => r.mesaId);
+            const mesasLibres = estadoMesas.filter(m => !mesasOcupadasIds.includes(m.numero));
+            const mesasAptas = mesasLibres.filter(m => m.capacidad >= personasRequeridas);
+
             return {
                 hora: hora,
-                lleno: ocupadas >= totalMesas,
-                disponibles: totalMesas - ocupadas
+                lleno: mesasAptas.length === 0, 
+                disponibles: mesasAptas.length
             };
         });
         socket.emit('horarios-para-fecha', horariosEstado);
     });
 
-    // --- VALIDACIÓN FINAL ANTI-HACKERS ---
+    // --- VALIDACIÓN DE RESERVA Y ASIGNACIÓN DE MESA EXACTA ---
     socket.on('verificar-disponibilidad', (datos) => {
-        const reservasEnEseTurno = reservasGlobales.filter(r => r.fecha === datos.fecha && r.hora === datos.hora);
-        if (reservasEnEseTurno.length < estadoMesas.length) {
-            socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora });
+        const personasRequeridas = parseInt(datos.personas) || 1;
+        
+        const reservasTurno = reservasGlobales.filter(r => r.fecha === datos.fecha && r.hora === datos.hora);
+        const mesasOcupadasIds = reservasTurno.map(r => r.mesaId);
+        const mesasLibres = estadoMesas.filter(m => !mesasOcupadasIds.includes(m.numero));
+        const mesasAptas = mesasLibres.filter(m => m.capacidad >= personasRequeridas);
+
+        if (mesasAptas.length > 0) {
+            mesasAptas.sort((a, b) => a.capacidad - b.capacidad);
+            const mesaAsignada = mesasAptas[0];
+            socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora, mesa: mesaAsignada });
         } else {
             let alternativas = horariosDisponibles.filter(h => {
-                return reservasGlobales.filter(r => r.fecha === datos.fecha && r.hora === h).length < estadoMesas.length;
+                const resTurnoAlt = reservasGlobales.filter(r => r.fecha === datos.fecha && r.hora === h);
+                const ocupIdsAlt = resTurnoAlt.map(r => r.mesaId);
+                const libresAlt = estadoMesas.filter(m => !ocupIdsAlt.includes(m.numero));
+                return libresAlt.some(m => m.capacidad >= personasRequeridas);
             });
             socket.emit('resultado-disponibilidad', { disponible: false, alternativas: alternativas.slice(0, 3) });
         }
     });
 
-    // --- PROCESAMIENTO DE ORDEN Y RESERVA ---
+    // --- PROCESAMIENTO DE LA ORDEN ---
     socket.on('enviar-reserva-pedido', (pedido) => {
         pedido.turnoFila = contadorTurnos++;
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
@@ -67,7 +87,8 @@ io.on('connection', (socket) => {
             cliente: pedido.cliente,
             fecha: pedido.datosReserva.fecha,
             hora: pedido.datosReserva.hora,
-            personas: pedido.datosReserva.personas
+            personas: pedido.datosReserva.personas,
+            mesaId: pedido.datosReserva.mesa.numero
         });
 
         pedido.esFantasma = true; 
@@ -84,9 +105,13 @@ io.on('connection', (socket) => {
 
         socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
         io.emit('notificar-cocina', pedido);
-
-        // NUEVO: Avisar a todos los celulares conectados que una mesa se ocupó en esta fecha
         io.emit('reserva-confirmada-actualizar', pedido.datosReserva.fecha);
+    });
+
+    // Guardar Encuestas Opcionales
+    socket.on('guardar-encuesta-opcional', (datosEncuesta) => {
+        baseDatosClientes.push({ fecha: new Date().toLocaleDateString(), ...datosEncuesta });
+        console.log("📊 Encuesta guardada:", datosEncuesta);
     });
 
     socket.on('pedido-despachado-cocina', (id) => { io.emit('pedido-listo-retirar', id); });

@@ -57,6 +57,9 @@
         .lista-items { margin: 15px 0; background: #f1f2f6; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; }
         .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ced4da; font-size: 14px; }
         .btn-confirmar { background: #2ed573; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-top: 15px; cursor: pointer; }
+        
+        .encuesta-card { background: #e8fcf0; border: 1px solid #a3e9be; padding: 18px; border-radius: 10px; margin-top: 25px; text-align: left; }
+        .btn-saltar { background: none; border: none; color: #57606f; text-decoration: underline; width: 100%; margin-top: 15px; cursor: pointer; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -65,11 +68,15 @@
     <div id="pantalla-reserva">
         <div class="reserva-box">
             <h1>J & J Foods</h1>
-            <p>Selecciona una fecha para ver mesas disponibles.</p>
+            <p>Selecciona la fecha y asistentes para ver mesas disponibles.</p>
 
             <div class="form-grupo">
                 <label>Fecha de la Reserva</label>
                 <input type="date" id="res-fecha" required>
+            </div>
+            <div class="form-grupo">
+                <label>Número de Personas</label>
+                <input type="number" id="res-pax" min="1" max="10" value="2">
             </div>
             <div class="form-grupo">
                 <label>Hora deseada (Disponibilidad en vivo)</label>
@@ -77,15 +84,11 @@
                     <option value="">Selecciona una fecha primero...</option>
                 </select>
             </div>
-            <div class="form-grupo">
-                <label>Número de Personas</label>
-                <input type="number" id="res-pax" min="1" max="10" value="2">
-            </div>
 
-            <button class="btn-verificar" onclick="verificarDisponibilidad()">Avanzar al Menú 🔍</button>
+            <button class="btn-verificar" onclick="verificarDisponibilidad()">Avanzar a Pre-orden 🔍</button>
 
             <div class="alerta-horarios" id="alerta-lleno">
-                <strong style="color:#d35400;">⚠️ Lo sentimos, el horario elegido se llenó.</strong><br>
+                <strong style="color:#d35400;">⚠️ Lo sentimos, el horario elegido está lleno para tu grupo.</strong><br>
                 <span style="font-size: 13px;">Intenta con una alternativa disponible:</span>
                 <div id="opciones-alternativas" style="margin-top: 10px;"></div>
             </div>
@@ -152,10 +155,28 @@
     <div class="modal-overlay" id="modal-exito">
         <div class="modal-content" style="text-align: center;">
             <h2 style="color:#2ed573;">🎉 ¡Mesa Reservada con Éxito!</h2>
-            <p style="color:#57606f; margin-top:10px;">La cocina preparará tus alimentos para la hora programada.</p>
+            <p style="color:#57606f; margin-top:10px;">La cocina preparará tu pre-orden para la hora programada.</p>
             <p style="margin-top:20px; font-weight:bold;">TU NÚMERO DE RESERVA:</p>
             <div style="font-size: 48px; font-weight: bold; color: #ff4757; background: #fff1f2; padding: 15px; border-radius: 12px; border: 2px dashed #ff4757; margin: 15px 0;">#<span id="txt-turno">00</span></div>
-            <button class="btn-confirmar" onclick="location.reload()">Aceptar y Volver al inicio</button>
+            
+            <div class="encuesta-card">
+                <strong style="color:#26af5f; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Encuesta Opcional (Gana Papas Gratis)</strong>
+                <div class="form-grupo">
+                    <label>¿Padeces alguna alergia? (Opcional)</label>
+                    <input type="text" id="encuesta-alergia" placeholder="Ej. Gluten, Mariscos">
+                </div>
+                <div class="form-grupo">
+                    <label>¿Tu producto favorito? (Opcional)</label>
+                    <select id="encuesta-gusto">
+                        <option value="Carne Res">Carne de Res Jugosa 🥩</option>
+                        <option value="Pollo Crispy">Pollo Crocante 🍗</option>
+                        <option value="Vegetariana">Opciones Veggie 🍃</option>
+                    </select>
+                </div>
+                <button class="btn-confirmar" style="margin-top: 5px;" onclick="guardarEncuestaOpcional()">Enviar y Reclamar Premio 🎁</button>
+            </div>
+            
+            <button class="btn-saltar" onclick="location.reload()">Terminar y Volver al inicio</button>
         </div>
     </div>
 
@@ -163,21 +184,24 @@
         const socket = io();
         let productos = []; let carrito = [];
         let datosReservaConfirmada = {};
+        let ultimoNombreCliente = "";
 
-        // Restringir fechas anteriores a hoy
         document.getElementById('res-fecha').min = new Date().toISOString().split('T')[0];
 
-        // --- LÓGICA REACTIVA DE HORARIOS ---
-        document.getElementById('res-fecha').addEventListener('change', (e) => {
-            const fecha = e.target.value;
+        // --- LÓGICA REACTIVA ---
+        function solicitarHorarios() {
+            const fecha = document.getElementById('res-fecha').value;
+            const pax = document.getElementById('res-pax').value;
             if(fecha) {
                 document.getElementById('res-hora').disabled = true;
-                document.getElementById('res-hora').innerHTML = '<option value="">Consultando disponibilidad en vivo...</option>';
-                socket.emit('consultar-horarios', fecha);
+                document.getElementById('res-hora').innerHTML = '<option value="">Calculando mesas para tu grupo...</option>';
+                socket.emit('consultar-horarios', { fecha, personas: pax });
             }
-        });
+        }
 
-        // Escuchar cuando el servidor nos devuelve las mesas libres
+        document.getElementById('res-fecha').addEventListener('change', solicitarHorarios);
+        document.getElementById('res-pax').addEventListener('change', solicitarHorarios);
+
         socket.on('horarios-para-fecha', (horarios) => {
             const selectHora = document.getElementById('res-hora');
             selectHora.innerHTML = "";
@@ -185,26 +209,22 @@
 
             horarios.forEach(h => {
                 if(h.lleno) {
-                    selectHora.innerHTML += `<option value="${h.hora}" disabled>❌ ${h.hora} (Agotado - Sin mesas libres)</option>`;
+                    selectHora.innerHTML += `<option value="${h.hora}" disabled>❌ ${h.hora} (Sin mesas para este grupo)</option>`;
                 } else {
-                    selectHora.innerHTML += `<option value="${h.hora}">✅ ${h.hora} (${h.disponibles} mesas libres)</option>`;
+                    selectHora.innerHTML += `<option value="${h.hora}">✅ ${h.hora} (${h.disponibles} mesas aptas)</option>`;
                     hayOpciones = true;
                 }
             });
 
-            if(!hayOpciones) selectHora.innerHTML = `<option value="" disabled>Todos los horarios están llenos este día</option>`;
+            if(!hayOpciones) selectHora.innerHTML = `<option value="" disabled>Sin disponibilidad para tu grupo</option>`;
             selectHora.disabled = false;
         });
 
-        // Auto-actualizar si alguien más reserva mientras estoy mirando
         socket.on('reserva-confirmada-actualizar', (fechaModificada) => {
-            const fechaActual = document.getElementById('res-fecha').value;
-            if (fechaActual === fechaModificada) {
-                socket.emit('consultar-horarios', fechaActual);
-            }
+            if (document.getElementById('res-fecha').value === fechaModificada) solicitarHorarios();
         });
 
-        // --- FLUJO DE APLICACIÓN ---
+        // --- FLUJO ---
         socket.on('cargar-menu-inicial', (data) => { productos = data; renderMenu(); });
         
         function verificarDisponibilidad() {
@@ -212,25 +232,21 @@
             const hora = document.getElementById('res-hora').value;
             const pax = document.getElementById('res-pax').value;
 
-            if(!fecha || !hora) return alert("Por favor, selecciona una fecha y una hora disponible.");
-            
-            // Verificación final estricta por si la seleccionó en el milisegundo exacto en que se llenó
+            if(!fecha || !hora) return alert("Por favor, selecciona una fecha y hora válidas.");
             socket.emit('verificar-disponibilidad', { fecha, hora, personas: pax });
         }
 
         socket.on('resultado-disponibilidad', (res) => {
             if (res.disponible) {
-                datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: res.horaExacta, personas: document.getElementById('res-pax').value };
+                datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: res.horaExacta, personas: document.getElementById('res-pax').value, mesa: res.mesa };
                 avanzarAlMenu();
             } else {
-                // Forzar refresco visual si hubo colisión
-                socket.emit('consultar-horarios', document.getElementById('res-fecha').value);
-                
+                solicitarHorarios();
                 document.getElementById('alerta-lleno').style.display = 'block';
                 const contAlt = document.getElementById('opciones-alternativas');
                 contAlt.innerHTML = "";
                 if (res.alternativas.length === 0) {
-                    contAlt.innerHTML = "<span style='color:red;'>No hay mesas. Intenta otro día.</span>";
+                    contAlt.innerHTML = "<span style='color:red;'>No hay mesas para tu grupo.</span>";
                 } else {
                     res.alternativas.forEach(alt => {
                         contAlt.innerHTML += `<button class="horario-btn" onclick="seleccionarAlternativa('${alt}')">${alt}</button>`;
@@ -240,14 +256,14 @@
         });
 
         function seleccionarAlternativa(hora) {
-            datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: hora, personas: document.getElementById('res-pax').value };
-            avanzarAlMenu();
+            document.getElementById('res-hora').value = hora;
+            verificarDisponibilidad();
         }
 
         function avanzarAlMenu() {
             document.getElementById('pantalla-reserva').style.display = 'none';
             document.getElementById('pantalla-menu').style.display = 'block';
-            document.getElementById('txt-resumen-reserva').innerText = `Mesa asegurada para el ${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora} (${datosReservaConfirmada.personas} pax).`;
+            document.getElementById('txt-resumen-reserva').innerText = `Mesa #${datosReservaConfirmada.mesa.numero} asegurada (${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora})`;
         }
 
         function renderMenu() {
@@ -292,7 +308,9 @@
             const nombre = document.getElementById('cliente-nombre').value.trim();
             const pago = document.getElementById('cliente-pago').value;
 
-            if(!nombre || carrito.length === 0) return alert("Ingresa tu nombre y elige al menos un plato en la pre-orden.");
+            if(!nombre || carrito.length === 0) return alert("Ingresa tu nombre y elige platos en la pre-orden.");
+
+            ultimoNombreCliente = nombre;
 
             const pedido = {
                 id: Math.floor(Math.random() * 9000) + 1000,
@@ -312,7 +330,17 @@
             document.getElementById('modal-exito').style.display = 'flex';
         });
 
-        // --- LÓGICA DEL CHATBOT ---
+        function guardarEncuestaOpcional() {
+            socket.emit('guardar-encuesta-opcional', {
+                cliente: ultimoNombreCliente,
+                alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna",
+                preferencias: document.getElementById('encuesta-gusto').value
+            });
+            alert("🎁 ¡Encuesta guardada! Muestra tu número en caja para tu premio.");
+            location.reload();
+        }
+
+        // --- CHATBOT ---
         function enviarMensajeBot() {
             const inputField = document.getElementById('chat-input');
             const textoUsuario = inputField.value.trim().toLowerCase();
@@ -325,18 +353,13 @@
 
             setTimeout(() => {
                 let respuesta = "Disculpa, no entendí bien. Puedes preguntarme sobre <strong>el menú, reservas, pagos o ingredientes.</strong>";
-                if (textoUsuario.includes("reserva") || textoUsuario.includes("mesa") || textoUsuario.includes("lleno")) {
-                    respuesta = "🗓️ Nuestro sistema gestiona las mesas en tiempo real. Si un horario te aparece como 'Agotado', significa que todos los cupos fueron tomados.";
-                } else if (textoUsuario.includes("pago") || textoUsuario.includes("tarjeta") || textoUsuario.includes("efectivo")) {
-                    respuesta = "💳 Aceptamos pagos con Tarjeta directamente en la web al finalizar tu pre-orden, o puedes pagar en Efectivo en la caja al llegar a tu hora reservada.";
-                } else if (textoUsuario.includes("alergia") || textoUsuario.includes("gluten") || textoUsuario.includes("lactosa")) {
-                    respuesta = "🌾 Nos tomamos en serio tu salud. Notifica tu alergia al llegar con tu número de reserva y la cocina usará protocolos para evitar contaminación cruzada.";
-                } else if (textoUsuario.includes("menu") || textoUsuario.includes("hamburguesa") || textoUsuario.includes("comida")) {
-                    respuesta = "🍔 Nuestras hamburguesas son de res premium. Todos los combos incluyen papas y bebida.";
-                } else if (textoUsuario.includes("hola") || textoUsuario.includes("buenas")) {
-                    respuesta = "¡Hola! Bienvenido a J & J Foods. ¿En qué te puedo asesorar?";
+                if (textoUsuario.includes("reserva") || textoUsuario.includes("mesa")) {
+                    respuesta = "🗓️ Nuestro sistema asigna mesas según el tamaño de tu grupo automáticamente.";
+                } else if (textoUsuario.includes("pago") || textoUsuario.includes("tarjeta")) {
+                    respuesta = "💳 Aceptamos pagos con Tarjeta o Efectivo en caja.";
+                } else if (textoUsuario.includes("hola")) {
+                    respuesta = "¡Hola! Bienvenido a J & J Foods.";
                 }
-
                 chatBox.innerHTML += `<div class="msg-bot">${respuesta}</div>`;
                 chatBox.scrollTop = chatBox.scrollHeight;
             }, 600);
