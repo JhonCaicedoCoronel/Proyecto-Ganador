@@ -1,75 +1,82 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { cors: { origin: "*" } });
+const { createClient } = require('@supabase/supabase-js');
+
+// --- CONEXIÓN A SUPABASE ---
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 app.use(express.static('public'));
-
-// Redirigir la raíz al quiosco del cliente
 app.get('/', (req, res) => { res.redirect('/quiosco.html'); });
 
-// --- 1. BASE DE DATOS EN MEMORIA ---
-let menuProductos = [
-    { id: 1, nombre: "Combo J&J Triple", precio: 11.50, category: "combos", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500", stock: 15 },
-    { id: 2, nombre: "Combo Hamburguesa Guayaca", precio: 9.00, category: "combos", img: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500", stock: 8 },
-    { id: 4, nombre: "Coca-Cola Personal", precio: 1.50, category: "bebidas", img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500", stock: 30 }
-];
-
-// Mesas con capacidades específicas
-let estadoMesas = [
-    { numero: 1, capacidad: 2, ubicacion: "Interior", estado: "disponible" },
-    { numero: 2, capacidad: 2, ubicacion: "Ventana", estado: "disponible" },
-    { numero: 3, capacidad: 4, ubicacion: "Terraza", estado: "disponible" },
-    { numero: 4, capacidad: 4, ubicacion: "Terraza", estado: "disponible" },
-    { numero: 5, capacidad: 6, ubicacion: "Interior VIP", estado: "disponible" }
-];
-
-let reservasGlobales = []; // { id, cliente, fecha, hora, personas, mesaId }
-let baseDatosClientes = []; // Encuestas
-let contadorTurnos = 1;
+let contadorTurnos = 1; // El turno de la fila física se reinicia cada día
 const horariosDisponibles = ["12:00", "13:00", "14:00", "15:00", "18:00", "19:00", "20:00", "21:00"];
 
-io.on('connection', (socket) => {
-    socket.emit('cargar-menu-inicial', menuProductos);
-    socket.emit('cargar-mesas-inicial', estadoMesas);
+// Función auxiliar para emitir menú actualizado
+async function emitirMenuActualizado() {
+    const { data: menuProductos } = await supabase.from('menu').select('*').order('id', { ascending: true });
+    io.emit('menu-actualizado-completo', menuProductos || []);
+}
 
-    // --- ALGORITMO INTELIGENTE: CONSULTAR MESAS POR CAPACIDAD ---
-    socket.on('consultar-horarios', (datos) => {
+// Función auxiliar para emitir mesas actualizadas
+async function emitirMesasActualizadas() {
+    const { data: estadoMesas } = await supabase.from('mesas').select('*').order('numero', { ascending: true });
+    io.emit('mesas-actualizadas', estadoMesas || []);
+}
+
+io.on('connection', async (socket) => {
+    // 1. Cargar datos iniciales desde la nube al conectar
+    const { data: menuProductos } = await supabase.from('menu').select('*').order('id', { ascending: true });
+    const { data: estadoMesas } = await supabase.from('mesas').select('*').order('numero', { ascending: true });
+    
+    socket.emit('cargar-menu-inicial', menuProductos || []);
+    socket.emit('cargar-mesas-inicial', estadoMesas || []);
+
+    // --- ALGORITMO INTELIGENTE: CONSULTAR HORARIOS ---
+    socket.on('consultar-horarios', async (datos) => {
         const personasRequeridas = parseInt(datos.personas) || 1;
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha);
+        const { data: mesasDB } = await supabase.from('mesas').select('*');
         
+        const reservasGlobales = reservasDB || [];
+        const mesasTotales = mesasDB || [];
+
         const horariosEstado = horariosDisponibles.map(hora => {
-            const reservasTurno = reservasGlobales.filter(r => r.fecha === datos.fecha && r.hora === hora);
-            const mesasOcupadasIds = reservasTurno.map(r => r.mesaId);
-            const mesasLibres = estadoMesas.filter(m => !mesasOcupadasIds.includes(m.numero));
+            const reservasTurno = reservasGlobales.filter(r => r.hora === hora);
+            const mesasOcupadasIds = reservasTurno.map(r => r.mesa_id);
+            const mesasLibres = mesasTotales.filter(m => !mesasOcupadasIds.includes(m.numero));
             const mesasAptas = mesasLibres.filter(m => m.capacidad >= personasRequeridas);
 
-            return {
-                hora: hora,
-                lleno: mesasAptas.length === 0, 
-                disponibles: mesasAptas.length
-            };
+            return { hora: hora, lleno: mesasAptas.length === 0, disponibles: mesasAptas.length };
         });
         socket.emit('horarios-para-fecha', horariosEstado);
     });
 
-    // --- VALIDACIÓN DE RESERVA Y ASIGNACIÓN DE MESA EXACTA ---
-    socket.on('verificar-disponibilidad', (datos) => {
+    // --- VALIDACIÓN DE RESERVA Y ASIGNACIÓN ---
+    socket.on('verificar-disponibilidad', async (datos) => {
         const personasRequeridas = parseInt(datos.personas) || 1;
         
-        const reservasTurno = reservasGlobales.filter(r => r.fecha === datos.fecha && r.hora === datos.hora);
-        const mesasOcupadasIds = reservasTurno.map(r => r.mesaId);
-        const mesasLibres = estadoMesas.filter(m => !mesasOcupadasIds.includes(m.numero));
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha);
+        const { data: mesasDB } = await supabase.from('mesas').select('*');
+        
+        const reservasGlobales = reservasDB || [];
+        const mesasTotales = mesasDB || [];
+
+        const reservasTurno = reservasGlobales.filter(r => r.hora === datos.hora);
+        const mesasOcupadasIds = reservasTurno.map(r => r.mesa_id);
+        const mesasLibres = mesasTotales.filter(m => !mesasOcupadasIds.includes(m.numero));
         const mesasAptas = mesasLibres.filter(m => m.capacidad >= personasRequeridas);
 
         if (mesasAptas.length > 0) {
             mesasAptas.sort((a, b) => a.capacidad - b.capacidad);
-            const mesaAsignada = mesasAptas[0];
-            socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora, mesa: mesaAsignada });
+            socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora, mesa: mesasAptas[0] });
         } else {
             let alternativas = horariosDisponibles.filter(h => {
-                const resTurnoAlt = reservasGlobales.filter(r => r.fecha === datos.fecha && r.hora === h);
-                const ocupIdsAlt = resTurnoAlt.map(r => r.mesaId);
-                const libresAlt = estadoMesas.filter(m => !ocupIdsAlt.includes(m.numero));
+                const resTurnoAlt = reservasGlobales.filter(r => r.hora === h);
+                const ocupIdsAlt = resTurnoAlt.map(r => r.mesa_id);
+                const libresAlt = mesasTotales.filter(m => !ocupIdsAlt.includes(m.numero));
                 return libresAlt.some(m => m.capacidad >= personasRequeridas);
             });
             socket.emit('resultado-disponibilidad', { disponible: false, alternativas: alternativas.slice(0, 3) });
@@ -77,30 +84,36 @@ io.on('connection', (socket) => {
     });
 
     // --- PROCESAMIENTO DE LA ORDEN ---
-    socket.on('enviar-reserva-pedido', (pedido) => {
+    socket.on('enviar-reserva-pedido', async (pedido) => {
         pedido.turnoFila = contadorTurnos++;
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
         
-        reservasGlobales.push({
+        // Guardar reserva en Supabase
+        await supabase.from('reservas').insert([{
             id: pedido.id,
             cliente: pedido.cliente,
             fecha: pedido.datosReserva.fecha,
             hora: pedido.datosReserva.hora,
             personas: pedido.datosReserva.personas,
-            mesaId: pedido.datosReserva.mesa.numero
-        });
+            mesa_id: pedido.datosReserva.mesa.numero
+        }]);
 
+        // Configurar pre-orden
         pedido.esFantasma = true; 
         pedido.horaLlegadaEstimada = `${pedido.datosReserva.fecha} a las ${pedido.datosReserva.hora}`;
         pedido.estadoCocinaTexto = (pedido.pago === 'Tarjeta') ? "Reserva Pagada Web ✅" : "Reserva Pendiente Pago 💵";
 
-        if (pedido.productosComprados) {
-            pedido.productosComprados.forEach(item => {
-                const p = menuProductos.find(prod => prod.id === item.id);
-                if (p) p.stock = Math.max(0, p.stock - item.cantidad);
-            });
-            io.emit('menu-actualizado-completo', menuProductos);
+        // Descontar inventario en Supabase
+        if (pedido.productosComprados && pedido.productosComprados.length > 0) {
+            for (const item of pedido.productosComprados) {
+                const { data: productoDB } = await supabase.from('menu').select('stock').eq('id', item.id).single();
+                if (productoDB) {
+                    const nuevoStock = Math.max(0, productoDB.stock - item.cantidad);
+                    await supabase.from('menu').update({ stock: nuevoStock }).eq('id', item.id);
+                }
+            }
+            await emitirMenuActualizado();
         }
 
         socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
@@ -108,25 +121,42 @@ io.on('connection', (socket) => {
         io.emit('reserva-confirmada-actualizar', pedido.datosReserva.fecha);
     });
 
-    // Guardar Encuestas Opcionales
-    socket.on('guardar-encuesta-opcional', (datosEncuesta) => {
-        baseDatosClientes.push({ fecha: new Date().toLocaleDateString(), ...datosEncuesta });
-        console.log("📊 Encuesta guardada:", datosEncuesta);
+    // Guardar Encuestas Opcionales permanentemente
+    socket.on('guardar-encuesta-opcional', async (datosEncuesta) => {
+        await supabase.from('clientes_perfil').insert([{
+            cliente: datosEncuesta.cliente,
+            alergias: datosEncuesta.alergias,
+            preferencias: datosEncuesta.preferencias
+        }]);
     });
 
     socket.on('pedido-despachado-cocina', (id) => { io.emit('pedido-listo-retirar', id); });
-    socket.on('cambiar-estado-mesa', (datos) => {
-        const mesa = estadoMesas.find(m => m.numero === datos.numero);
-        if (mesa) { mesa.estado = datos.estado; io.emit('mesas-actualizadas', estadoMesas); }
+    
+    socket.on('cambiar-estado-mesa', async (datos) => {
+        await supabase.from('mesas').update({ estado: datos.estado }).eq('numero', datos.numero);
+        await emitirMesasActualizadas();
     });
 
-    socket.on('agregar-nuevo-producto', (p) => { p.id = Date.now(); menuProductos.push(p); io.emit('menu-actualizado-completo', menuProductos); });
-    socket.on('editar-producto', (p) => {
-        const prod = menuProductos.find(m => m.id === p.id);
-        if (prod) { Object.assign(prod, p); io.emit('menu-actualizado-completo', menuProductos); }
+    // --- CRUD MENÚ ADMIN ---
+    socket.on('agregar-nuevo-producto', async (p) => { 
+        await supabase.from('menu').insert([{
+            nombre: p.nombre, precio: p.precio, stock: p.stock, category: p.category, img: p.img
+        }]);
+        await emitirMenuActualizado();
     });
-    socket.on('eliminar-producto', (id) => { menuProductos = menuProductos.filter(p => p.id !== id); io.emit('menu-actualizado-completo', menuProductos); });
+    
+    socket.on('editar-producto', async (p) => {
+        await supabase.from('menu').update({
+            nombre: p.nombre, precio: p.precio, stock: p.stock, category: p.category, img: p.img
+        }).eq('id', p.id);
+        await emitirMenuActualizado();
+    });
+    
+    socket.on('eliminar-producto', async (id) => { 
+        await supabase.from('menu').delete().eq('id', id);
+        await emitirMenuActualizado();
+    });
 });
 
 const PORT = process.env.PORT || 3090;
-http.listen(PORT, () => console.log(`🚀 Motor J&J corriendo en el puerto ${PORT}`));
+http.listen(PORT, () => console.log(`🚀 Motor conectado a Supabase en el puerto ${PORT}`));
