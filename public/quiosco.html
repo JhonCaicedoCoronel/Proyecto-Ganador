@@ -3,189 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J & J Foods - Quiosco de Flujo Rápido</title>
+    <title>J & J Foods - Reserva Inteligente</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        /* --- ESTILOS GENERALES Y LIMPIEZA --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #f8f9fa; min-height: 100vh; color: #333; }
+        body { background: #f8f9fa; min-height: 100vh; color: #333; overflow-x: hidden; }
         
-        /* --- APARTADO 1: PANTALLA PRINCIPAL DEL MENÚ --- */
-        .pantalla-menu { width: 100%; padding: 30px 8%; position: relative; }
+        /* --- PASO 1: PANTALLA DE RESERVA --- */
+        #pantalla-reserva { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1550547660-d9450f859349?w=1600') center/cover; padding: 20px; }
+        .reserva-box { background: white; padding: 40px; border-radius: 16px; width: 450px; max-width: 100%; box-shadow: 0 15px 35px rgba(0,0,0,0.3); text-align: center; }
+        .reserva-box h1 { color: #ff4757; margin-bottom: 5px; font-size: 32px; }
+        .reserva-box p { color: #57606f; margin-bottom: 25px; font-size: 15px; }
+        
+        .form-grupo { margin-bottom: 18px; text-align: left; }
+        .form-grupo label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #2f3542; }
+        .form-grupo input, .form-grupo select { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 15px; background: #fcfcfc; }
+        
+        .btn-verificar { background: #ff4757; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-verificar:hover { background: #ee3848; transform: scale(1.02); }
+
+        .alerta-horarios { background: #fff2cc; border: 1px dashed #ffa502; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; text-align: left; }
+        .horario-btn { background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin: 5px 5px 0 0; font-weight: bold; transition: 0.2s; }
+        .horario-btn:hover { background: #26af5f; }
+
+        /* --- PASO 2: PANTALLA DE PRE-ORDEN Y MENÚ --- */
+        #pantalla-menu { display: none; width: 100%; padding: 30px 8%; position: relative; }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 15px; margin-bottom: 30px; }
-        .header h1 { color: #ff4757; font-size: 32px; }
-        
-        .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 14px 28px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(255,71,87,0.3); display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
         .btn-ver-carrito:hover { transform: scale(1.05); }
         
-        .seccion-titulo { margin: 25px 0 15px 0; color: #2f3542; font-size: 22px; border-left: 5px solid #ffa502; padding-left: 10px; }
-        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 20px; }
-        
+        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 30px; }
         .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .card-producto img { width: 100%; height: 140px; object-fit: cover; }
         .info-producto { padding: 15px; }
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .btn-agregar:disabled { background: #a4b0be; cursor: not-allowed; }
 
-        /* Asistente Inteligente J&J Bot */
-        .frank-bot { background: #2f3542; color: white; padding: 20px; border-radius: 12px; margin-top: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .frank-bot select { width: 100%; padding: 10px; border-radius: 6px; border: none; margin-top: 10px; font-size: 14px; background: #3d4452; color: white; }
+        /* --- CHATBOT INTELIGENTE --- */
+        .chatbot-container { position: fixed; bottom: 20px; right: 20px; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; border: 1px solid #ddd; z-index: 999; display: flex; flex-direction: column; }
+        .chatbot-header { background: #2f3542; color: white; padding: 15px; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+        .chatbot-messages { height: 280px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+        .msg-bot { background: #e8fcf0; border: 1px solid #2ed573; padding: 10px; border-radius: 10px 10px 10px 0; align-self: flex-start; max-width: 85%; }
+        .msg-user { background: #ff4757; color: white; padding: 10px; border-radius: 10px 10px 0 10px; align-self: flex-end; max-width: 85%; }
+        .chatbot-input { display: flex; border-top: 1px solid #ddd; }
+        .chatbot-input input { flex-grow: 1; border: none; padding: 14px; outline: none; }
+        .chatbot-input button { background: #2f3542; color: white; border: none; padding: 0 15px; cursor: pointer; font-weight: bold; }
 
-        /* --- CAPAS MODALES (APARTADOS INDEPENDIENTES) --- */
+        /* --- MODALES --- */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none; }
-        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 520px; max-width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.25); position: relative; color: #2f3542; }
-        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 26px; cursor: pointer; background: none; border: none; color: #a4b0be; transition: 0.2s; }
-        .close-modal:hover { color: #ff4757; }
+        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 500px; max-width: 95%; max-height: 90vh; overflow-y: auto; position: relative; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 26px; cursor: pointer; background: none; border: none; color: #a4b0be; }
 
-        /* --- APARTADO 2: ELEMENTOS INTERNOS DEL CARRITO --- */
         .lista-items { margin: 15px 0; background: #f1f2f6; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; }
-        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ced4da; font-size: 15px; }
-        .form-grupo { margin-bottom: 15px; }
-        .form-grupo label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #2f3542; }
-        .form-grupo input, .form-grupo select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; background: #fcfcfc; }
-        
-        .box-tiempo { background: #fff2cc; border: 1px solid #ffd966; padding: 12px; border-radius: 6px; margin-top: 5px; display: none; }
-        .btn-confirmar-orden { background: #2ed573; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-top: 15px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(46,213,115,0.2); }
-        .btn-confirmar-orden:hover { background: #26af5f; }
-
-        /* --- APARTADO 3: ELEMENTOS DE LA PANTALLA POST-VENTA (FILA VIRTUAL) --- */
-        .turno-badge { font-size: 52px; font-weight: bold; color: #ff4757; text-align: center; margin: 20px 0; background: #fff1f2; border-radius: 12px; padding: 12px; border: 2px dashed #ff4757; letter-spacing: 1px; }
-        .encuesta-card { background: #e8fcf0; border: 1px solid #a3e9be; padding: 18px; border-radius: 10px; margin-top: 25px; text-align: left; }
-        .btn-enviar-encuesta { background: #2ed573; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; }
-        .btn-saltar { background: none; border: none; color: #57606f; text-decoration: underline; width: 100%; margin-top: 15px; cursor: pointer; font-size: 14px; }
+        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ced4da; font-size: 14px; }
+        .btn-confirmar { background: #2ed573; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-top: 15px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <!-- ================================================================= -->
-    <!-- APARTADO 1: PANTALLA PRINCIPAL (SÓLO MENÚ Y ASISTENTE BOT)        -->
-    <!-- ================================================================= -->
-    <div class="pantalla-menu">
-        <div class="header">
-            <div>
-                <h1>🍔 J & J Foods</h1>
-                <p style="color:#666; font-size:14px;">Menú Variable del Día en Tiempo Real</p>
+    <!-- PASO 1: RESERVAS -->
+    <div id="pantalla-reserva">
+        <div class="reserva-box">
+            <h1>J & J Foods</h1>
+            <p>Verifica la disponibilidad y reserva tu mesa.</p>
+
+            <div class="form-grupo">
+                <label>Fecha de la Reserva</label>
+                <input type="date" id="res-fecha" required>
             </div>
-            <button class="btn-ver-carrito" onclick="abrirCarrito()">
-                🛒 Ver Mi Carrito (<span id="cart-count">0</span>)
-            </button>
-        </div>
+            <div class="form-grupo">
+                <label>Hora deseada</label>
+                <select id="res-hora">
+                    <option value="12:00">12:00 PM - Almuerzo</option>
+                    <option value="13:00">1:00 PM - Almuerzo</option>
+                    <option value="14:00">2:00 PM - Almuerzo</option>
+                    <option value="19:00">7:00 PM - Cena</option>
+                    <option value="20:00">8:00 PM - Cena</option>
+                </select>
+            </div>
+            <div class="form-grupo">
+                <label>Número de Personas</label>
+                <input type="number" id="res-pax" min="1" max="10" value="2">
+            </div>
 
-        <div class="seccion-titulo">Platos Disponibles</div>
-        <div class="grid-productos" id="menu-combos"></div>
-        
-        <div class="seccion-titulo">Bebidas Heladas</div>
-        <div class="grid-productos" id="menu-bebidas"></div>
+            <button class="btn-verificar" onclick="verificarDisponibilidad()">Verificar Disponibilidad 🔍</button>
 
-        <!-- ASISTENTE INTEGRADOR DE PREGUNTAS FRECUENTES -->
-        <div class="frank-bot">
-            <strong style="color:#ffa502; font-size:16px;">🤖 J & J Bot - Consultas de la Casa</strong>
-            <select onchange="preguntarBot(this.value)">
-                <option value="">-- ¿Tienes alguna duda? Pregúntame aquí --</option>
-                <option value="ingredientes">¿Qué ingredientes tienen los platos?</option>
-                <option value="alergias">¿Tienen opciones sin gluten o lactosa?</option>
-                <option value="promocion">¿Cómo gano la promoción del día?</option>
-            </select>
-            <div id="bot-respuesta" style="font-size:14px; margin-top:12px; color:#ffa502; font-style:italic;"></div>
+            <div class="alerta-horarios" id="alerta-lleno">
+                <strong style="color:#d35400;">⚠️ Lo sentimos, ese horario está lleno.</strong><br>
+                <span style="font-size: 13px;">Selecciona una hora alternativa disponible para este día:</span>
+                <div id="opciones-alternativas" style="margin-top: 10px;"></div>
+            </div>
         </div>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- APARTADO 2: MODAL EMERGENTE DEL CARRITO (DETALLES DEL PEDIDO)     -->
-    <!-- ================================================================= -->
+    <!-- PASO 2: MENÚ DE PRE-ORDEN -->
+    <div id="pantalla-menu">
+        <div class="header">
+            <div>
+                <h1 style="color:#ff4757;">J & J Foods</h1>
+                <p style="color:#666; font-size:14px;" id="txt-resumen-reserva">Armando pre-orden...</p>
+            </div>
+            <button class="btn-ver-carrito" onclick="abrirCarrito()">🛒 Ver Pre-orden (<span id="cart-count">0</span>)</button>
+        </div>
+
+        <h2 style="color:#2f3542; margin-bottom:15px;">Combos Recomendados</h2>
+        <div class="grid-productos" id="menu-combos"></div>
+        <h2 style="color:#2f3542; margin-bottom:15px;">Bebidas</h2>
+        <div class="grid-productos" id="menu-bebidas"></div>
+
+        <!-- CHATBOT -->
+        <div class="chatbot-container">
+            <div class="chatbot-header">🤖 J&J Asistente Virtual</div>
+            <div class="chatbot-messages" id="chat-mensajes">
+                <div class="msg-bot">¡Hola! Soy la inteligencia de J&J. ¿Tienes dudas sobre el menú, los pagos o tus reservas? Escríbeme.</div>
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="chat-input" placeholder="Escribe tu duda aquí..." onkeypress="if(event.key === 'Enter') enviarMensajeBot()">
+                <button onclick="enviarMensajeBot()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CHECKOUT DEL CARRITO -->
     <div class="modal-overlay" id="modal-carrito">
         <div class="modal-content">
             <button class="close-modal" onclick="cerrarCarrito()">✕</button>
-            <h2>🛒 Resumen de tu Compra</h2>
+            <h2 style="margin-bottom:15px; color:#2f3542;">🛒 Confirmar Reserva y Orden</h2>
             
-            <div class="lista-items" id="carrito-contenedor">
-                <p style="color:#999; text-align:center;">El carrito está vacío en este momento.</p>
-            </div>
-
-            <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:20px; padding:0 5px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <div class="lista-items" id="carrito-contenedor"></div>
+            <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
                 <span>Total a pagar:</span><span id="total-txt" style="color:#ff4757;">$0.00</span>
             </div>
 
             <div class="form-grupo">
-                <label>Nombre del Cliente</label>
-                <input type="text" id="cliente-nombre" placeholder="Escribe tu nombre para la orden...">
+                <label>A nombre de:</label>
+                <input type="text" id="cliente-nombre" placeholder="Ej. Carlos Mendoza">
             </div>
 
             <div class="form-grupo">
-                <label>¿Cómo vas a retirar tu orden?</label>
-                <select id="cliente-tipo" onchange="cambiarModalidad(this.value)">
-                    <option value="Comer Aquí">🍽️ Comer Aquí (Sujeto a disponibilidad de mesas)</option>
-                    <option value="Para Llevar">🛍️ Para Llevar</option>
-                    <option value="Pre-orden Remota 👻">🚗 Pre-orden Remota / En camino 👻</option>
-                </select>
-                <div class="box-tiempo" id="contenedor-tiempo-fantasma">
-                    <label style="color: #b45f06;">¿En cuántos minutos llegas al restaurante?</label>
-                    <input type="number" id="tiempo-eta" value="15" min="5" style="border-color:#ffd966;">
-                </div>
-            </div>
-
-            <div class="form-grupo">
-                <label>Forma de Pago preferida</label>
+                <label>Forma de Pago para asegurar Reserva</label>
                 <select id="cliente-pago">
-                    <option value="Tarjeta">💳 Tarjeta (Procesar de inmediato en la Web)</option>
-                    <option value="Efectivo">💵 Efectivo (Pagar al retirar en Caja)</option>
+                    <option value="Tarjeta">💳 Tarjeta de Crédito/Débito (Pago Web Inmediato)</option>
+                    <option value="Efectivo">💵 Efectivo (Pagar en el Local al llegar)</option>
                 </select>
             </div>
 
-            <button class="btn-confirmar-orden" onclick="enviarOrdenFinal()">
-                CONFIRMAR Y ENVIAR A COCINA 🚀
-            </button>
+            <button class="btn-confirmar" onclick="finalizarReservaPedido()">Confirmar Reserva y Pago 🚀</button>
         </div>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- APARTADO 3: PANTALLA POST-VENTA (FILA VIRTUAL Y ENCUESTA)         -->
-    <!-- ================================================================= -->
-    <div class="modal-overlay" id="modal-postventa">
+    <!-- MODAL: EXITO -->
+    <div class="modal-overlay" id="modal-exito">
         <div class="modal-content" style="text-align: center;">
-            <h2 style="color:#2ed573;">🎉 ¡Tu pedido ha sido procesado!</h2>
-            <p style="color:#57606f; margin-top:5px; font-size:14px;">Usa tu número de turno para retirar en barra.</p>
-            
-            <p style="margin-top:20px; font-weight:bold; color:#2f3542; font-size: 15px;">NÚMERO DE TURNO ASIGNADO:</p>
-            <div class="turno-badge" id="txt-turno-assigned">#00</div>
-
-            <div class="encuesta-card">
-                <strong style="color:#26af5f; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Encuesta de Preferencias (Gana Papas Gratis)</strong>
-                
-                <div class="form-grupo">
-                    <label>¿Padeces alguna alergia alimentaria? (Opcional)</label>
-                    <input type="text" id="encuesta-alergia" placeholder="Ej. Gluten, Mariscos, Lactosa o ninguna">
-                </div>
-                
-                <div class="form-grupo">
-                    <label>¿Cuál es tu especialidad favorita en J & J Foods? (Opcional)</label>
-                    <select id="encuesta-gusto">
-                        <option value="Carne Res">Combos de Res Premium 🥩</option>
-                        <option value="Pollo Crispy">Pollo Crocante / Crispy 🍗</option>
-                        <option value="Vegetariana">Opciones saludables / Veggie 🍃</option>
-                    </select>
-                </div>
-                
-                <button class="btn-enviar-encuesta" onclick="guardarEncuestaOpcional()">Enviar Encuesta y Canjear Premio 🎁</button>
-            </div>
-
-            <button class="btn-saltar" onclick="finalizarTodoSinEncuesta()">No deseo la promoción, salir</button>
+            <h2 style="color:#2ed573;">🎉 ¡Mesa Reservada con Éxito!</h2>
+            <p style="color:#57606f; margin-top:10px;">La cocina preparará tus alimentos para la hora programada.</p>
+            <p style="margin-top:20px; font-weight:bold;">TU NÚMERO DE RESERVA:</p>
+            <div style="font-size: 48px; font-weight: bold; color: #ff4757; background: #fff1f2; padding: 15px; border-radius: 12px; border: 2px dashed #ff4757; margin: 15px 0;">#<span id="txt-turno">00</span></div>
+            <button class="btn-confirmar" onclick="location.reload()">Aceptar y Volver al inicio</button>
         </div>
     </div>
 
     <script>
         const socket = io();
-        let productos = []; let carrito = []; let mesasDisponibles = 0; let ultimoNombreCliente = "";
+        let productos = []; let carrito = [];
+        let datosReservaConfirmada = {};
+
+        // Restringir fechas anteriores a hoy
+        document.getElementById('res-fecha').min = new Date().toISOString().split('T')[0];
 
         socket.on('cargar-menu-inicial', (data) => { productos = data; renderMenu(); });
-        socket.on('menu-actualizado-completo', (data) => { productos = data; renderMenu(); });
-        socket.on('cargar-mesas-inicial', (m) => { mesasDisponibles = m.filter(x => x.estado === 'disponible').length; });
-        socket.on('mesas-actualizadas', (m) => { mesasDisponibles = m.filter(x => x.estado === 'disponible').length; });
+        
+        function verificarDisponibilidad() {
+            const fecha = document.getElementById('res-fecha').value;
+            const hora = document.getElementById('res-hora').value;
+            const pax = document.getElementById('res-pax').value;
 
-        socket.on('confirmacion-turno-cliente', (data) => {
-            document.getElementById('txt-turno-assigned').innerText = `#${data.turno}`;
-            document.getElementById('modal-postventa').style.display = 'flex';
+            if(!fecha) return alert("Por favor, selecciona una fecha válida.");
+            socket.emit('verificar-disponibilidad', { fecha, hora, personas: pax });
+        }
+
+        socket.on('resultado-disponibilidad', (res) => {
+            if (res.disponible) {
+                datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: res.horaExacta, personas: document.getElementById('res-pax').value };
+                avanzarAlMenu();
+            } else {
+                document.getElementById('alerta-lleno').style.display = 'block';
+                const contAlt = document.getElementById('opciones-alternativas');
+                contAlt.innerHTML = "";
+                if (res.alternativas.length === 0) {
+                    contAlt.innerHTML = "<span style='color:red;'>No hay mesas para esta fecha. Intenta otro día.</span>";
+                } else {
+                    res.alternativas.forEach(alt => {
+                        contAlt.innerHTML += `<button class="horario-btn" onclick="seleccionarAlternativa('${alt}')">${alt}</button>`;
+                    });
+                }
+            }
         });
+
+        function seleccionarAlternativa(hora) {
+            datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: hora, personas: document.getElementById('res-pax').value };
+            avanzarAlMenu();
+        }
+
+        function avanzarAlMenu() {
+            document.getElementById('pantalla-reserva').style.display = 'none';
+            document.getElementById('pantalla-menu').style.display = 'block';
+            document.getElementById('txt-resumen-reserva').innerText = `Mesa reservada para el ${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora} (${datosReservaConfirmada.personas} pax).`;
+        }
 
         function renderMenu() {
             const combos = document.getElementById('menu-combos'); const bebidas = document.getElementById('menu-bebidas');
@@ -196,8 +219,8 @@
                         <img src="${p.img}">
                         <div class="info-producto">
                             <strong style="font-size:15px; display:block; height:40px;">${p.nombre}</strong>
-                            <p style="color:#ff4757; font-size:14px; font-weight:bold; margin-top:5px;">$${p.precio.toFixed(2)} <span style="font-size:11px; color:#666; font-weight:normal;">(${p.stock} un.)</span></p>
-                            <button class="btn-agregar" onclick="addToCart(${p.id})" ${p.stock>0?'':'disabled'}>${p.stock>0?'Agregar +':'Agotado'}</button>
+                            <p style="color:#ff4757; font-weight:bold; margin-top:5px;">$${p.precio.toFixed(2)}</p>
+                            <button class="btn-agregar" onclick="addToCart(${p.id})">Agregar a Pre-orden</button>
                         </div>
                     </div>`;
                 if(p.category === 'combos') combos.innerHTML += html; else bebidas.innerHTML += html;
@@ -207,7 +230,7 @@
         function addToCart(id) {
             const p = productos.find(x => x.id === id);
             const existe = carrito.find(x => x.id === id);
-            if(existe) { if(existe.cantidad < p.stock) { existe.cantidad++; } } else { carrito.push({...p, cantidad:1}); }
+            if(existe) { existe.cantidad++; } else { carrito.push({...p, cantidad:1}); }
             document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0);
             updateCartUI();
         }
@@ -215,7 +238,6 @@
         function updateCartUI() {
             const cont = document.getElementById('carrito-contenedor'); cont.innerHTML = "";
             let total = 0;
-            if(carrito.length === 0) { cont.innerHTML = "<p style='color:#999; text-align:center; padding: 10px;'>El carrito está vacío</p>"; document.getElementById('total-txt').innerText = "$0.00"; return; }
             carrito.forEach(c => {
                 total += c.precio * c.cantidad;
                 cont.innerHTML += `<div class="item-row"><span>${c.cantidad}x ${c.nombre}</span><span>$${(c.precio*c.cantidad).toFixed(2)}</span></div>`;
@@ -225,59 +247,59 @@
 
         function abrirCarrito() { document.getElementById('modal-carrito').style.display = 'flex'; }
         function cerrarCarrito() { document.getElementById('modal-carrito').style.display = 'none'; }
-        function cambiarModalidad(val) { document.getElementById('contenedor-tiempo-fantasma').style.display = (val.includes('Remota')) ? 'block' : 'none'; }
 
-        function preguntarBot(tipo) {
-            const res = document.getElementById('bot-respuesta');
-            if(tipo === 'ingredientes') res.innerText = "🍔 En J & J Foods usamos ingredientes frescos seleccionados, carnes premium y panes artesanales horneados a diario.";
-            else if(tipo === 'alergias') res.innerText = "🌾 ¡Importante! Al finalizar tu pedido podrás rellenar la encuesta opcional indicando tus alergias para alertar a la cocina.";
-            else if(tipo === 'promocion') res.innerText = "🎁 Completa el formulario de perfil opcional tras enviar tu pedido y reclama una porción de papas fritas crujientes de la casa.";
-            else res.innerText = "";
-        }
-
-        function enviarOrdenFinal() {
+        function finalizarReservaPedido() {
             const nombre = document.getElementById('cliente-nombre').value.trim();
-            const tipo = document.getElementById('cliente-tipo').value;
-            const pago = document.getElementById('pago') ? document.getElementById('pago').value : document.getElementById('cliente-pago').value;
+            const pago = document.getElementById('cliente-pago').value;
 
-            if(carrito.length === 0 || !nombre) return alert("Por favor ingresa tu nombre y añade artículos antes de consultar el carrito.");
-            if(tipo === "Comer Aquí" && mesasDisponibles === 0) return alert("Establecimiento lleno. Por favor selecciona la modalidad 'Para Llevar' o 'Pre-orden Remota' para asegurar tu comida sin esperar mesa libre.");
-
-            ultimoNombreCliente = nombre;
+            if(!nombre || carrito.length === 0) return alert("Ingresa tu nombre y elige al menos un plato en la pre-orden.");
 
             const pedido = {
                 id: Math.floor(Math.random() * 9000) + 1000,
                 cliente: nombre,
                 item: carrito.map(c => `${c.cantidad}x ${c.nombre}`).join(', '),
-                tipo: tipo,
                 pago: pago,
-                minutosEstimados: document.getElementById('tiempo-eta').value,
-                productosComprados: carrito.map(c => ({id: c.id, quantity: c.cantidad, cantidad: c.cantidad}))
+                datosReserva: datosReservaConfirmada,
+                productosComprados: carrito.map(c => ({id: c.id, cantidad: c.cantidad}))
             };
 
-            const canal = tipo.includes('Remota') ? 'enviar-preorden-fantasma' : 'enviar-pedido';
-            socket.emit(canal, pedido);
-            
-            carrito = []; document.getElementById('cart-count').innerText = "0";
-            updateCartUI(); document.getElementById('cliente-nombre').value = "";
+            socket.emit('enviar-reserva-pedido', pedido);
             cerrarCarrito();
         }
 
-        function guardarEncuestaOpcional() {
-            const allergy = document.getElementById('encuesta-alergia').value.trim() || "Ninguna";
-            const preference = document.getElementById('encuesta-gusto').value;
-            
-            socket.emit('guardar-encuesta-opcional', {
-                cliente: ultimoNombreCliente,
-                alergias: allergy,
-                preferencias: preference
-            });
-            alert("🎁 ¡Encuesta guardada! Muestra tu número de turno en caja para reclamar tus papas fritas gratis en J & J Foods.");
-            document.getElementById('modal-postventa').style.display = 'none';
-        }
+        socket.on('confirmacion-turno-cliente', (data) => {
+            document.getElementById('txt-turno').innerText = data.turno;
+            document.getElementById('modal-exito').style.display = 'flex';
+        });
 
-        function finalizarTodoSinEncuesta() {
-            document.getElementById('modal-postventa').style.display = 'none';
+        // --- LÓGICA DEL CHATBOT ---
+        function enviarMensajeBot() {
+            const inputField = document.getElementById('chat-input');
+            const textoUsuario = inputField.value.trim().toLowerCase();
+            if(textoUsuario === "") return;
+
+            const chatBox = document.getElementById('chat-mensajes');
+            chatBox.innerHTML += `<div class="msg-user">${inputField.value}</div>`;
+            inputField.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            setTimeout(() => {
+                let respuesta = "Disculpa, no entendí bien. Puedes preguntarme sobre <strong>el menú, reservas, pagos o ingredientes.</strong>";
+                if (textoUsuario.includes("reserva") || textoUsuario.includes("mesa") || textoUsuario.includes("lleno")) {
+                    respuesta = "🗓️ Nuestro sistema gestiona las mesas en tiempo real. Si un horario está lleno, el sistema te ofrecerá horas alternativas cercanas para que no pierdas tu cupo.";
+                } else if (textoUsuario.includes("pago") || textoUsuario.includes("tarjeta") || textoUsuario.includes("efectivo")) {
+                    respuesta = "💳 Aceptamos pagos con Tarjeta directamente en la web al finalizar tu pre-orden, o puedes pagar en Efectivo en la caja al llegar a tu hora reservada.";
+                } else if (textoUsuario.includes("alergia") || textoUsuario.includes("gluten") || textoUsuario.includes("lactosa")) {
+                    respuesta = "🌾 Nos tomamos en serio tu salud. Notifica tu alergia al llegar con tu número de reserva y la cocina usará protocolos para evitar contaminación cruzada.";
+                } else if (textoUsuario.includes("menu") || textoUsuario.includes("hamburguesa") || textoUsuario.includes("comida")) {
+                    respuesta = "🍔 Nuestras hamburguesas son de res premium. Todos los combos incluyen papas y bebida.";
+                } else if (textoUsuario.includes("hola") || textoUsuario.includes("buenas")) {
+                    respuesta = "¡Hola! Bienvenido a J & J Foods. ¿En qué te puedo asesorar?";
+                }
+
+                chatBox.innerHTML += `<div class="msg-bot">${respuesta}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 600);
         }
     </script>
 </body>

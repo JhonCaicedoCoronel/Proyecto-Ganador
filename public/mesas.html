@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Monitor de Sala Pro</title>
+    <title>Monitor de Sala J & J</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #1e222b; color: white; padding: 30px; }
@@ -16,7 +16,7 @@
 </head>
 <body>
 
-    <h1 style="margin-bottom:25px;">🪑 Gestión Operativa de Distribución de Mesas</h1>
+    <h1 style="margin-bottom:25px;">🪑 Gestión Operativa de Sala</h1>
     <div class="grid" id="mesas-box"></div>
 
     <script>
@@ -31,7 +31,7 @@
                     <div class="box ${m.estado}">
                         <h3>Mesa ${m.numero}</h3>
                         <p style="font-size:12px; color:#a4b0be; margin:5px 0;">📍 Ubicación: <strong>${m.ubicacion}</strong></p>
-                        <p style="font-size:12px; color:#ccc;">Capacidad: ${m.capacity || m.capacidad} pers.</p>
+                        <p style="font-size:12px; color:#ccc;">Capacidad: ${m.capacidad} pers.</p>
                         <select onchange="updateMesa(${m.numero}, this.value)">
                             <option value="disponible" ${m.estado==='disponible'?'selected':''}>🟢 Libre</option>
                             <option value="ocupada" ${m.estado==='ocupada'?'selected':''}>🔴 Ocupada</option>
