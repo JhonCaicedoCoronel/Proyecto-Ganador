@@ -29,15 +29,36 @@ async function emitirMesasActualizadas() {
 }
 
 io.on('connection', async (socket) => {
-    console.log("Un usuario se ha conectado a la página. Leyendo base de datos...");
     
-    const { data: estadoMesas, error: errorMesas } = await supabase.from('mesas').select('*').order('numero', { ascending: true });
-    if (errorMesas) console.error("🚨 ERROR AL LEER MESAS:", errorMesas);
-    
+    const { data: estadoMesas } = await supabase.from('mesas').select('*').order('numero', { ascending: true });
     const { data: menuProductos } = await supabase.from('menu').select('*').order('id', { ascending: true });
     
     socket.emit('cargar-menu-inicial', menuProductos || []);
     socket.emit('cargar-mesas-inicial', estadoMesas || []);
+
+    // --- LIBRO DE RESERVAS GLOBAL ---
+    socket.on('obtener-historial-reservas', async () => {
+        const { data: reservasDB } = await supabase.from('reservas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
+        socket.emit('cargar-historial-reservas', reservasDB || []);
+    });
+
+    // --- MARCAR LA SALIDA DE UN CLIENTE (CHECK-OUT) ---
+    socket.on('marcar-salida-reserva', async (datos) => {
+        const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
+        const horaActual = new Date().toLocaleTimeString('en-US', opciones);
+
+        // 1. Guardar la hora y marcar como finalizada
+        await supabase.from('reservas').update({ estado: 'finalizada', hora_salida: horaActual }).eq('id', datos.id);
+        
+        // 2. Poner la mesa en estado "sucia"
+        await supabase.from('mesas').update({ estado: 'sucia' }).eq('numero', datos.mesa_id);
+        
+        await emitirMesasActualizadas();
+        
+        // 3. Refrescar la tabla de reservas
+        const { data: reservasDB } = await supabase.from('reservas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
+        io.emit('cargar-historial-reservas', reservasDB || []);
+    });
 
     socket.on('obtener-pedidos-cocina', async () => {
         const { data: pedidosDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'pendiente').order('id', { ascending: true });
@@ -56,7 +77,8 @@ io.on('connection', async (socket) => {
 
     socket.on('consultar-horarios', async (datos) => {
         const personasRequeridas = parseInt(datos.personas) || 1;
-        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha);
+        // Solo bloquea el horario si la reserva sigue ACTIVA
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa');
         const { data: mesasDB } = await supabase.from('mesas').select('*');
         const reservasGlobales = reservasDB || []; const mesasTotales = mesasDB || [];
 
@@ -72,7 +94,7 @@ io.on('connection', async (socket) => {
 
     socket.on('verificar-disponibilidad', async (datos) => {
         const personasRequeridas = parseInt(datos.personas) || 1;
-        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha);
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa');
         const { data: mesasDB } = await supabase.from('mesas').select('*');
         const reservasGlobales = reservasDB || []; const mesasTotales = mesasDB || [];
 
@@ -100,7 +122,7 @@ io.on('connection', async (socket) => {
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
         
-        await supabase.from('reservas').insert([{ id: pedido.id, cliente: pedido.cliente, fecha: pedido.datosReserva.fecha, hora: pedido.datosReserva.hora, personas: pedido.datosReserva.personas, mesa_id: pedido.datosReserva.mesa.numero }]);
+        await supabase.from('reservas').insert([{ id: pedido.id, cliente: pedido.cliente, fecha: pedido.datosReserva.fecha, hora: pedido.datosReserva.hora, personas: pedido.datosReserva.personas, mesa_id: pedido.datosReserva.mesa.numero, estado: 'activa' }]);
 
         pedido.esFantasma = true; 
         pedido.horaLlegadaEstimada = `${pedido.datosReserva.fecha} a las ${pedido.datosReserva.hora}`;

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Libro de Reservas - J & J</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 30px; color: #2f3542; margin: 0; }
+        h1 { margin-bottom: 25px; text-align: center; color: #2f3542; }
+        
+        table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; font-size: 14px; }
+        th { background: #2f3542; color: white; text-transform: uppercase; font-size: 13px; }
+        
+        .badge-activa { background: #e8fcf0; color: #2ed573; padding: 6px 12px; border-radius: 20px; font-weight: bold; border: 1px solid #2ed573; }
+        .badge-final { background: #f1f2f6; color: #a4b0be; padding: 6px 12px; border-radius: 20px; font-weight: bold; }
+        
+        .btn-salida { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-salida:hover { background: #ee3848; transform: scale(1.05); }
+        .txt-salida { font-size: 13px; color: #57606f; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>📅 Libro Global de Reservas</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha y Llegada</th>
+                <th>Cliente</th>
+                <th>Grupo</th>
+                <th>Ubicación</th>
+                <th>Estado Actual</th>
+                <th>Check-out (Hora Salida)</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-reservas">
+            <tr><td colspan="6" style="text-align:center; color:#999; padding: 20px;">Cargando libro de reservas...</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        const socket = io();
+
+        function pedirReservas() { socket.emit('obtener-historial-reservas'); }
+        socket.on('connect', pedirReservas);
+        if (socket.connected) pedirReservas();
+
+        socket.on('cargar-historial-reservas', (reservas) => {
+            const tbody = document.getElementById('tabla-reservas');
+            tbody.innerHTML = "";
+
+            if (reservas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999; padding: 20px;">No hay reservas registradas en la historia.</td></tr>`;
+                return;
+            }
+
+            reservas.forEach(r => {
+                let estadoHTML = "";
+                let accionHTML = "";
+
+                if (r.estado === 'activa' || !r.estado) {
+                    estadoHTML = `<span class="badge-activa">🟢 Aún Ocupada</span>`;
+                    accionHTML = `<button class="btn-salida" onclick="marcarSalida(${r.id}, ${r.mesa_id})">🚪 Registrar Salida</button>`;
+                } else {
+                    estadoHTML = `<span class="badge-final">⚪ Finalizada</span>`;
+                    accionHTML = `<span class="txt-salida">Salió a las: ${r.hora_salida}</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${r.fecha}</strong><br><span style="color:#a4b0be; font-size:12px;">Reservada para las ${r.hora}</span></td>
+                        <td style="font-size: 16px;"><strong>${r.cliente}</strong></td>
+                        <td>👤 ${r.personas} Personas</td>
+                        <td>Mesa #${r.mesa_id}</td>
+                        <td>${estadoHTML}</td>
+                        <td>${accionHTML}</td>
+                    </tr>
+                `;
+            });
+        });
+
+        function marcarSalida(idReserva, idMesa) {
+            if(confirm("¿El cliente ya desocupó la mesa? Al confirmar, se guardará la hora de salida y la mesa quedará amarilla (sucia) para limpieza.")) {
+                socket.emit('marcar-salida-reserva', { id: idReserva, mesa_id: idMesa });
+            }
+        }
+    </script>
+</body>
+</html>
