@@ -5,18 +5,10 @@
     <title>KDS - J & J Cocina Profesional</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #1e222b; color: white; padding-bottom: 30px; }
-        
-        .nav-admin { background: #2f3542; padding: 15px 20px; display: flex; gap: 15px; justify-content: center; margin-bottom: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); flex-wrap: wrap; }
-        .nav-admin a { text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 8px; transition: 0.2s; font-size: 15px; }
-        .nav-activo { background: #ff4757; color: white; box-shadow: 0 2px 5px rgba(255,71,87,0.4); }
-        .nav-inactivo { background: rgba(255,255,255,0.1); color: white; }
-        .nav-inactivo:hover { background: rgba(255,255,255,0.2); }
-        .nav-link { color: #2ed573; border: 1px solid #2ed573; margin-left: auto; }
-        .nav-link:hover { background: #2ed573; color: white; }
-
-        .container { padding: 0 30px; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1e222b; color: white; padding: 20px; margin: 0; }
+        .header-kds { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-historial { background: #57606f; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; border: none; cursor: pointer; }
+        .btn-historial:hover { background: #747d8c; }
         .grid-kds { display: flex; flex-wrap: wrap; gap: 20px; }
         .card-kds { background: #2f3542; padding: 15px; border-radius: 12px; width: 330px; border-left: 8px solid #a8a8ff; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; flex-direction: column; justify-content: space-between;}
         .mesa-badge { background: #ff4757; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 15px; border: 2px dashed #fff; }
@@ -27,18 +19,12 @@
 </head>
 <body>
 
-    <nav class="nav-admin">
-        <a href="/admin.html" class="nav-inactivo">🍔 Editor de Menú</a>
-        <a href="/mesas.html" class="nav-inactivo">🪑 Monitor de Mesas</a>
-        <a href="/cocina.html" class="nav-activo">👨‍🍳 Pantalla Cocina</a>
-        <a href="/historial.html" class="nav-inactivo">📈 Historial Ventas</a>
-        <a href="/quiosco.html" target="_blank" class="nav-link">👀 Ver Quiosco Cliente ↗</a>
-    </nav>
-
-    <div class="container">
-        <h1 style="margin-bottom: 25px;">👨‍🍳 KDS - Pre-Órdenes en Vivo</h1>
-        <div class="grid-kds" id="kds-contenedor"></div>
+    <div class="header-kds">
+        <h1 style="margin: 0;">👨‍🍳 KDS - Pre-Órdenes en Vivo</h1>
+        <a href="/historial.html" class="btn-historial">Ver Historial de Hoy 📊</a>
     </div>
+
+    <div class="grid-kds" id="kds-contenedor"></div>
 
     <script>
         const socket = io();

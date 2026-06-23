@@ -5,18 +5,9 @@
     <title>Historial de Ventas - J & J</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #f1f2f6; color: #2f3542; padding-bottom: 30px; }
-        
-        .nav-admin { background: #2f3542; padding: 15px 20px; display: flex; gap: 15px; justify-content: center; margin-bottom: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); flex-wrap: wrap; }
-        .nav-admin a { text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 8px; transition: 0.2s; font-size: 15px; }
-        .nav-activo { background: #ff4757; color: white; box-shadow: 0 2px 5px rgba(255,71,87,0.4); }
-        .nav-inactivo { background: rgba(255,255,255,0.1); color: white; }
-        .nav-inactivo:hover { background: rgba(255,255,255,0.2); }
-        .nav-link { color: #2ed573; border: 1px solid #2ed573; margin-left: auto; }
-        .nav-link:hover { background: #2ed573; color: white; }
-
-        .container { padding: 0 30px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f2f6; padding: 30px; color: #2f3542; margin: 0; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 10px; margin-bottom: 25px; }
+        .btn-volver { background: #2f3542; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; }
         table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         th { background: #2f3542; color: white; }
@@ -25,33 +16,26 @@
 </head>
 <body>
 
-    <nav class="nav-admin">
-        <a href="/admin.html" class="nav-inactivo">🍔 Editor de Menú</a>
-        <a href="/mesas.html" class="nav-inactivo">🪑 Monitor de Mesas</a>
-        <a href="/cocina.html" class="nav-inactivo">👨‍🍳 Pantalla Cocina</a>
-        <a href="/historial.html" class="nav-activo">📈 Historial Ventas</a>
-        <a href="/quiosco.html" target="_blank" class="nav-link">👀 Ver Quiosco Cliente ↗</a>
-    </nav>
-
-    <div class="container">
-        <h1 style="margin-bottom: 25px;">📊 Historial de Pedidos Entregados</h1>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>ID Orden</th>
-                    <th>Cliente</th>
-                    <th>Artículos Preparados</th>
-                    <th>Mesa / Modalidad</th>
-                    <th>Pago</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody id="tabla-historial">
-                <tr><td colspan="6" style="text-align:center; color:#999;">Cargando historial desde la nube...</td></tr>
-            </tbody>
-        </table>
+    <div class="header">
+        <h1>📊 Historial de Pedidos Entregados</h1>
+        <a href="/cocina.html" class="btn-volver">⬅ Volver a Cocina</a>
     </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID Orden</th>
+                <th>Cliente</th>
+                <th>Artículos Preparados</th>
+                <th>Mesa / Modalidad</th>
+                <th>Pago</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-historial">
+            <tr><td colspan="6" style="text-align:center; color:#999;">Cargando historial desde la nube...</td></tr>
+        </tbody>
+    </table>
 
     <script>
         const socket = io();
