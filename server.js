@@ -5,7 +5,6 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http, { cors: { origin: "*" } });
 const { createClient } = require('@supabase/supabase-js');
 
-// --- CONEXIÓN A SUPABASE ---
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 app.use(express.static('public'));
@@ -30,17 +29,27 @@ async function emitirMesasActualizadas() {
 }
 
 io.on('connection', async (socket) => {
+    
+    // --- 🚨 RADAR DE DIAGNÓSTICO INYECTADO AQUÍ 🚨 ---
+    console.log("Un usuario se ha conectado a la página. Intentando leer base de datos...");
+    
+    const { data: estadoMesas, error: errorMesas } = await supabase.from('mesas').select('*').order('numero', { ascending: true });
+    
+    if (errorMesas) {
+        console.error("🚨 ERROR FATAL AL LEER MESAS DESDE SUPABASE:", errorMesas);
+    } else {
+        console.log("✅ MESAS LEÍDAS CORRECTAMENTE:", estadoMesas ? estadoMesas.length : 0);
+        if(!estadoMesas || estadoMesas.length === 0) console.log("⚠️ ALERTA: La conexión funciona, pero la tabla MESAS ESTÁ VACÍA en esta base de datos.");
+    }
+    // -------------------------------------------------
+
     const { data: menuProductos } = await supabase.from('menu').select('*').order('id', { ascending: true });
-    const { data: estadoMesas } = await supabase.from('mesas').select('*').order('numero', { ascending: true });
     
     socket.emit('cargar-menu-inicial', menuProductos || []);
     socket.emit('cargar-mesas-inicial', estadoMesas || []);
 
-    // --- CARGAR COCINA ---
     socket.on('obtener-pedidos-cocina', async () => {
-        const { data: pedidosDB, error } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'pendiente').order('id', { ascending: true });
-        if (error) console.error("🚨 ERROR LEYENDO COCINA:", error);
-        
+        const { data: pedidosDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'pendiente').order('id', { ascending: true });
         const pedidosPendientes = (pedidosDB || []).map(p => ({
             id: p.id, cliente: p.cliente, item: p.item, pago: p.pago, tipo: p.tipo,
             turnoFila: p.turno_fila, esFantasma: p.es_fantasma, horaRegistro: p.hora_registro,
@@ -49,10 +58,8 @@ io.on('connection', async (socket) => {
         socket.emit('cargar-pedidos-cocina', pedidosPendientes);
     });
 
-    // --- CARGAR HISTORIAL ---
     socket.on('obtener-historial-dia', async () => {
-        const { data: historialDB, error } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'entregado').order('id', { ascending: false }).limit(100);
-        if (error) console.error("🚨 ERROR LEYENDO HISTORIAL:", error);
+        const { data: historialDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'entregado').order('id', { ascending: false }).limit(100);
         socket.emit('cargar-historial', historialDB || []);
     });
 
@@ -108,14 +115,11 @@ io.on('connection', async (socket) => {
         pedido.horaLlegadaEstimada = `${pedido.datosReserva.fecha} a las ${pedido.datosReserva.hora}`;
         pedido.estadoCocinaTexto = (pedido.pago === 'Tarjeta') ? "Reserva Pagada Web ✅" : "Reserva Pendiente Pago 💵";
 
-        // GUARDADO CRÍTICO EN LA NUBE
-        const { error } = await supabase.from('pedidos_cocina').insert([{
+        await supabase.from('pedidos_cocina').insert([{
             id: pedido.id, cliente: pedido.cliente, item: pedido.item, pago: pedido.pago, tipo: "Reserva en Local",
             turno_fila: pedido.turnoFila, es_fantasma: pedido.esFantasma, hora_registro: pedido.horaRegistro,
             hora_llegada_estimada: pedido.horaLlegadaEstimada, estado_cocina_texto: pedido.estadoCocinaTexto, datos_reserva: pedido.datosReserva
         }]);
-        
-        if(error) console.error("🚨 ERROR AL GUARDAR EN SUPABASE:", error);
 
         if (pedido.productosComprados && pedido.productosComprados.length > 0) {
             for (const item of pedido.productosComprados) {
@@ -131,12 +135,7 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('guardar-encuesta-opcional', async (datos) => { await supabase.from('clientes_perfil').insert([{ cliente: datos.cliente, alergias: datos.alergias, preferencias: datos.preferencias }]); });
-
-    socket.on('pedido-despachado-cocina', async (id) => { 
-        await supabase.from('pedidos_cocina').update({ estado: 'entregado' }).eq('id', id);
-        io.emit('pedido-listo-retirar', id); 
-    });
-    
+    socket.on('pedido-despachado-cocina', async (id) => { await supabase.from('pedidos_cocina').update({ estado: 'entregado' }).eq('id', id); io.emit('pedido-listo-retirar', id); });
     socket.on('cambiar-estado-mesa', async (datos) => { await supabase.from('mesas').update({ estado: datos.estado }).eq('numero', datos.numero); await emitirMesasActualizadas(); });
     socket.on('agregar-nuevo-producto', async (p) => { await supabase.from('menu').insert([{ nombre: p.nombre, precio: p.precio, stock: p.stock, category: p.category, img: p.img }]); await emitirMenuActualizado(); });
     socket.on('editar-producto', async (p) => { await supabase.from('menu').update({ nombre: p.nombre, precio: p.precio, stock: p.stock, category: p.category, img: p.img }).eq('id', p.id); await emitirMenuActualizado(); });
