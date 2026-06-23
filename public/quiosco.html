@@ -38,39 +38,40 @@
         .info-producto { padding: 15px; }
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
 
-        /* --- NUEVO: ASISTENTE EN GLOBITO FLOTANTE --- */
+        /* --- GLOBITO FLOTANTE INTERACTIVO --- */
         .chatbot-bubble { 
             position: fixed; 
             bottom: 25px; 
             right: 25px; 
-            width: 60px; 
-            height: 60px; 
+            width: 65px; 
+            height: 65px; 
             background: #2f3542; 
             color: white; 
             border-radius: 50%; 
-            display: none; /* Se activa solo al pasar al Paso 2 */
+            display: none; 
             justify-content: center; 
             align-items: center; 
-            font-size: 28px; 
+            font-size: 32px; 
             cursor: pointer; 
             box-shadow: 0 8px 25px rgba(0,0,0,0.3); 
             z-index: 999; 
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            transition: 0.3s; 
         }
         .chatbot-bubble:hover { transform: scale(1.1); background: #ff4757; }
         
+        /* --- CONTENEDOR DESPLEGABLE DEL ASISTENTE --- */
         .chatbot-container { 
             position: fixed; 
-            bottom: 100px; 
+            bottom: 25px; 
             right: 25px; 
-            width: 330px; 
+            width: 340px; 
             background: white; 
             border-radius: 16px; 
-            box-shadow: 0 10px 35px rgba(0,0,0,0.25); 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
             overflow: hidden; 
             border: 1px solid #e1e8ed; 
-            z-index: 999; 
-            display: none; /* Controlado por JS */
+            z-index: 1000; 
+            display: none; /* Oculto por defecto */
             flex-direction: column; 
             animation: despliegueUp 0.3s ease;
         }
@@ -78,9 +79,21 @@
             from { opacity: 0; transform: translateY(20px) scale(0.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .chatbot-header { background: #2f3542; color: white; padding: 15px; font-weight: bold; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-cerrar-chat { background: none; border: none; color: #a4b0be; font-size: 20px; cursor: pointer; transition: 0.2s; }
-        .btn-cerrar-chat:hover { color: #ff4757; }
+        
+        .chatbot-header { background: #2f3542; color: white; padding: 15px 20px; font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* BOTÓN DE CIERRE CORREGIDO Y VISIBLE */
+        .btn-cerrar-chat { 
+            background: transparent; 
+            border: none; 
+            color: white; 
+            font-size: 22px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: 0.2s; 
+            padding: 0 5px;
+        }
+        .btn-cerrar-chat:hover { color: #ff4757; transform: scale(1.2); }
         
         .chatbot-messages { height: 280px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
         .msg-bot { background: #e8fcf0; border: 1px solid #2ed573; padding: 10px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%; }
@@ -134,12 +147,12 @@
         <h2 style="color:#2f3542; margin-bottom:15px;">Bebidas</h2>
         <div class="grid-productos" id="menu-bebidas"></div>
 
-        <div class="chatbot-bubble" id="chat-bubble" onclick="toggleChat()">🤖</div>
+        <div class="chatbot-bubble" id="chat-bubble" onclick="abrirChat()">🤖</div>
 
         <div class="chatbot-container" id="chat-container">
             <div class="chatbot-header">
                 <span>🤖 J&J Asistente Virtual</span>
-                <button class="btn-cerrar-chat" onclick="toggleChat()">✕</button>
+                <button type="button" class="btn-cerrar-chat" onclick="cerrarChat()">✕</button>
             </div>
             <div class="chatbot-messages" id="chat-mensajes">
                 <div class="msg-bot">¡Hola! Soy la inteligencia de J&J. ¿Tienes dudas sobre el menú, los pagos o tus reservas? Escríbeme.</div>
@@ -253,7 +266,11 @@
         function avanzarAlMenu() {
             document.getElementById('pantalla-reserva').style.display = 'none'; 
             document.getElementById('pantalla-menu').style.display = 'block';
-            document.getElementById('chat-bubble').style.display = 'flex'; // NUEVO: Activar globito de IA al pasar al menú
+            
+            // ASEGURAR QUE SOLO SALGA EL GLOBITO, NO LA VENTANA
+            document.getElementById('chat-bubble').style.display = 'flex'; 
+            document.getElementById('chat-container').style.display = 'none';
+            
             document.getElementById('txt-resumen-reserva').innerText = `Mesa #${datosReservaConfirmada.mesa.numero} asegurada (${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora})`;
         }
 
@@ -297,18 +314,19 @@
         });
 
         function guardarEncuestaOpcional() {
-            socket.emit('guardar-encuesta-opcional', { cliente: ultimoNombreCliente, allergies: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", preferencias: document.getElementById('encuesta-gusto').value });
+            socket.emit('guardar-encuesta-opcional', { cliente: ultimoNombreCliente, alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", preferencias: document.getElementById('encuesta-gusto').value });
             alert("🎁 ¡Encuesta guardada! Muestra tu número en caja para tu premio."); location.reload();
         }
 
-        // --- NUEVO: FUNCIÓN PARA COLAPSAR/ABRIR EL GLOBITO DE IA ---
-        function toggleChat() {
-            const container = document.getElementById('chat-container');
-            if (container.style.display === 'none' || container.style.display === '') {
-                container.style.display = 'flex';
-            } else {
-                container.style.display = 'none';
-            }
+        // --- FUNCIONES EXCLUSIVAS PARA ABRIR Y CERRAR EL CHAT ---
+        function abrirChat() {
+            document.getElementById('chat-container').style.display = 'flex';
+            document.getElementById('chat-bubble').style.display = 'none';
+        }
+
+        function cerrarChat() {
+            document.getElementById('chat-container').style.display = 'none';
+            document.getElementById('chat-bubble').style.display = 'flex';
         }
 
         function enviarMensajeBot() {
