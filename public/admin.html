@@ -38,9 +38,7 @@
     </div>
 
     <table>
-        <thead>
-            <tr><th>Producto</th><th>Precio</th><th>Categoría</th><th>Porciones</th><th>Acciones</th></tr>
-        </thead>
+        <thead><tr><th>Producto</th><th>Precio</th><th>Categoría</th><th>Porciones</th><th>Acciones</th></tr></thead>
         <tbody id="tabla-items"></tbody>
     </table>
 
@@ -53,10 +51,8 @@
             const b = document.getElementById('tabla-items'); b.innerHTML = "";
             lista.forEach(p => {
                 b.innerHTML += `<tr>
-                    <td><strong>${p.nombre}</strong></td>
-                    <td>$${p.precio.toFixed(2)}</td>
-                    <td>${p.category.toUpperCase()}</td>
-                    <td>${p.stock} porciones</td>
+                    <td><strong>${p.nombre}</strong></td><td>$${p.precio.toFixed(2)}</td>
+                    <td>${p.category.toUpperCase()}</td><td>${p.stock} porciones</td>
                     <td>
                         <button class="btn" style="background:#ffa502; padding:5px 10px; font-size:12px;" onclick="edit(${p.id})">✏️ Editar</button>
                         <button class="btn" style="background:#ff4757; padding:5px 10px; font-size:12px;" onclick="del(${p.id})">🗑️ Borrar</button>
@@ -67,25 +63,19 @@
 
         function edit(id) {
             const p = lista.find(x => x.id === id);
-            document.getElementById('crud-id').value = p.id;
-            document.getElementById('crud-nombre').value = p.nombre;
-            document.getElementById('crud-precio').value = p.precio;
-            document.getElementById('crud-stock').value = p.stock;
-            document.getElementById('crud-cat').value = p.category;
-            document.getElementById('crud-img').value = p.img;
+            document.getElementById('crud-id').value = p.id; document.getElementById('crud-nombre').value = p.nombre;
+            document.getElementById('crud-precio').value = p.precio; document.getElementById('crud-stock').value = p.stock;
+            document.getElementById('crud-cat').value = p.category; document.getElementById('crud-img').value = p.img;
         }
 
         function save() {
             const id = document.getElementById('crud-id').value;
             const p = {
-                nombre: document.getElementById('crud-nombre').value,
-                precio: parseFloat(document.getElementById('crud-precio').value),
-                stock: parseInt(document.getElementById('crud-stock').value),
-                category: document.getElementById('crud-cat').value,
+                nombre: document.getElementById('crud-nombre').value, precio: parseFloat(document.getElementById('crud-precio').value),
+                stock: parseInt(document.getElementById('crud-stock').value), category: document.getElementById('crud-cat').value,
                 img: document.getElementById('crud-img').value || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500"
             };
-            if(id) { p.id = parseInt(id); socket.emit('editar-producto', p); }
-            else { socket.emit('agregar-nuevo-producto', p); }
+            if(id) { p.id = parseInt(id); socket.emit('editar-producto', p); } else socket.emit('agregar-nuevo-producto', p);
             document.getElementById('crud-id').value = ""; document.getElementById('crud-nombre').value = "";
         }
 

@@ -40,17 +40,17 @@
     <script>
         const socket = io();
 
-        // Pedir el historial al servidor apenas abra la página
-        socket.on('connect', () => {
-            socket.emit('obtener-historial-dia');
-        });
+        // FORZAR PETICIÓN DE HISTORIAL
+        function pedirHistorial() { socket.emit('obtener-historial-dia'); }
+        socket.on('connect', pedirHistorial);
+        if (socket.connected) pedirHistorial();
 
         socket.on('cargar-historial', (pedidosEntregados) => {
             const tbody = document.getElementById('tabla-historial');
             tbody.innerHTML = "";
 
             if (pedidosEntregados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999;">Aún no se han entregado pedidos hoy.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999;">Aún no se han entregado pedidos.</td></tr>`;
                 return;
             }
 

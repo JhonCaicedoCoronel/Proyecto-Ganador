@@ -36,10 +36,10 @@ io.on('connection', async (socket) => {
     socket.emit('cargar-menu-inicial', menuProductos || []);
     socket.emit('cargar-mesas-inicial', estadoMesas || []);
 
-    // --- NUEVO: KDS EXIGE LOS PEDIDOS PENDIENTES AL CONECTARSE ---
+    // --- CARGAR COCINA ---
     socket.on('obtener-pedidos-cocina', async () => {
         const { data: pedidosDB, error } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'pendiente').order('id', { ascending: true });
-        if (error) console.error("Error en Supabase:", error);
+        if (error) console.error("🚨 ERROR LEYENDO COCINA:", error);
         
         const pedidosPendientes = (pedidosDB || []).map(p => ({
             id: p.id, cliente: p.cliente, item: p.item, pago: p.pago, tipo: p.tipo,
@@ -49,10 +49,10 @@ io.on('connection', async (socket) => {
         socket.emit('cargar-pedidos-cocina', pedidosPendientes);
     });
 
-    // --- NUEVO: ENDPOINT PARA EL HISTORIAL DE VENTAS ---
+    // --- CARGAR HISTORIAL ---
     socket.on('obtener-historial-dia', async () => {
-        // Traemos los últimos 100 pedidos que ya fueron marcados como 'entregado'
-        const { data: historialDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'entregado').order('id', { ascending: false }).limit(100);
+        const { data: historialDB, error } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'entregado').order('id', { ascending: false }).limit(100);
+        if (error) console.error("🚨 ERROR LEYENDO HISTORIAL:", error);
         socket.emit('cargar-historial', historialDB || []);
     });
 
@@ -108,20 +108,19 @@ io.on('connection', async (socket) => {
         pedido.horaLlegadaEstimada = `${pedido.datosReserva.fecha} a las ${pedido.datosReserva.hora}`;
         pedido.estadoCocinaTexto = (pedido.pago === 'Tarjeta') ? "Reserva Pagada Web ✅" : "Reserva Pendiente Pago 💵";
 
-        // Guardar el pedido en Supabase de forma segura
+        // GUARDADO CRÍTICO EN LA NUBE
         const { error } = await supabase.from('pedidos_cocina').insert([{
             id: pedido.id, cliente: pedido.cliente, item: pedido.item, pago: pedido.pago, tipo: "Reserva en Local",
             turno_fila: pedido.turnoFila, es_fantasma: pedido.esFantasma, hora_registro: pedido.horaRegistro,
             hora_llegada_estimada: pedido.horaLlegadaEstimada, estado_cocina_texto: pedido.estadoCocinaTexto, datos_reserva: pedido.datosReserva
         }]);
-        if(error) console.log("Error al guardar pedido en DB:", error);
+        
+        if(error) console.error("🚨 ERROR AL GUARDAR EN SUPABASE:", error);
 
         if (pedido.productosComprados && pedido.productosComprados.length > 0) {
             for (const item of pedido.productosComprados) {
                 const { data: productoDB } = await supabase.from('menu').select('stock').eq('id', item.id).single();
-                if (productoDB) {
-                    await supabase.from('menu').update({ stock: Math.max(0, productoDB.stock - item.cantidad) }).eq('id', item.id);
-                }
+                if (productoDB) await supabase.from('menu').update({ stock: Math.max(0, productoDB.stock - item.cantidad) }).eq('id', item.id);
             }
             await emitirMenuActualizado();
         }

@@ -25,7 +25,6 @@
 
         .alerta-horarios { background: #fff2cc; border: 1px dashed #ffa502; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; text-align: left; }
         .horario-btn { background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin: 5px 5px 0 0; font-weight: bold; transition: 0.2s; }
-        .horario-btn:hover { background: #26af5f; }
 
         /* PASO 2: MENÚ */
         #pantalla-menu { display: none; width: 100%; padding: 30px 8%; position: relative; }
@@ -39,15 +38,57 @@
         .info-producto { padding: 15px; }
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
 
-        /* CHATBOT */
-        .chatbot-container { position: fixed; bottom: 20px; right: 20px; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; border: 1px solid #ddd; z-index: 999; display: flex; flex-direction: column; }
-        .chatbot-header { background: #2f3542; color: white; padding: 15px; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+        /* --- NUEVO: ASISTENTE EN GLOBITO FLOTANTE --- */
+        .chatbot-bubble { 
+            position: fixed; 
+            bottom: 25px; 
+            right: 25px; 
+            width: 60px; 
+            height: 60px; 
+            background: #2f3542; 
+            color: white; 
+            border-radius: 50%; 
+            display: none; /* Se activa solo al pasar al Paso 2 */
+            justify-content: center; 
+            align-items: center; 
+            font-size: 28px; 
+            cursor: pointer; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3); 
+            z-index: 999; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+        .chatbot-bubble:hover { transform: scale(1.1); background: #ff4757; }
+        
+        .chatbot-container { 
+            position: fixed; 
+            bottom: 100px; 
+            right: 25px; 
+            width: 330px; 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 35px rgba(0,0,0,0.25); 
+            overflow: hidden; 
+            border: 1px solid #e1e8ed; 
+            z-index: 999; 
+            display: none; /* Controlado por JS */
+            flex-direction: column; 
+            animation: despliegueUp 0.3s ease;
+        }
+        @keyframes despliegueUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .chatbot-header { background: #2f3542; color: white; padding: 15px; font-weight: bold; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-cerrar-chat { background: none; border: none; color: #a4b0be; font-size: 20px; cursor: pointer; transition: 0.2s; }
+        .btn-cerrar-chat:hover { color: #ff4757; }
+        
         .chatbot-messages { height: 280px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
-        .msg-bot { background: #e8fcf0; border: 1px solid #2ed573; padding: 10px; border-radius: 10px 10px 10px 0; align-self: flex-start; max-width: 85%; }
-        .msg-user { background: #ff4757; color: white; padding: 10px; border-radius: 10px 10px 0 10px; align-self: flex-end; max-width: 85%; }
-        .chatbot-input { display: flex; border-top: 1px solid #ddd; }
-        .chatbot-input input { flex-grow: 1; border: none; padding: 14px; outline: none; }
-        .chatbot-input button { background: #2f3542; color: white; border: none; padding: 0 15px; cursor: pointer; font-weight: bold; }
+        .msg-bot { background: #e8fcf0; border: 1px solid #2ed573; padding: 10px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%; }
+        .msg-user { background: #ff4757; color: white; padding: 10px; border-radius: 12px 12px 0 12px; align-self: flex-end; max-width: 85%; }
+        .chatbot-input { display: flex; border-top: 1px solid #ddd; background: white; }
+        .chatbot-input input { flex-grow: 1; border: none; padding: 15px; outline: none; font-size: 14px; }
+        .chatbot-input button { background: #2f3542; color: white; border: none; padding: 0 18px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .chatbot-input button:hover { background: #ff4757; }
 
         /* MODALES */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none; }
@@ -64,29 +105,17 @@
 </head>
 <body>
 
-    <!-- PASO 1: RESERVAS REACTIVAS -->
     <div id="pantalla-reserva">
         <div class="reserva-box">
             <h1>J & J Foods</h1>
             <p>Selecciona la fecha y asistentes para ver mesas disponibles.</p>
-
-            <div class="form-grupo">
-                <label>Fecha de la Reserva</label>
-                <input type="date" id="res-fecha" required>
-            </div>
-            <div class="form-grupo">
-                <label>Número de Personas</label>
-                <input type="number" id="res-pax" min="1" max="10" value="2">
-            </div>
+            <div class="form-grupo"><label>Fecha de la Reserva</label><input type="date" id="res-fecha" required></div>
+            <div class="form-grupo"><label>Número de Personas</label><input type="number" id="res-pax" min="1" max="10" value="2"></div>
             <div class="form-grupo">
                 <label>Hora deseada (Disponibilidad en vivo)</label>
-                <select id="res-hora" disabled>
-                    <option value="">Selecciona una fecha primero...</option>
-                </select>
+                <select id="res-hora" disabled><option value="">Selecciona una fecha primero...</option></select>
             </div>
-
             <button class="btn-verificar" onclick="verificarDisponibilidad()">Avanzar a Pre-orden 🔍</button>
-
             <div class="alerta-horarios" id="alerta-lleno">
                 <strong style="color:#d35400;">⚠️ Lo sentimos, el horario elegido está lleno para tu grupo.</strong><br>
                 <span style="font-size: 13px;">Intenta con una alternativa disponible:</span>
@@ -95,24 +124,23 @@
         </div>
     </div>
 
-    <!-- PASO 2: MENÚ -->
     <div id="pantalla-menu">
         <div class="header">
-            <div>
-                <h1 style="color:#ff4757;">J & J Foods</h1>
-                <p style="color:#666; font-size:14px;" id="txt-resumen-reserva">Armando pre-orden...</p>
-            </div>
+            <div><h1 style="color:#ff4757;">J & J Foods</h1><p style="color:#666; font-size:14px;" id="txt-resumen-reserva">Armando pre-orden...</p></div>
             <button class="btn-ver-carrito" onclick="abrirCarrito()">🛒 Ver Pre-orden (<span id="cart-count">0</span>)</button>
         </div>
-
         <h2 style="color:#2f3542; margin-bottom:15px;">Combos Recomendados</h2>
         <div class="grid-productos" id="menu-combos"></div>
         <h2 style="color:#2f3542; margin-bottom:15px;">Bebidas</h2>
         <div class="grid-productos" id="menu-bebidas"></div>
 
-        <!-- CHATBOT -->
-        <div class="chatbot-container">
-            <div class="chatbot-header">🤖 J&J Asistente Virtual</div>
+        <div class="chatbot-bubble" id="chat-bubble" onclick="toggleChat()">🤖</div>
+
+        <div class="chatbot-container" id="chat-container">
+            <div class="chatbot-header">
+                <span>🤖 J&J Asistente Virtual</span>
+                <button class="btn-cerrar-chat" onclick="toggleChat()">✕</button>
+            </div>
             <div class="chatbot-messages" id="chat-mensajes">
                 <div class="msg-bot">¡Hola! Soy la inteligencia de J&J. ¿Tienes dudas sobre el menú, los pagos o tus reservas? Escríbeme.</div>
             </div>
@@ -123,22 +151,15 @@
         </div>
     </div>
 
-    <!-- MODAL CARRITO -->
     <div class="modal-overlay" id="modal-carrito">
         <div class="modal-content">
             <button class="close-modal" onclick="cerrarCarrito()">✕</button>
             <h2 style="margin-bottom:15px; color:#2f3542;">🛒 Confirmar Reserva y Orden</h2>
-            
             <div class="lista-items" id="carrito-contenedor"></div>
             <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
                 <span>Total a pagar:</span><span id="total-txt" style="color:#ff4757;">$0.00</span>
             </div>
-
-            <div class="form-grupo">
-                <label>A nombre de:</label>
-                <input type="text" id="cliente-nombre" placeholder="Ej. Carlos Mendoza">
-            </div>
-
+            <div class="form-grupo"><label>A nombre de:</label><input type="text" id="cliente-nombre" placeholder="Ej. Carlos Mendoza"></div>
             <div class="form-grupo">
                 <label>Forma de Pago para asegurar Reserva</label>
                 <select id="cliente-pago">
@@ -146,12 +167,10 @@
                     <option value="Efectivo">💵 Efectivo (Pagar en el Local al llegar)</option>
                 </select>
             </div>
-
             <button class="btn-confirmar" onclick="finalizarReservaPedido()">Confirmar Reserva y Pago 🚀</button>
         </div>
     </div>
 
-    <!-- MODAL EXITO -->
     <div class="modal-overlay" id="modal-exito">
         <div class="modal-content" style="text-align: center;">
             <h2 style="color:#2ed573;">🎉 ¡Mesa Reservada con Éxito!</h2>
@@ -161,10 +180,7 @@
             
             <div class="encuesta-card">
                 <strong style="color:#26af5f; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Encuesta Opcional (Gana Papas Gratis)</strong>
-                <div class="form-grupo">
-                    <label>¿Padeces alguna alergia? (Opcional)</label>
-                    <input type="text" id="encuesta-alergia" placeholder="Ej. Gluten, Mariscos">
-                </div>
+                <div class="form-grupo"><label>¿Padeces alguna alergia? (Opcional)</label><input type="text" id="encuesta-alergia" placeholder="Ej. Gluten, Mariscos"></div>
                 <div class="form-grupo">
                     <label>¿Tu producto favorito? (Opcional)</label>
                     <select id="encuesta-gusto">
@@ -175,7 +191,6 @@
                 </div>
                 <button class="btn-confirmar" style="margin-top: 5px;" onclick="guardarEncuestaOpcional()">Enviar y Reclamar Premio 🎁</button>
             </div>
-            
             <button class="btn-saltar" onclick="location.reload()">Terminar y Volver al inicio</button>
         </div>
     </div>
@@ -183,12 +198,10 @@
     <script>
         const socket = io();
         let productos = []; let carrito = [];
-        let datosReservaConfirmada = {};
-        let ultimoNombreCliente = "";
+        let datosReservaConfirmada = {}; let ultimoNombreCliente = "";
 
         document.getElementById('res-fecha').min = new Date().toISOString().split('T')[0];
 
-        // --- LÓGICA REACTIVA ---
         function solicitarHorarios() {
             const fecha = document.getElementById('res-fecha').value;
             const pax = document.getElementById('res-pax').value;
@@ -204,35 +217,22 @@
 
         socket.on('horarios-para-fecha', (horarios) => {
             const selectHora = document.getElementById('res-hora');
-            selectHora.innerHTML = "";
-            let hayOpciones = false;
-
+            selectHora.innerHTML = ""; let hayOpciones = false;
             horarios.forEach(h => {
-                if(h.lleno) {
-                    selectHora.innerHTML += `<option value="${h.hora}" disabled>❌ ${h.hora} (Sin mesas para este grupo)</option>`;
-                } else {
-                    selectHora.innerHTML += `<option value="${h.hora}">✅ ${h.hora} (${h.disponibles} mesas aptas)</option>`;
-                    hayOpciones = true;
-                }
+                if(h.lleno) selectHora.innerHTML += `<option value="${h.hora}" disabled>❌ ${h.hora} (Sin mesas para este grupo)</option>`;
+                else { selectHora.innerHTML += `<option value="${h.hora}">✅ ${h.hora} (${h.disponibles} mesas aptas)</option>`; hayOpciones = true; }
             });
-
             if(!hayOpciones) selectHora.innerHTML = `<option value="" disabled>Sin disponibilidad para tu grupo</option>`;
             selectHora.disabled = false;
         });
 
-        socket.on('reserva-confirmada-actualizar', (fechaModificada) => {
-            if (document.getElementById('res-fecha').value === fechaModificada) solicitarHorarios();
-        });
+        socket.on('reserva-confirmada-actualizar', (fechaModificada) => { if (document.getElementById('res-fecha').value === fechaModificada) solicitarHorarios(); });
 
-        // --- FLUJO ---
         socket.on('cargar-menu-inicial', (data) => { productos = data; renderMenu(); });
         
         function verificarDisponibilidad() {
-            const fecha = document.getElementById('res-fecha').value;
-            const hora = document.getElementById('res-hora').value;
-            const pax = document.getElementById('res-pax').value;
-
-            if(!fecha || !hora) return alert("Por favor, selecciona una fecha y hora válidas.");
+            const fecha = document.getElementById('res-fecha').value; const hora = document.getElementById('res-hora').value; const pax = document.getElementById('res-pax').value;
+            if(!fecha || !hora) return alert("Selecciona una fecha y hora válidas.");
             socket.emit('verificar-disponibilidad', { fecha, hora, personas: pax });
         }
 
@@ -241,28 +241,19 @@
                 datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: res.horaExacta, personas: document.getElementById('res-pax').value, mesa: res.mesa };
                 avanzarAlMenu();
             } else {
-                solicitarHorarios();
-                document.getElementById('alerta-lleno').style.display = 'block';
-                const contAlt = document.getElementById('opciones-alternativas');
-                contAlt.innerHTML = "";
-                if (res.alternativas.length === 0) {
-                    contAlt.innerHTML = "<span style='color:red;'>No hay mesas para tu grupo.</span>";
-                } else {
-                    res.alternativas.forEach(alt => {
-                        contAlt.innerHTML += `<button class="horario-btn" onclick="seleccionarAlternativa('${alt}')">${alt}</button>`;
-                    });
-                }
+                solicitarHorarios(); document.getElementById('alerta-lleno').style.display = 'block';
+                const contAlt = document.getElementById('opciones-alternativas'); contAlt.innerHTML = "";
+                if (res.alternativas.length === 0) contAlt.innerHTML = "<span style='color:red;'>No hay mesas para tu grupo.</span>";
+                else res.alternativas.forEach(alt => { contAlt.innerHTML += `<button class="horario-btn" onclick="seleccionarAlternativa('${alt}')">${alt}</button>`; });
             }
         });
 
-        function seleccionarAlternativa(hora) {
-            document.getElementById('res-hora').value = hora;
-            verificarDisponibilidad();
-        }
-
+        function seleccionarAlternativa(hora) { document.getElementById('res-hora').value = hora; verificarDisponibilidad(); }
+        
         function avanzarAlMenu() {
-            document.getElementById('pantalla-reserva').style.display = 'none';
+            document.getElementById('pantalla-reserva').style.display = 'none'; 
             document.getElementById('pantalla-menu').style.display = 'block';
+            document.getElementById('chat-bubble').style.display = 'flex'; // NUEVO: Activar globito de IA al pasar al menú
             document.getElementById('txt-resumen-reserva').innerText = `Mesa #${datosReservaConfirmada.mesa.numero} asegurada (${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora})`;
         }
 
@@ -270,34 +261,20 @@
             const combos = document.getElementById('menu-combos'); const bebidas = document.getElementById('menu-bebidas');
             combos.innerHTML = ""; bebidas.innerHTML = "";
             productos.forEach(p => {
-                const html = `
-                    <div class="card-producto">
-                        <img src="${p.img}">
-                        <div class="info-producto">
-                            <strong style="font-size:15px; display:block; height:40px;">${p.nombre}</strong>
-                            <p style="color:#ff4757; font-weight:bold; margin-top:5px;">$${p.precio.toFixed(2)}</p>
-                            <button class="btn-agregar" onclick="addToCart(${p.id})">Agregar a Pre-orden</button>
-                        </div>
-                    </div>`;
+                const html = `<div class="card-producto"><img src="${p.img}"><div class="info-producto"><strong style="font-size:15px; display:block; height:40px;">${p.nombre}</strong><p style="color:#ff4757; font-weight:bold; margin-top:5px;">$${p.precio.toFixed(2)}</p><button class="btn-agregar" onclick="addToCart(${p.id})">Agregar a Pre-orden</button></div></div>`;
                 if(p.category === 'combos') combos.innerHTML += html; else bebidas.innerHTML += html;
             });
         }
 
         function addToCart(id) {
-            const p = productos.find(x => x.id === id);
-            const existe = carrito.find(x => x.id === id);
+            const p = productos.find(x => x.id === id); const existe = carrito.find(x => x.id === id);
             if(existe) { existe.cantidad++; } else { carrito.push({...p, cantidad:1}); }
-            document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0);
-            updateCartUI();
+            document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0); updateCartUI();
         }
 
         function updateCartUI() {
-            const cont = document.getElementById('carrito-contenedor'); cont.innerHTML = "";
-            let total = 0;
-            carrito.forEach(c => {
-                total += c.precio * c.cantidad;
-                cont.innerHTML += `<div class="item-row"><span>${c.cantidad}x ${c.nombre}</span><span>$${(c.precio*c.cantidad).toFixed(2)}</span></div>`;
-            });
+            const cont = document.getElementById('carrito-contenedor'); cont.innerHTML = ""; let total = 0;
+            carrito.forEach(c => { total += c.precio * c.cantidad; cont.innerHTML += `<div class="item-row"><span>${c.cantidad}x ${c.nombre}</span><span>$${(c.precio*c.cantidad).toFixed(2)}</span></div>`; });
             document.getElementById('total-txt').innerText = `$${total.toFixed(2)}`;
         }
 
@@ -305,63 +282,47 @@
         function cerrarCarrito() { document.getElementById('modal-carrito').style.display = 'none'; }
 
         function finalizarReservaPedido() {
-            const nombre = document.getElementById('cliente-nombre').value.trim();
-            const pago = document.getElementById('cliente-pago').value;
-
+            const nombre = document.getElementById('cliente-nombre').value.trim(); const pago = document.getElementById('cliente-pago').value;
             if(!nombre || carrito.length === 0) return alert("Ingresa tu nombre y elige platos en la pre-orden.");
-
             ultimoNombreCliente = nombre;
-
             const pedido = {
-                id: Math.floor(Math.random() * 9000) + 1000,
-                cliente: nombre,
-                item: carrito.map(c => `${c.cantidad}x ${c.nombre}`).join(', '),
-                pago: pago,
-                datosReserva: datosReservaConfirmada,
-                productosComprados: carrito.map(c => ({id: c.id, cantidad: c.cantidad}))
+                id: Math.floor(Math.random() * 9000) + 1000, cliente: nombre, item: carrito.map(c => `${c.cantidad}x ${c.nombre}`).join(', '),
+                pago: pago, datosReserva: datosReservaConfirmada, productosComprados: carrito.map(c => ({id: c.id, cantidad: c.cantidad}))
             };
-
-            socket.emit('enviar-reserva-pedido', pedido);
-            cerrarCarrito();
+            socket.emit('enviar-reserva-pedido', pedido); cerrarCarrito();
         }
 
         socket.on('confirmacion-turno-cliente', (data) => {
-            document.getElementById('txt-turno').innerText = data.turno;
-            document.getElementById('modal-exito').style.display = 'flex';
+            document.getElementById('txt-turno').innerText = data.turno; document.getElementById('modal-exito').style.display = 'flex';
         });
 
         function guardarEncuestaOpcional() {
-            socket.emit('guardar-encuesta-opcional', {
-                cliente: ultimoNombreCliente,
-                alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna",
-                preferencias: document.getElementById('encuesta-gusto').value
-            });
-            alert("🎁 ¡Encuesta guardada! Muestra tu número en caja para tu premio.");
-            location.reload();
+            socket.emit('guardar-encuesta-opcional', { cliente: ultimoNombreCliente, allergies: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", preferencias: document.getElementById('encuesta-gusto').value });
+            alert("🎁 ¡Encuesta guardada! Muestra tu número en caja para tu premio."); location.reload();
         }
 
-        // --- CHATBOT ---
-        function enviarMensajeBot() {
-            const inputField = document.getElementById('chat-input');
-            const textoUsuario = inputField.value.trim().toLowerCase();
-            if(textoUsuario === "") return;
+        // --- NUEVO: FUNCIÓN PARA COLAPSAR/ABRIR EL GLOBITO DE IA ---
+        function toggleChat() {
+            const container = document.getElementById('chat-container');
+            if (container.style.display === 'none' || container.style.display === '') {
+                container.style.display = 'flex';
+            } else {
+                container.style.display = 'none';
+            }
+        }
 
-            const chatBox = document.getElementById('chat-mensajes');
-            chatBox.innerHTML += `<div class="msg-user">${inputField.value}</div>`;
-            inputField.value = "";
-            chatBox.scrollTop = chatBox.scrollHeight;
+        function enviarMensajeBot() {
+            const inputField = document.getElementById('chat-input'); const textoUsuario = inputField.value.trim().toLowerCase();
+            if(textoUsuario === "") return;
+            const chatBox = document.getElementById('chat-mensajes'); chatBox.innerHTML += `<div class="msg-user">${inputField.value}</div>`;
+            inputField.value = ""; chatBox.scrollTop = chatBox.scrollHeight;
 
             setTimeout(() => {
                 let respuesta = "Disculpa, no entendí bien. Puedes preguntarme sobre <strong>el menú, reservas, pagos o ingredientes.</strong>";
-                if (textoUsuario.includes("reserva") || textoUsuario.includes("mesa")) {
-                    respuesta = "🗓️ Nuestro sistema asigna mesas según el tamaño de tu grupo automáticamente.";
-                } else if (textoUsuario.includes("pago") || textoUsuario.includes("tarjeta")) {
-                    respuesta = "💳 Aceptamos pagos con Tarjeta o Efectivo en caja.";
-                } else if (textoUsuario.includes("hola")) {
-                    respuesta = "¡Hola! Bienvenido a J & J Foods.";
-                }
-                chatBox.innerHTML += `<div class="msg-bot">${respuesta}</div>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
+                if (textoUsuario.includes("reserva") || textoUsuario.includes("mesa")) respuesta = "🗓️ Nuestro sistema asigna mesas según el tamaño de tu grupo automáticamente.";
+                else if (textoUsuario.includes("pago") || textoUsuario.includes("tarjeta")) respuesta = "💳 Aceptamos pagos con Tarjeta o Efectivo en caja.";
+                else if (textoUsuario.includes("hola")) respuesta = "¡Hola! Bienvenido a J & J Foods.";
+                chatBox.innerHTML += `<div class="msg-bot">${respuesta}</div>`; chatBox.scrollTop = chatBox.scrollHeight;
             }, 600);
         }
     </script>

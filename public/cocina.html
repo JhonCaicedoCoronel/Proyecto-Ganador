@@ -30,19 +30,17 @@
         const socket = io();
         const cont = document.getElementById('kds-contenedor');
 
-        // --- MAGIA ANTI-RECARGAS: EXIGIMOS LOS PEDIDOS AL CONECTAR ---
-        socket.on('connect', () => {
-            socket.emit('obtener-pedidos-cocina');
-        });
+        // FORZAR PETICIÓN DE DATOS (CRASH-PROOF)
+        function pedirDatosCocina() { socket.emit('obtener-pedidos-cocina'); }
+        socket.on('connect', pedirDatosCocina);
+        if (socket.connected) pedirDatosCocina();
 
         socket.on('cargar-pedidos-cocina', (pedidos) => {
-            cont.innerHTML = ""; // Limpiar pantalla
+            cont.innerHTML = ""; 
             pedidos.forEach(p => renderizarTarjeta(p, false));
         });
 
-        socket.on('notificar-cocina', (p) => {
-            renderizarTarjeta(p, true);
-        });
+        socket.on('notificar-cocina', (p) => { renderizarTarjeta(p, true); });
 
         function renderizarTarjeta(p, esNuevo) {
             if(document.getElementById(`kds-${p.id}`)) return;
