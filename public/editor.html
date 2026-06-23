@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editor de Menú - J & J</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f4f6f8; color: #2f3542; padding: 30px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: #2f3542; margin-bottom: 25px; text-align: center; }
+        .admin-box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 30px; border-top: 4px solid #2ed573; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .form-grupo { display: flex; flex-direction: column; }
+        .form-grupo label { font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #57606f; }
+        .form-grupo input, .form-grupo select { padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; background: #fcfcfc; }
+        .btn-guardar { background: #2ed573; color: white; border: none; padding: 14px 20px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn-guardar:hover { background: #26af5f; }
+        .tabla-productos { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .tabla-productos th, .tabla-productos td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; }
+        .tabla-productos th { background: #2f3542; color: white; font-size: 14px; text-transform: uppercase; }
+        .tabla-productos img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
+        .btn-eliminar { background: #ff4757; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .badge-cat { background: #f1f2f6; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: #57606f; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gestión de Menú e Inventario</h1>
+        <div class="admin-box">
+            <h3 style="margin-bottom: 15px;">➕ Agregar Nuevo Plato o Bebida</h3>
+            <div class="form-grid">
+                <div class="form-grupo"><label>Nombre del Plato</label><input type="text" id="prod-nombre" placeholder="Ej. Combo J&J Triple"></div>
+                <div class="form-grupo"><label>Precio de Venta ($)</label><input type="number" id="prod-precio" step="0.01" placeholder="9.00"></div>
+                <div class="form-grupo"><label>Unidades en Stock</label><input type="number" id="prod-stock" value="50"></div>
+                <div class="form-grupo">
+                    <label>Categoría</label>
+                    <select id="prod-cat"><option value="combos">Combos / Comida</option><option value="bebidas">Bebidas</option></select>
+                </div>
+                <div class="form-grupo"><label>URL de Imagen</label><input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg"></div>
+            </div>
+            <button class="btn-guardar" onclick="guardarProducto()">Guardar y Actualizar Quioscos 🚀</button>
+        </div>
+
+        <table class="tabla-productos">
+            <thead><tr><th>Foto</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+            <tbody id="lista-menu">
+                <tr><td colspan="6" style="text-align: center; padding: 20px;">Cargando base de datos...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const socket = io();
+        socket.on('cargar-menu-inicial', renderizarTabla);
+        socket.on('menu-actualizado-completo', renderizarTabla);
+
+        function renderizarTabla(productos) {
+            const tbody = document.getElementById('lista-menu');
+            tbody.innerHTML = '';
+            if(!productos || productos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Tu menú está vacío.</td></tr>'; return;
+            }
+            productos.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'"></td>
+                        <td><strong>${p.nombre}</strong></td>
+                        <td><span class="badge-cat">${p.category}</span></td>
+                        <td style="color:#2ed573; font-weight:bold;">$${p.precio.toFixed(2)}</td>
+                        <td>${p.stock} und.</td>
+                        <td><button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></td>
+                    </tr>`;
+            });
+        }
+
+        function guardarProducto() {
+            const nombre = document.getElementById('prod-nombre').value.trim();
+            const precio = parseFloat(document.getElementById('prod-precio').value);
+            const stock = parseInt(document.getElementById('prod-stock').value);
+            const category = document.getElementById('prod-cat').value;
+            let img = document.getElementById('prod-img').value.trim() || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
+            
+            if (!nombre || isNaN(precio) || isNaN(stock)) return alert("Completa Nombre, Precio y Stock.");
+            socket.emit('agregar-nuevo-producto', { nombre, precio, stock, category, img });
+            
+            document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-img').value = '';
+        }
+
+        function eliminarProducto(id) {
+            if(confirm("¿Seguro que deseas eliminar este producto?")) socket.emit('eliminar-producto', id);
+        }
+    </script>
+</body>
+</html>

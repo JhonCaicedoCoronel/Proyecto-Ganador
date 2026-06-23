@@ -130,4 +130,70 @@
         }
     </script>
 </body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centro de Mando - J & J Foods</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body, html { height: 100vh; overflow: hidden; background: #1e222b; }
+        
+        /* BARRA SUPERIOR FIJA DEL ADMINISTRADOR */
+        .admin-header { 
+            background: #2f3542; 
+            height: 70px; 
+            display: flex; 
+            align-items: center; 
+            padding: 0 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+            z-index: 10;
+            position: relative;
+        }
+        .logo-text { color: #ff4757; font-size: 22px; font-weight: bold; margin-right: 30px; letter-spacing: 1px; }
+        
+        /* BOTONES QUE CAMBIAN EL IFRAME */
+        .nav-links { display: flex; gap: 10px; }
+        .nav-btn { 
+            text-decoration: none; 
+            color: white; 
+            font-weight: bold; 
+            padding: 10px 18px; 
+            background: rgba(255,255,255,0.1); 
+            border-radius: 8px; 
+            transition: 0.2s; 
+            font-size: 14px;
+        }
+        .nav-btn:hover, .nav-btn:focus { background: #ff4757; outline: none; }
+        
+        .btn-quiosco { margin-left: auto; background: transparent; border: 2px solid #2ed573; color: #2ed573; }
+        .btn-quiosco:hover { background: #2ed573; color: #1e222b; }
+
+        /* EL MARCO DONDE SE CARGAN LAS PANTALLAS */
+        #visor-central {
+            width: 100%;
+            height: calc(100vh - 70px);
+            border: none;
+            background: #f1f2f6;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="admin-header">
+        <div class="logo-text">👑 J&J ADMIN</div>
+        <nav class="nav-links">
+            <a href="/editor.html" target="visor-central" class="nav-btn" autofocus>🍔 Editor de Menú</a>
+            <a href="/mesas.html" target="visor-central" class="nav-btn">🪑 Gestión de Mesas</a>
+            <a href="/cocina.html" target="visor-central" class="nav-btn">👨‍🍳 Monitor KDS (Cocina)</a>
+            <a href="/historial.html" target="visor-central" class="nav-btn">📈 Historial de Ventas</a>
+        </nav>
+        
+        <a href="/quiosco.html" target="_blank" class="nav-btn btn-quiosco">👀 Simular Cliente ↗</a>
+    </header>
+
+    <iframe name="visor-central" id="visor-central" src="/editor.html"></iframe>
+
+</body>
 </html>
