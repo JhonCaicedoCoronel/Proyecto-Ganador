@@ -9,7 +9,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: #f4f6f8; color: #2f3542; padding-bottom: 50px; }
         
-        /* --- BARRA DE NAVEGACIÓN COMPACTA --- */
         .nav-admin { background: #2f3542; padding: 15px 20px; display: flex; gap: 15px; justify-content: center; margin-bottom: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); flex-wrap: wrap; }
         .nav-admin a { text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 8px; transition: 0.2s; font-size: 15px; }
         .nav-activo { background: #ff4757; color: white; box-shadow: 0 2px 5px rgba(255,71,87,0.4); }
@@ -18,11 +17,9 @@
         .nav-link { color: #2ed573; border: 1px solid #2ed573; margin-left: auto; }
         .nav-link:hover { background: #2ed573; color: white; }
 
-        /* --- CONTENIDO PRINCIPAL --- */
         .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
         h1 { color: #2f3542; margin-bottom: 25px; text-align: center; font-size: 28px; }
 
-        /* --- FORMULARIO DE INGRESO --- */
         .admin-box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 30px; border-top: 4px solid #2ed573; }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .form-grupo { display: flex; flex-direction: column; }
@@ -33,7 +30,6 @@
         .btn-guardar { background: #2ed573; color: white; border: none; padding: 14px 20px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; transition: 0.2s; }
         .btn-guardar:hover { background: #26af5f; transform: scale(1.01); }
 
-        /* --- TABLA DE INVENTARIO --- */
         .tabla-productos { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
         .tabla-productos th, .tabla-productos td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; }
         .tabla-productos th { background: #2f3542; color: white; font-size: 14px; text-transform: uppercase; }
@@ -46,7 +42,6 @@
 </head>
 <body>
 
-    <!-- BARRA DE NAVEGACIÓN -->
     <nav class="nav-admin">
         <a href="/admin.html" class="nav-activo">🍔 Editor de Menú</a>
         <a href="/mesas.html" class="nav-inactivo">🪑 Monitor de Mesas</a>
@@ -58,22 +53,12 @@
     <div class="container">
         <h1>Gestión de Menú e Inventario</h1>
         
-        <!-- CAJA PARA AGREGAR PRODUCTOS -->
         <div class="admin-box">
             <h3 style="margin-bottom: 15px; color: #2f3542;">➕ Agregar Nuevo Plato o Bebida</h3>
             <div class="form-grid">
-                <div class="form-grupo">
-                    <label>Nombre del Plato</label>
-                    <input type="text" id="prod-nombre" placeholder="Ej. Combo J&J Triple">
-                </div>
-                <div class="form-grupo">
-                    <label>Precio de Venta ($)</label>
-                    <input type="number" id="prod-precio" step="0.01" placeholder="9.00">
-                </div>
-                <div class="form-grupo">
-                    <label>Unidades en Stock</label>
-                    <input type="number" id="prod-stock" value="50">
-                </div>
+                <div class="form-grupo"><label>Nombre del Plato</label><input type="text" id="prod-nombre" placeholder="Ej. Combo J&J Triple"></div>
+                <div class="form-grupo"><label>Precio de Venta ($)</label><input type="number" id="prod-precio" step="0.01" placeholder="9.00"></div>
+                <div class="form-grupo"><label>Unidades en Stock</label><input type="number" id="prod-stock" value="50"></div>
                 <div class="form-grupo">
                     <label>Categoría</label>
                     <select id="prod-cat">
@@ -81,25 +66,14 @@
                         <option value="bebidas">Bebidas</option>
                     </select>
                 </div>
-                <div class="form-grupo">
-                    <label>URL de Imagen (Link)</label>
-                    <input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg">
-                </div>
+                <div class="form-grupo"><label>URL de Imagen (Link)</label><input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg"></div>
             </div>
             <button class="btn-guardar" onclick="guardarProducto()">Guardar y Actualizar Quioscos 🚀</button>
         </div>
 
-        <!-- TABLA PARA VER LO QUE ESTÁ GUARDADO -->
         <table class="tabla-productos">
             <thead>
-                <tr>
-                    <th>Foto</th>
-                    <th>Producto</th>
-                    <th>Categoría</th>
-                    <th>Precio</th>
-                    <th>Stock</th>
-                    <th>Acciones</th>
-                </tr>
+                <tr><th>Foto</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr>
             </thead>
             <tbody id="lista-menu">
                 <tr><td colspan="6" style="text-align: center; padding: 20px;">Cargando base de datos...</td></tr>
@@ -110,11 +84,9 @@
     <script>
         const socket = io();
 
-        // Escuchar cuando el servidor nos manda el menú actual
         socket.on('cargar-menu-inicial', renderizarTabla);
         socket.on('menu-actualizado-completo', renderizarTabla);
 
-        // Función para dibujar la tabla
         function renderizarTabla(productos) {
             const tbody = document.getElementById('lista-menu');
             tbody.innerHTML = '';
@@ -132,15 +104,12 @@
                         <td><span class="badge-cat">${p.category}</span></td>
                         <td style="color:#2ed573; font-weight:bold;">$${p.precio.toFixed(2)}</td>
                         <td>${p.stock} und.</td>
-                        <td>
-                            <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button>
-                        </td>
+                        <td><button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></td>
                     </tr>
                 `;
             });
         }
 
-        // Función para enviar los datos del nuevo producto al servidor
         function guardarProducto() {
             const nombre = document.getElementById('prod-nombre').value.trim();
             const precio = parseFloat(document.getElementById('prod-precio').value);
@@ -148,27 +117,16 @@
             const category = document.getElementById('prod-cat').value;
             let img = document.getElementById('prod-img').value.trim();
             
-            // Si no ponen imagen, usamos una de comida por defecto para que no se vea feo
             if(img === "") img = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
+            if (!nombre || isNaN(precio) || isNaN(stock)) return alert("⚠️ Por favor completa el Nombre, Precio y Stock.");
 
-            if (!nombre || isNaN(precio) || isNaN(stock)) {
-                return alert("⚠️ Por favor completa el Nombre, Precio y Stock para poder guardar.");
-            }
-
-            // Enviar a la base de datos a través de Node.js
             socket.emit('agregar-nuevo-producto', { nombre, precio, stock, category, img });
             
-            // Limpiar las casillas del formulario para escribir uno nuevo
-            document.getElementById('prod-nombre').value = '';
-            document.getElementById('prod-precio').value = '';
-            document.getElementById('prod-img').value = '';
+            document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-img').value = '';
         }
 
-        // Función para borrar un producto
         function eliminarProducto(id) {
-            if(confirm("¿Estás 100% seguro de que deseas eliminar este producto de tu menú para siempre?")) {
-                socket.emit('eliminar-producto', id);
-            }
+            if(confirm("¿Estás 100% seguro de que deseas eliminar este producto?")) socket.emit('eliminar-producto', id);
         }
     </script>
 </body>

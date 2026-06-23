@@ -29,20 +29,11 @@ async function emitirMesasActualizadas() {
 }
 
 io.on('connection', async (socket) => {
-    
-    // --- 🚨 RADAR DE DIAGNÓSTICO INYECTADO AQUÍ 🚨 ---
-    console.log("Un usuario se ha conectado a la página. Intentando leer base de datos...");
+    console.log("Un usuario se ha conectado a la página. Leyendo base de datos...");
     
     const { data: estadoMesas, error: errorMesas } = await supabase.from('mesas').select('*').order('numero', { ascending: true });
+    if (errorMesas) console.error("🚨 ERROR AL LEER MESAS:", errorMesas);
     
-    if (errorMesas) {
-        console.error("🚨 ERROR FATAL AL LEER MESAS DESDE SUPABASE:", errorMesas);
-    } else {
-        console.log("✅ MESAS LEÍDAS CORRECTAMENTE:", estadoMesas ? estadoMesas.length : 0);
-        if(!estadoMesas || estadoMesas.length === 0) console.log("⚠️ ALERTA: La conexión funciona, pero la tabla MESAS ESTÁ VACÍA en esta base de datos.");
-    }
-    // -------------------------------------------------
-
     const { data: menuProductos } = await supabase.from('menu').select('*').order('id', { ascending: true });
     
     socket.emit('cargar-menu-inicial', menuProductos || []);

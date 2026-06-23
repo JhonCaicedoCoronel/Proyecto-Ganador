@@ -9,7 +9,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: #f8f9fa; min-height: 100vh; color: #333; overflow-x: hidden; }
         
-        /* PASO 1: RESERVA */
         #pantalla-reserva { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1550547660-d9450f859349?w=1600') center/cover; padding: 20px; }
         .reserva-box { background: white; padding: 40px; border-radius: 16px; width: 450px; max-width: 100%; box-shadow: 0 15px 35px rgba(0,0,0,0.3); text-align: center; }
         .reserva-box h1 { color: #ff4757; margin-bottom: 5px; font-size: 32px; }
@@ -26,7 +25,6 @@
         .alerta-horarios { background: #fff2cc; border: 1px dashed #ffa502; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; text-align: left; }
         .horario-btn { background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin: 5px 5px 0 0; font-weight: bold; transition: 0.2s; }
 
-        /* PASO 2: MENÚ */
         #pantalla-menu { display: none; width: 100%; padding: 30px 8%; position: relative; }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 15px; margin-bottom: 30px; }
         .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
@@ -38,61 +36,16 @@
         .info-producto { padding: 15px; }
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
 
-        /* --- GLOBITO FLOTANTE INTERACTIVO --- */
-        .chatbot-bubble { 
-            position: fixed; 
-            bottom: 25px; 
-            right: 25px; 
-            width: 65px; 
-            height: 65px; 
-            background: #2f3542; 
-            color: white; 
-            border-radius: 50%; 
-            display: none; 
-            justify-content: center; 
-            align-items: center; 
-            font-size: 32px; 
-            cursor: pointer; 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3); 
-            z-index: 999; 
-            transition: 0.3s; 
-        }
+        /* GLOBITO FLOTANTE INTERACTIVO */
+        .chatbot-bubble { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: #2f3542; color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 999; transition: 0.3s; }
         .chatbot-bubble:hover { transform: scale(1.1); background: #ff4757; }
         
-        /* --- CONTENEDOR DESPLEGABLE DEL ASISTENTE --- */
-        .chatbot-container { 
-            position: fixed; 
-            bottom: 25px; 
-            right: 25px; 
-            width: 340px; 
-            background: white; 
-            border-radius: 16px; 
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
-            overflow: hidden; 
-            border: 1px solid #e1e8ed; 
-            z-index: 1000; 
-            display: none; /* Oculto por defecto */
-            flex-direction: column; 
-            animation: despliegueUp 0.3s ease;
-        }
-        @keyframes despliegueUp {
-            from { opacity: 0; transform: translateY(20px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
+        /* CONTENEDOR DESPLEGABLE DEL ASISTENTE */
+        .chatbot-container { position: fixed; bottom: 25px; right: 25px; width: 340px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); overflow: hidden; border: 1px solid #e1e8ed; z-index: 1000; display: none; flex-direction: column; animation: despliegueUp 0.3s ease; }
+        @keyframes despliegueUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
         
         .chatbot-header { background: #2f3542; color: white; padding: 15px 20px; font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
-        
-        /* BOTÓN DE CIERRE CORREGIDO Y VISIBLE */
-        .btn-cerrar-chat { 
-            background: transparent; 
-            border: none; 
-            color: white; 
-            font-size: 22px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            transition: 0.2s; 
-            padding: 0 5px;
-        }
+        .btn-cerrar-chat { background: transparent; border: none; color: white; font-size: 22px; cursor: pointer; font-weight: bold; transition: 0.2s; padding: 0 5px; }
         .btn-cerrar-chat:hover { color: #ff4757; transform: scale(1.2); }
         
         .chatbot-messages { height: 280px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
@@ -103,7 +56,6 @@
         .chatbot-input button { background: #2f3542; color: white; border: none; padding: 0 18px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .chatbot-input button:hover { background: #ff4757; }
 
-        /* MODALES */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none; }
         .modal-content { background: white; padding: 30px; border-radius: 16px; width: 500px; max-width: 95%; max-height: 90vh; overflow-y: auto; position: relative; }
         .close-modal { position: absolute; top: 15px; right: 20px; font-size: 26px; cursor: pointer; background: none; border: none; color: #a4b0be; }
@@ -266,11 +218,8 @@
         function avanzarAlMenu() {
             document.getElementById('pantalla-reserva').style.display = 'none'; 
             document.getElementById('pantalla-menu').style.display = 'block';
-            
-            // ASEGURAR QUE SOLO SALGA EL GLOBITO, NO LA VENTANA
             document.getElementById('chat-bubble').style.display = 'flex'; 
             document.getElementById('chat-container').style.display = 'none';
-            
             document.getElementById('txt-resumen-reserva').innerText = `Mesa #${datosReservaConfirmada.mesa.numero} asegurada (${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora})`;
         }
 
@@ -318,16 +267,8 @@
             alert("🎁 ¡Encuesta guardada! Muestra tu número en caja para tu premio."); location.reload();
         }
 
-        // --- FUNCIONES EXCLUSIVAS PARA ABRIR Y CERRAR EL CHAT ---
-        function abrirChat() {
-            document.getElementById('chat-container').style.display = 'flex';
-            document.getElementById('chat-bubble').style.display = 'none';
-        }
-
-        function cerrarChat() {
-            document.getElementById('chat-container').style.display = 'none';
-            document.getElementById('chat-bubble').style.display = 'flex';
-        }
+        function abrirChat() { document.getElementById('chat-container').style.display = 'flex'; document.getElementById('chat-bubble').style.display = 'none'; }
+        function cerrarChat() { document.getElementById('chat-container').style.display = 'none'; document.getElementById('chat-bubble').style.display = 'flex'; }
 
         function enviarMensajeBot() {
             const inputField = document.getElementById('chat-input'); const textoUsuario = inputField.value.trim().toLowerCase();
