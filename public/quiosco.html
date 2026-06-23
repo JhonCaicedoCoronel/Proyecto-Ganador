@@ -26,11 +26,13 @@
         .horario-btn { background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin: 5px 5px 0 0; font-weight: bold; transition: 0.2s; }
 
         #pantalla-menu { display: none; width: 100%; padding: 30px 8%; position: relative; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 15px; margin-bottom: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 15px; margin-bottom: 10px; }
         .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
         .btn-ver-carrito:hover { transform: scale(1.05); }
         
-        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 30px; }
+        /* ESTILOS DEL MENÚ DINÁMICO */
+        .categoria-titulo { color: #2f3542; margin: 35px 0 15px 0; border-bottom: 2px solid #ff4757; padding-bottom: 8px; display: inline-block; font-size: 22px; }
+        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 10px; }
         .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .card-producto img { width: 100%; height: 140px; object-fit: cover; }
         .info-producto { padding: 15px; }
@@ -40,7 +42,6 @@
         .chatbot-bubble { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: #2f3542; color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 999; transition: 0.3s; }
         .chatbot-bubble:hover { transform: scale(1.1); background: #ff4757; }
         
-        /* CONTENEDOR DESPLEGABLE DEL ASISTENTE */
         .chatbot-container { position: fixed; bottom: 25px; right: 25px; width: 340px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); overflow: hidden; border: 1px solid #e1e8ed; z-index: 1000; display: none; flex-direction: column; animation: despliegueUp 0.3s ease; }
         @keyframes despliegueUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
         
@@ -94,10 +95,9 @@
             <div><h1 style="color:#ff4757;">J & J Foods</h1><p style="color:#666; font-size:14px;" id="txt-resumen-reserva">Armando pre-orden...</p></div>
             <button class="btn-ver-carrito" onclick="abrirCarrito()">🛒 Ver Pre-orden (<span id="cart-count">0</span>)</button>
         </div>
-        <h2 style="color:#2f3542; margin-bottom:15px;">Combos Recomendados</h2>
-        <div class="grid-productos" id="menu-combos"></div>
-        <h2 style="color:#2f3542; margin-bottom:15px;">Bebidas</h2>
-        <div class="grid-productos" id="menu-bebidas"></div>
+        
+        <!-- ESTE ES EL NUEVO CONTENEDOR MÁGICO QUE DIBUJARÁ LAS CATEGORÍAS SOLITO -->
+        <div id="contenedor-menu-dinamico"></div>
 
         <div class="chatbot-bubble" id="chat-bubble" onclick="abrirChat()">🤖</div>
 
@@ -145,13 +145,13 @@
             
             <div class="encuesta-card">
                 <strong style="color:#26af5f; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Encuesta Opcional (Gana Papas Gratis)</strong>
-                <div class="form-grupo"><label>¿Padeces alguna alergia? (Opcional)</label><input type="text" id="encuesta-alergia" placeholder="Ej. Gluten, Mariscos"></div>
+                <div class="form-grupo"><label>¿Padeces alguna alergia? (Opcional)</label><input type="text" id="encuesta-alergia" placeholder="Ej. Mariscos"></div>
                 <div class="form-grupo">
                     <label>¿Tu producto favorito? (Opcional)</label>
                     <select id="encuesta-gusto">
-                        <option value="Carne Res">Carne de Res Jugosa 🥩</option>
-                        <option value="Pollo Crispy">Pollo Crocante 🍗</option>
-                        <option value="Vegetariana">Opciones Veggie 🍃</option>
+                        <option value="Encebollado">Encebollado 🍲</option>
+                        <option value="Bolones">Bolones 🧀</option>
+                        <option value="Secos">Secos 🍗</option>
                     </select>
                 </div>
                 <button class="btn-confirmar" style="margin-top: 5px;" onclick="guardarEncuestaOpcional()">Enviar y Reclamar Premio 🎁</button>
@@ -223,13 +223,41 @@
             document.getElementById('txt-resumen-reserva').innerText = `Mesa #${datosReservaConfirmada.mesa.numero} asegurada (${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora})`;
         }
 
+        // --- MAGIA DEL RENDERIZADO DINÁMICO DE CATEGORÍAS ---
         function renderMenu() {
-            const combos = document.getElementById('menu-combos'); const bebidas = document.getElementById('menu-bebidas');
-            combos.innerHTML = ""; bebidas.innerHTML = "";
+            const contenedorDinamico = document.getElementById('contenedor-menu-dinamico');
+            contenedorDinamico.innerHTML = "";
+
+            // 1. Agrupar los productos por su categoría
+            const categorias = {};
             productos.forEach(p => {
-                const html = `<div class="card-producto"><img src="${p.img}"><div class="info-producto"><strong style="font-size:15px; display:block; height:40px;">${p.nombre}</strong><p style="color:#ff4757; font-weight:bold; margin-top:5px;">$${p.precio.toFixed(2)}</p><button class="btn-agregar" onclick="addToCart(${p.id})">Agregar a Pre-orden</button></div></div>`;
-                if(p.category === 'combos') combos.innerHTML += html; else bebidas.innerHTML += html;
+                if(!categorias[p.category]) categorias[p.category] = [];
+                categorias[p.category].push(p);
             });
+
+            // 2. Dibujar una sección por cada categoría que tenga platos
+            for (const cat in categorias) {
+                // Agregar el título de la categoría
+                contenedorDinamico.innerHTML += `<h2 class="categoria-titulo">${cat}</h2>`;
+                
+                // Crear la caja (grid) para los platos de esta categoría
+                let htmlGrid = `<div class="grid-productos">`;
+                
+                categorias[cat].forEach(p => {
+                    htmlGrid += `
+                        <div class="card-producto">
+                            <img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'">
+                            <div class="info-producto">
+                                <strong style="font-size:15px; display:block; height:40px;">${p.nombre}</strong>
+                                <p style="color:#ff4757; font-weight:bold; margin-top:5px;">$${p.precio.toFixed(2)}</p>
+                                <button class="btn-agregar" onclick="addToCart(${p.id})">Agregar a Pre-orden</button>
+                            </div>
+                        </div>`;
+                });
+                
+                htmlGrid += `</div>`;
+                contenedorDinamico.innerHTML += htmlGrid; // Pegar la caja terminada
+            }
         }
 
         function addToCart(id) {
