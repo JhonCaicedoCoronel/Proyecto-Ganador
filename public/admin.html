@@ -3,139 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J & J Foods - Panel de Administración</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #f4f6f8; color: #2f3542; padding-bottom: 50px; }
-        
-        .nav-admin { background: #2f3542; padding: 15px 20px; display: flex; gap: 15px; justify-content: center; margin-bottom: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); flex-wrap: wrap; }
-        .nav-admin a { text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 8px; transition: 0.2s; font-size: 15px; }
-        .nav-activo { background: #ff4757; color: white; box-shadow: 0 2px 5px rgba(255,71,87,0.4); }
-        .nav-inactivo { background: rgba(255,255,255,0.1); color: white; }
-        .nav-inactivo:hover { background: rgba(255,255,255,0.2); }
-        .nav-link { color: #2ed573; border: 1px solid #2ed573; margin-left: auto; }
-        .nav-link:hover { background: #2ed573; color: white; }
-
-        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
-        h1 { color: #2f3542; margin-bottom: 25px; text-align: center; font-size: 28px; }
-
-        .admin-box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 30px; border-top: 4px solid #2ed573; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .form-grupo { display: flex; flex-direction: column; }
-        .form-grupo label { font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #57606f; }
-        .form-grupo input, .form-grupo select { padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; background: #fcfcfc; }
-        .form-grupo input:focus, .form-grupo select:focus { outline: none; border-color: #2ed573; }
-        
-        .btn-guardar { background: #2ed573; color: white; border: none; padding: 14px 20px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; transition: 0.2s; }
-        .btn-guardar:hover { background: #26af5f; transform: scale(1.01); }
-
-        .tabla-productos { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-        .tabla-productos th, .tabla-productos td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; }
-        .tabla-productos th { background: #2f3542; color: white; font-size: 14px; text-transform: uppercase; }
-        .tabla-productos img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
-        .btn-eliminar { background: #ff4757; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; }
-        .btn-eliminar:hover { background: #e84118; }
-        .badge-cat { background: #f1f2f6; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: #57606f; }
-    </style>
-</head>
-<body>
-
-    <nav class="nav-admin">
-        <a href="/admin.html" class="nav-activo">🍔 Editor de Menú</a>
-        <a href="/mesas.html" class="nav-inactivo">🪑 Monitor de Mesas</a>
-        <a href="/cocina.html" class="nav-inactivo">👨‍🍳 Pantalla Cocina</a>
-        <a href="/historial.html" class="nav-inactivo">📈 Historial Ventas</a>
-        <a href="/quiosco.html" target="_blank" class="nav-link">👀 Ver Quiosco Cliente ↗</a>
-    </nav>
-
-    <div class="container">
-        <h1>Gestión de Menú e Inventario</h1>
-        
-        <div class="admin-box">
-            <h3 style="margin-bottom: 15px; color: #2f3542;">➕ Agregar Nuevo Plato o Bebida</h3>
-            <div class="form-grid">
-                <div class="form-grupo"><label>Nombre del Plato</label><input type="text" id="prod-nombre" placeholder="Ej. Combo J&J Triple"></div>
-                <div class="form-grupo"><label>Precio de Venta ($)</label><input type="number" id="prod-precio" step="0.01" placeholder="9.00"></div>
-                <div class="form-grupo"><label>Unidades en Stock</label><input type="number" id="prod-stock" value="50"></div>
-                <div class="form-grupo">
-                    <label>Categoría</label>
-                    <select id="prod-cat">
-                        <option value="combos">Combos / Comida</option>
-                        <option value="bebidas">Bebidas</option>
-                    </select>
-                </div>
-                <div class="form-grupo"><label>URL de Imagen (Link)</label><input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg"></div>
-            </div>
-            <button class="btn-guardar" onclick="guardarProducto()">Guardar y Actualizar Quioscos 🚀</button>
-        </div>
-
-        <table class="tabla-productos">
-            <thead>
-                <tr><th>Foto</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr>
-            </thead>
-            <tbody id="lista-menu">
-                <tr><td colspan="6" style="text-align: center; padding: 20px;">Cargando base de datos...</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <script>
-        const socket = io();
-
-        socket.on('cargar-menu-inicial', renderizarTabla);
-        socket.on('menu-actualizado-completo', renderizarTabla);
-
-        function renderizarTabla(productos) {
-            const tbody = document.getElementById('lista-menu');
-            tbody.innerHTML = '';
-            
-            if(!productos || productos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ff4757;">Tu menú está vacío. ¡Agrega tu primer producto arriba!</td></tr>';
-                return;
-            }
-
-            productos.forEach(p => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td><img src="${p.img}" alt="${p.nombre}" onerror="this.src='https://via.placeholder.com/150'"></td>
-                        <td><strong style="font-size: 15px;">${p.nombre}</strong></td>
-                        <td><span class="badge-cat">${p.category}</span></td>
-                        <td style="color:#2ed573; font-weight:bold;">$${p.precio.toFixed(2)}</td>
-                        <td>${p.stock} und.</td>
-                        <td><button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></td>
-                    </tr>
-                `;
-            });
-        }
-
-        function guardarProducto() {
-            const nombre = document.getElementById('prod-nombre').value.trim();
-            const precio = parseFloat(document.getElementById('prod-precio').value);
-            const stock = parseInt(document.getElementById('prod-stock').value);
-            const category = document.getElementById('prod-cat').value;
-            let img = document.getElementById('prod-img').value.trim();
-            
-            if(img === "") img = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
-            if (!nombre || isNaN(precio) || isNaN(stock)) return alert("⚠️ Por favor completa el Nombre, Precio y Stock.");
-
-            socket.emit('agregar-nuevo-producto', { nombre, precio, stock, category, img });
-            
-            document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-img').value = '';
-        }
-
-        function eliminarProducto(id) {
-            if(confirm("¿Estás 100% seguro de que deseas eliminar este producto?")) socket.emit('eliminar-producto', id);
-        }
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centro de Mando - J & J Foods</title>
+    <title>Panel de Control - J&J Foods</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body, html { height: 100vh; overflow: hidden; background: #1e222b; }
@@ -153,7 +21,7 @@
         }
         .logo-text { color: #ff4757; font-size: 22px; font-weight: bold; margin-right: 30px; letter-spacing: 1px; }
         
-        /* BOTONES QUE CAMBIAN EL IFRAME */
+        /* BOTONES DE NAVEGACIÓN */
         .nav-links { display: flex; gap: 10px; }
         .nav-btn { 
             text-decoration: none; 
@@ -164,36 +32,56 @@
             border-radius: 8px; 
             transition: 0.2s; 
             font-size: 14px;
+            cursor: pointer;
+            border: none;
         }
-        .nav-btn:hover, .nav-btn:focus { background: #ff4757; outline: none; }
+        .nav-btn:hover { background: rgba(255,255,255,0.2); }
+        
+        /* CLASE CUANDO EL BOTÓN ESTÁ ACTIVO (SE PONE ROJO) */
+        .nav-btn.activo { background: #ff4757; box-shadow: 0 2px 5px rgba(255,71,87,0.4); }
         
         .btn-quiosco { margin-left: auto; background: transparent; border: 2px solid #2ed573; color: #2ed573; }
         .btn-quiosco:hover { background: #2ed573; color: #1e222b; }
 
-        /* EL MARCO DONDE SE CARGAN LAS PANTALLAS */
+        /* EL MARCO DONDE CARGAN LAS PANTALLAS INDEPENDIENTES */
         #visor-central {
             width: 100%;
             height: calc(100vh - 70px);
             border: none;
-            background: #f1f2f6;
+            background: #f4f6f8;
+            display: block;
         }
     </style>
 </head>
 <body>
 
+    <!-- BARRA PRINCIPAL DEL ADMINISTRADOR -->
     <header class="admin-header">
         <div class="logo-text">👑 J&J ADMIN</div>
         <nav class="nav-links">
-            <a href="/editor.html" target="visor-central" class="nav-btn" autofocus>🍔 Editor de Menú</a>
-            <a href="/mesas.html" target="visor-central" class="nav-btn">🪑 Gestión de Mesas</a>
-            <a href="/cocina.html" target="visor-central" class="nav-btn">👨‍🍳 Monitor KDS (Cocina)</a>
-            <a href="/historial.html" target="visor-central" class="nav-btn">📈 Historial de Ventas</a>
+            <!-- Botones que cambian el iframe y ejecutan la animación de color -->
+            <a href="/editor.html" target="visor-central" class="nav-btn activo" onclick="cambiarPestana(this)">🍔 Editor de Menú</a>
+            <a href="/mesas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">🪑 Gestión de Mesas</a>
+            <a href="/cocina.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">👨‍🍳 Monitor KDS (Cocina)</a>
+            <a href="/historial.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📈 Historial de Ventas</a>
         </nav>
         
         <a href="/quiosco.html" target="_blank" class="nav-btn btn-quiosco">👀 Simular Cliente ↗</a>
     </header>
 
+    <!-- PANTALLA INCRUSTADA (IFRAME) -->
     <iframe name="visor-central" id="visor-central" src="/editor.html"></iframe>
 
+    <script>
+        // Esta función hace que el botón que presiones se pinte de rojo y apague los demás
+        function cambiarPestana(elementoClicado) {
+            // 1. Buscamos todos los botones normales y les quitamos el color rojo
+            let botones = document.querySelectorAll('.nav-btn:not(.btn-quiosco)');
+            botones.forEach(btn => btn.classList.remove('activo'));
+            
+            // 2. Le ponemos el color rojo solo al que acabas de presionar
+            elementoClicado.classList.add('activo');
+        }
+    </script>
 </body>
 </html>
