@@ -44,12 +44,9 @@ io.on('connection', async (socket) => {
     socket.on('marcar-salida-reserva', async (datos) => {
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         const horaActual = new Date().toLocaleTimeString('en-US', opciones);
-
         await supabase.from('reservas').update({ estado: 'finalizada', hora_salida: horaActual }).eq('id', datos.id);
         await supabase.from('mesas').update({ estado: 'sucia' }).eq('numero', datos.mesa_id);
-        
         await emitirMesasActualizadas();
-        
         const { data: reservasDB } = await supabase.from('reservas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
         io.emit('cargar-historial-reservas', reservasDB || []);
     });
@@ -71,7 +68,7 @@ io.on('connection', async (socket) => {
 
     socket.on('consultar-horarios', async (datos) => {
         const personasRequeridas = parseInt(datos.personas) || 1;
-        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa');
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
         const { data: mesasDB } = await supabase.from('mesas').select('*');
         const reservasGlobales = reservasDB || []; const mesasTotales = mesasDB || [];
 
@@ -87,7 +84,7 @@ io.on('connection', async (socket) => {
 
     socket.on('verificar-disponibilidad', async (datos) => {
         const personasRequeridas = parseInt(datos.personas) || 1;
-        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa');
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
         const { data: mesasDB } = await supabase.from('mesas').select('*');
         const reservasGlobales = reservasDB || []; const mesasTotales = mesasDB || [];
 
@@ -98,7 +95,7 @@ io.on('connection', async (socket) => {
 
         if (mesasAptas.length > 0) {
             mesasAptas.sort((a, b) => a.capacidad - b.capacidad);
-            socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora, mesa: mesasAptas[0] });
+            socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora, mesa: mesasAptas[0], sucursal: datos.sucursal });
         } else {
             let alternativas = horariosDisponibles.filter(h => {
                 const resTurnoAlt = reservasGlobales.filter(r => r.hora === h);
@@ -115,11 +112,16 @@ io.on('connection', async (socket) => {
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
         
-        await supabase.from('reservas').insert([{ id: pedido.id, cliente: pedido.cliente, fecha: pedido.datosReserva.fecha, hora: pedido.datosReserva.hora, personas: pedido.datosReserva.personas, mesa_id: pedido.datosReserva.mesa.numero, estado: 'activa' }]);
+        // Se guarda la sucursal elegida
+        await supabase.from('reservas').insert([{ 
+            id: pedido.id, cliente: pedido.cliente, fecha: pedido.datosReserva.fecha, 
+            hora: pedido.datosReserva.hora, personas: pedido.datosReserva.personas, 
+            mesa_id: pedido.datosReserva.mesa.numero, estado: 'activa', sucursal: pedido.datosReserva.sucursal 
+        }]);
 
         pedido.esFantasma = true; 
         pedido.horaLlegadaEstimada = `${pedido.datosReserva.fecha} a las ${pedido.datosReserva.hora}`;
-        pedido.estadoCocinaTexto = (pedido.pago === 'Tarjeta') ? "Reserva Pagada Web ✅" : "Reserva Pendiente Pago 💵";
+        pedido.estadoCocinaTexto = (pedido.pago === 'Solo Reserva') ? "Reservó Mesa (Pedirá en Local) 🪑" : ((pedido.pago === 'Tarjeta') ? "Pre-orden Pagada Web ✅" : "Pre-orden Pendiente 💵");
 
         await supabase.from('pedidos_cocina').insert([{
             id: pedido.id, cliente: pedido.cliente, item: pedido.item, pago: pedido.pago, tipo: "Reserva en Local",
