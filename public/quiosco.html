@@ -3,57 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J & J Foods - Reserva Inteligente</title>
+    <title>La Costeñita - Reserva y Menú</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: #f8f9fa; min-height: 100vh; color: #333; overflow-x: hidden; }
         
-        #pantalla-reserva { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1550547660-d9450f859349?w=1600') center/cover; padding: 20px; }
-        .reserva-box { background: white; padding: 40px; border-radius: 16px; width: 450px; max-width: 100%; box-shadow: 0 15px 35px rgba(0,0,0,0.3); text-align: center; }
-        .reserva-box h1 { color: #ff4757; margin-bottom: 5px; font-size: 32px; }
-        .reserva-box p { color: #57606f; margin-bottom: 25px; font-size: 15px; }
+        /* --- FONDO TEMÁTICO COSTEÑO Y AZUL OCÉANO --- */
+        #pantalla-reserva { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            /* Imagen de mariscos/costa con filtro azul oscuro */
+            background: linear-gradient(rgba(10, 61, 98, 0.8), rgba(10, 61, 98, 0.8)), url('https://images.unsplash.com/photo-1559742811-822873691fc8?w=1600') center/cover; 
+            padding: 20px; 
+        }
+        
+        .reserva-box { background: white; padding: 35px 40px; border-radius: 16px; width: 480px; max-width: 100%; box-shadow: 0 15px 35px rgba(0,0,0,0.5); text-align: center; }
+        .reserva-box h1 { color: #e15f41; margin-bottom: 5px; font-size: 34px; font-weight: 800; letter-spacing: 1px;}
+        .reserva-box p.slogan { color: #57606f; margin-bottom: 25px; font-size: 15px; font-weight: 600; }
+        
+        /* --- SECCIÓN DE DIRECCIONES --- */
+        .sucursales-info { background: #f1f2f6; border-left: 4px solid #0a3d62; padding: 15px; border-radius: 8px; margin-bottom: 25px; text-align: left; }
+        .sucursales-info h3 { font-size: 14px; color: #0a3d62; margin-bottom: 8px; text-transform: uppercase; }
+        .sucursales-info p { font-size: 13px; color: #2f3542; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
         
         .form-grupo { margin-bottom: 18px; text-align: left; }
         .form-grupo label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #2f3542; }
         .form-grupo input, .form-grupo select { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 15px; background: #fcfcfc; }
         .form-grupo select:disabled { background: #eee; cursor: not-allowed; }
         
-        .btn-verificar { background: #ff4757; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-        .btn-verificar:hover { background: #ee3848; transform: scale(1.02); }
+        /* Botones color Coral Costeño */
+        .btn-verificar { background: #e15f41; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 5px; }
+        .btn-verificar:hover { background: #c44527; transform: scale(1.02); }
 
         .alerta-horarios { background: #fff2cc; border: 1px dashed #ffa502; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; text-align: left; }
-        .horario-btn { background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin: 5px 5px 0 0; font-weight: bold; transition: 0.2s; }
+        .horario-btn { background: #0a3d62; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin: 5px 5px 0 0; font-weight: bold; transition: 0.2s; }
 
         #pantalla-menu { display: none; width: 100%; padding: 30px 8%; position: relative; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 15px; margin-bottom: 10px; }
-        .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e15f41; padding-bottom: 15px; margin-bottom: 10px; }
+        .btn-ver-carrito { background: #e15f41; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(225, 95, 65, 0.3); }
         .btn-ver-carrito:hover { transform: scale(1.05); }
         
-        .categoria-titulo { color: #2f3542; margin: 35px 0 15px 0; border-bottom: 2px solid #ff4757; padding-bottom: 8px; display: inline-block; font-size: 22px; }
+        .categoria-titulo { color: #0a3d62; margin: 35px 0 15px 0; border-bottom: 2px solid #e15f41; padding-bottom: 8px; display: inline-block; font-size: 22px; text-transform: uppercase; }
         .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 10px; }
-        .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        .card-producto img { width: 100%; height: 140px; object-fit: cover; }
+        .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.2s; }
+        .card-producto:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+        .card-producto img { width: 100%; height: 140px; object-fit: cover; border-bottom: 3px solid #e15f41;}
         .info-producto { padding: 15px; }
-        .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-agregar { background: #0a3d62; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s;}
+        .btn-agregar:hover { background: #e15f41; }
 
-        .chatbot-bubble { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: #2f3542; color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 999; transition: 0.3s; }
-        .chatbot-bubble:hover { transform: scale(1.1); background: #ff4757; }
+        /* GLOBITO FLOTANTE COSTEÑO */
+        .chatbot-bubble { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: #0a3d62; color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 999; transition: 0.3s; }
+        .chatbot-bubble:hover { transform: scale(1.1); background: #e15f41; }
         
         .chatbot-container { position: fixed; bottom: 25px; right: 25px; width: 340px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); overflow: hidden; border: 1px solid #e1e8ed; z-index: 1000; display: none; flex-direction: column; animation: despliegueUp 0.3s ease; }
         @keyframes despliegueUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
         
-        .chatbot-header { background: #2f3542; color: white; padding: 15px 20px; font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .chatbot-header { background: #0a3d62; color: white; padding: 15px 20px; font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
         .btn-cerrar-chat { background: transparent; border: none; color: white; font-size: 22px; cursor: pointer; font-weight: bold; transition: 0.2s; padding: 0 5px; }
-        .btn-cerrar-chat:hover { color: #ff4757; transform: scale(1.2); }
+        .btn-cerrar-chat:hover { color: #e15f41; transform: scale(1.2); }
         
         .chatbot-messages { height: 280px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
-        .msg-bot { background: #e8fcf0; border: 1px solid #2ed573; padding: 10px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%; }
-        .msg-user { background: #ff4757; color: white; padding: 10px; border-radius: 12px 12px 0 12px; align-self: flex-end; max-width: 85%; }
+        .msg-bot { background: #eaf2f8; border: 1px solid #0a3d62; padding: 10px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%; }
+        .msg-user { background: #e15f41; color: white; padding: 10px; border-radius: 12px 12px 0 12px; align-self: flex-end; max-width: 85%; }
         .chatbot-input { display: flex; border-top: 1px solid #ddd; background: white; }
         .chatbot-input input { flex-grow: 1; border: none; padding: 15px; outline: none; font-size: 14px; }
-        .chatbot-input button { background: #2f3542; color: white; border: none; padding: 0 18px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .chatbot-input button:hover { background: #ff4757; }
+        .chatbot-input button { background: #0a3d62; color: white; border: none; padding: 0 18px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .chatbot-input button:hover { background: #e15f41; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none; }
         .modal-content { background: white; padding: 30px; border-radius: 16px; width: 500px; max-width: 95%; max-height: 90vh; overflow-y: auto; position: relative; }
@@ -63,7 +83,7 @@
         .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ced4da; font-size: 14px; }
         .btn-confirmar { background: #2ed573; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-top: 15px; cursor: pointer; }
         
-        .encuesta-card { background: #e8fcf0; border: 1px solid #a3e9be; padding: 18px; border-radius: 10px; margin-top: 25px; text-align: left; }
+        .encuesta-card { background: #eaf2f8; border: 1px solid #a3c2e9; padding: 18px; border-radius: 10px; margin-top: 25px; text-align: left; }
         .btn-saltar { background: none; border: none; color: #57606f; text-decoration: underline; width: 100%; margin-top: 15px; cursor: pointer; font-size: 14px; }
     </style>
 </head>
@@ -71,15 +91,24 @@
 
     <div id="pantalla-reserva">
         <div class="reserva-box">
-            <h1>J & J Foods</h1>
-            <p>Selecciona la fecha y asistentes para ver mesas disponibles.</p>
-            <div class="form-grupo"><label>Fecha de la Reserva</label><input type="date" id="res-fecha" required></div>
+            <h1>🌊 La Costeñita</h1>
+            <p class="slogan">El auténtico sabor de nuestra costa ecuatoriana.</p>
+            
+            <div class="sucursales-info">
+                <h3>📍 Nuestras Sucursales (Guayaquil)</h3>
+                <p>🦀 <strong>Urdesa:</strong> V.E. Estrada y Las Monjas</p>
+                <p>🍤 <strong>Samborondón:</strong> Km 2.5, Plaza Lagos</p>
+                <p>🐟 <strong>Sur:</strong> Barrio del Centenario</p>
+            </div>
+
+            <div class="form-grupo"><label>Fecha de tu visita</label><input type="date" id="res-fecha" required></div>
             <div class="form-grupo"><label>Número de Personas</label><input type="number" id="res-pax" min="1" max="10" value="2"></div>
             <div class="form-grupo">
                 <label>Hora deseada (Disponibilidad en vivo)</label>
                 <select id="res-hora" disabled><option value="">Selecciona una fecha primero...</option></select>
             </div>
-            <button class="btn-verificar" onclick="verificarDisponibilidad()">Avanzar a Pre-orden 🔍</button>
+            <button class="btn-verificar" onclick="verificarDisponibilidad()">Avanzar al Menú 🔍</button>
+            
             <div class="alerta-horarios" id="alerta-lleno">
                 <strong style="color:#d35400;">⚠️ Lo sentimos, el horario elegido está lleno para tu grupo.</strong><br>
                 <span style="font-size: 13px;">Intenta con una alternativa disponible:</span>
@@ -90,24 +119,24 @@
 
     <div id="pantalla-menu">
         <div class="header">
-            <div><h1 style="color:#ff4757;">J & J Foods</h1><p style="color:#666; font-size:14px;" id="txt-resumen-reserva">Armando pre-orden...</p></div>
-            <button class="btn-ver-carrito" onclick="abrirCarrito()">🛒 Ver Pre-orden (<span id="cart-count">0</span>)</button>
+            <div><h1 style="color:#e15f41;">🌊 La Costeñita</h1><p style="color:#666; font-size:14px;" id="txt-resumen-reserva">Armando tu pre-orden...</p></div>
+            <button class="btn-ver-carrito" onclick="abrirCarrito()">🛒 Ver Orden (<span id="cart-count">0</span>)</button>
         </div>
         
         <div id="contenedor-menu-dinamico"></div>
 
-        <div class="chatbot-bubble" id="chat-bubble" onclick="abrirChat()">🤖</div>
+        <div class="chatbot-bubble" id="chat-bubble" onclick="abrirChat()">🦀</div>
 
         <div class="chatbot-container" id="chat-container">
             <div class="chatbot-header">
-                <span>🤖 J&J Asistente Virtual</span>
+                <span>🦀 Asistente Costeñito</span>
                 <button type="button" class="btn-cerrar-chat" onclick="cerrarChat()">✕</button>
             </div>
             <div class="chatbot-messages" id="chat-mensajes">
-                <div class="msg-bot">¡Hola! Soy la inteligencia de J&J. ¿Tienes dudas sobre el menú, los pagos o tus reservas? Escríbeme.</div>
+                <div class="msg-bot">¡Qué más, ve! Soy el asistente de La Costeñita. ¿Quieres saber en dónde estamos ubicados, cómo pagar o sobre nuestros platos típicos? Escríbeme.</div>
             </div>
             <div class="chatbot-input">
-                <input type="text" id="chat-input" placeholder="Escribe tu duda aquí..." onkeypress="if(event.key === 'Enter') enviarMensajeBot()">
+                <input type="text" id="chat-input" placeholder="Pregunta sobre locales, menú..." onkeypress="if(event.key === 'Enter') enviarMensajeBot()">
                 <button onclick="enviarMensajeBot()">Enviar</button>
             </div>
         </div>
@@ -116,17 +145,17 @@
     <div class="modal-overlay" id="modal-carrito">
         <div class="modal-content">
             <button class="close-modal" onclick="cerrarCarrito()">✕</button>
-            <h2 style="margin-bottom:15px; color:#2f3542;">🛒 Confirmar Reserva y Orden</h2>
+            <h2 style="margin-bottom:15px; color:#0a3d62;">🛒 Confirmar Reserva y Orden</h2>
             <div class="lista-items" id="carrito-contenedor"></div>
             <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                <span>Total a pagar:</span><span id="total-txt" style="color:#ff4757;">$0.00</span>
+                <span>Total a pagar:</span><span id="total-txt" style="color:#e15f41;">$0.00</span>
             </div>
             <div class="form-grupo"><label>A nombre de:</label><input type="text" id="cliente-nombre" placeholder="Ej. Carlos Mendoza"></div>
             <div class="form-grupo">
                 <label>Forma de Pago para asegurar Reserva</label>
                 <select id="cliente-pago">
                     <option value="Tarjeta">💳 Tarjeta de Crédito/Débito (Pago Web Inmediato)</option>
-                    <option value="Efectivo">💵 Efectivo (Pagar en el Local al llegar)</option>
+                    <option value="Efectivo">💵 Efectivo (Pagar en caja al llegar)</option>
                 </select>
             </div>
             <button class="btn-confirmar" onclick="finalizarReservaPedido()">Confirmar Reserva y Pago 🚀</button>
@@ -135,20 +164,21 @@
 
     <div class="modal-overlay" id="modal-exito">
         <div class="modal-content" style="text-align: center;">
-            <h2 style="color:#2ed573;">🎉 ¡Mesa Reservada con Éxito!</h2>
-            <p style="color:#57606f; margin-top:10px;">La cocina preparará tu pre-orden para la hora programada.</p>
+            <h2 style="color:#2ed573;">🎉 ¡Mesa Reservada, ñaño!</h2>
+            <p style="color:#57606f; margin-top:10px;">Nuestros chefs prepararán tu pre-orden con todos los juguetes para tu hora elegida.</p>
             <p style="margin-top:20px; font-weight:bold;">TU NÚMERO DE RESERVA:</p>
-            <div style="font-size: 48px; font-weight: bold; color: #ff4757; background: #fff1f2; padding: 15px; border-radius: 12px; border: 2px dashed #ff4757; margin: 15px 0;">#<span id="txt-turno">00</span></div>
+            <div style="font-size: 48px; font-weight: bold; color: #e15f41; background: #fff1f2; padding: 15px; border-radius: 12px; border: 2px dashed #e15f41; margin: 15px 0;">#<span id="txt-turno">00</span></div>
             
             <div class="encuesta-card">
-                <strong style="color:#26af5f; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Encuesta Opcional (Gana Papas Gratis)</strong>
-                <div class="form-grupo"><label>¿Padeces alguna alergia? (Opcional)</label><input type="text" id="encuesta-alergia" placeholder="Ej. Mariscos"></div>
+                <strong style="color:#0a3d62; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Encuesta (Gana una porción de chifles)</strong>
+                <div class="form-grupo"><label>¿Padeces alguna alergia? (Opcional)</label><input type="text" id="encuesta-alergia" placeholder="Ej. Mariscos, Maní"></div>
                 <div class="form-grupo">
-                    <label>¿Tu producto favorito? (Opcional)</label>
+                    <label>¿Tu plato costeño favorito? (Opcional)</label>
                     <select id="encuesta-gusto">
-                        <option value="Encebollado">Encebollado 🍲</option>
-                        <option value="Bolones">Bolones 🧀</option>
-                        <option value="Secos">Secos 🍗</option>
+                        <option value="Encebollado">El Buen Encebollado 🍲</option>
+                        <option value="Ceviche">Ceviche Mixto 🍤</option>
+                        <option value="Bolon">Bolón de Chicharrón 🧀</option>
+                        <option value="Arroz Marinero">Arroz Marinero 🥘</option>
                     </select>
                 </div>
                 <button class="btn-confirmar" style="margin-top: 5px;" onclick="guardarEncuestaOpcional()">Enviar y Reclamar Premio 🎁</button>
@@ -169,7 +199,7 @@
             const pax = document.getElementById('res-pax').value;
             if(fecha) {
                 document.getElementById('res-hora').disabled = true;
-                document.getElementById('res-hora').innerHTML = '<option value="">Calculando mesas para tu grupo...</option>';
+                document.getElementById('res-hora').innerHTML = '<option value="">Buscando mesas en nuestros locales...</option>';
                 socket.emit('consultar-horarios', { fecha, personas: pax });
             }
         }
@@ -239,12 +269,12 @@
                         <div class="card-producto">
                             <img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'">
                             <div class="info-producto">
-                                <strong style="font-size:16px; display:block; height:22px; overflow:hidden;">${p.nombre}</strong>
+                                <strong style="font-size:16px; display:block; height:22px; overflow:hidden; color:#0a3d62;">${p.nombre}</strong>
                                 <p style="color:#747d8c; font-size:12px; height:38px; overflow:hidden; margin: 5px 0; line-height:1.3;">
-                                    ${p.descripcion || 'Especialidad de la casa preparada al instante.'}
+                                    ${p.descripcion || 'Con harto limón y chifles.'}
                                 </p>
-                                <p style="color:#ff4757; font-weight:bold; margin-top:5px; font-size:16px;">$${p.precio.toFixed(2)}</p>
-                                <button class="btn-agregar" onclick="addToCart(${p.id})">Agregar a Pre-orden</button>
+                                <p style="color:#e15f41; font-weight:bold; margin-top:5px; font-size:16px;">$${p.precio.toFixed(2)}</p>
+                                <button class="btn-agregar" onclick="addToCart(${p.id})">Añadir 🤤</button>
                             </div>
                         </div>`;
                 });
@@ -271,7 +301,7 @@
 
         function finalizarReservaPedido() {
             const nombre = document.getElementById('cliente-nombre').value.trim(); const pago = document.getElementById('cliente-pago').value;
-            if(!nombre || carrito.length === 0) return alert("Ingresa tu nombre y elige platos en la pre-orden.");
+            if(!nombre || carrito.length === 0) return alert("Ingresa tu nombre y escoge tus platos antes de reservar.");
             ultimoNombreCliente = nombre;
             const pedido = {
                 id: Math.floor(Math.random() * 9000) + 1000, cliente: nombre, item: carrito.map(c => `${c.cantidad}x ${c.nombre}`).join(', '),
@@ -286,7 +316,7 @@
 
         function guardarEncuestaOpcional() {
             socket.emit('guardar-encuesta-opcional', { cliente: ultimoNombreCliente, alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", preferencias: document.getElementById('encuesta-gusto').value });
-            alert("🎁 ¡Encuesta guardada! Muestra tu número en caja para tu premio."); location.reload();
+            alert("🎁 ¡Guardado! Pide tus chifles extra en caja con tu número de reserva."); location.reload();
         }
 
         function abrirChat() { document.getElementById('chat-container').style.display = 'flex'; document.getElementById('chat-bubble').style.display = 'none'; }
@@ -299,10 +329,15 @@
             inputField.value = ""; chatBox.scrollTop = chatBox.scrollHeight;
 
             setTimeout(() => {
-                let respuesta = "Disculpa, no entendí bien. Puedes preguntarme sobre <strong>el menú, reservas, pagos o ingredientes.</strong>";
-                if (textoUsuario.includes("reserva") || textoUsuario.includes("mesa")) respuesta = "🗓️ Nuestro sistema asigna mesas según el tamaño de tu grupo automáticamente.";
-                else if (textoUsuario.includes("pago") || textoUsuario.includes("tarjeta")) respuesta = "💳 Aceptamos pagos con Tarjeta o Efectivo en caja.";
-                else if (textoUsuario.includes("hola")) respuesta = "¡Hola! Bienvenido a J & J Foods.";
+                let respuesta = "No te entendí bien, ñaño. ¿Quieres saber sobre <strong>direcciones, el menú, o pagos</strong>?";
+                
+                if (textoUsuario.includes("direccion") || textoUsuario.includes("ubicacion") || textoUsuario.includes("donde")) {
+                    respuesta = "📍 Estamos en 3 puntos estratégicos de Guayaquil:<br>- Urdesa Central (V.E. Estrada)<br>- Samborondón (Km 2.5)<br>- Sur (Barrio del Centenario).";
+                }
+                else if (textoUsuario.includes("reserva") || textoUsuario.includes("mesa")) respuesta = "🗓️ Nuestro sistema elige tu mesa automáticamente según cuántos vengan en tu grupo. ¡Tú solo pon la hora!";
+                else if (textoUsuario.includes("pago") || textoUsuario.includes("tarjeta") || textoUsuario.includes("efectivo")) respuesta = "💳 Puedes pagar de una con Tarjeta por la web o traer Efectivo al local.";
+                else if (textoUsuario.includes("hola") || textoUsuario.includes("que mas")) respuesta = "¡Qué más! Bienvenido a La Costeñita, el mejor sabor del mar.";
+                
                 chatBox.innerHTML += `<div class="msg-bot">${respuesta}</div>`; chatBox.scrollTop = chatBox.scrollHeight;
             }, 600);
         }
