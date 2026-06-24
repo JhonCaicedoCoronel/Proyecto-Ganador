@@ -8,48 +8,21 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body, html { height: 100vh; overflow: hidden; background: #1e222b; }
         
-        .admin-header { 
-            background: #2f3542; 
-            height: 70px; 
-            display: flex; 
-            align-items: center; 
-            padding: 0 20px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
-            z-index: 10;
-            position: relative;
-        }
+        .admin-header { background: #2f3542; height: 70px; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10; position: relative; }
         .logo-text { color: #ff4757; font-size: 22px; font-weight: bold; margin-right: 30px; letter-spacing: 1px; }
         
         .nav-links { display: flex; gap: 10px; }
-        .nav-btn { 
-            text-decoration: none; 
-            color: white; 
-            font-weight: bold; 
-            padding: 10px 18px; 
-            background: rgba(255,255,255,0.1); 
-            border-radius: 8px; 
-            transition: 0.2s; 
-            font-size: 14px;
-            cursor: pointer;
-            border: none;
-        }
+        .nav-btn { text-decoration: none; color: white; font-weight: bold; padding: 10px 18px; background: rgba(255,255,255,0.1); border-radius: 8px; transition: 0.2s; font-size: 14px; cursor: pointer; border: none; }
         .nav-btn:hover { background: rgba(255,255,255,0.2); }
         .nav-btn.activo { background: #ff4757; box-shadow: 0 2px 5px rgba(255,71,87,0.4); }
         
         .btn-quiosco { margin-left: auto; background: transparent; border: 2px solid #2ed573; color: #2ed573; }
         .btn-quiosco:hover { background: #2ed573; color: #1e222b; }
 
-        #visor-central {
-            width: 100%;
-            height: calc(100vh - 70px);
-            border: none;
-            background: #f4f6f8;
-            display: block;
-        }
+        #visor-central { width: 100%; height: calc(100vh - 70px); border: none; background: #f4f6f8; display: block; }
     </style>
 </head>
 <body>
-
     <header class="admin-header">
         <div class="logo-text">👑 J&J ADMIN</div>
         <nav class="nav-links">
@@ -57,8 +30,6 @@
             <a href="/mesas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">🪑 Gestión de Mesas</a>
             <a href="/cocina.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">👨‍🍳 Monitor KDS (Cocina)</a>
             <a href="/historial.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📈 Historial de Ventas</a>
-            
-            <!-- NUEVA PESTAÑA: LIBRO DE RESERVAS -->
             <a href="/reservas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📅 Libro de Reservas</a>
         </nav>
         <a href="/quiosco.html" target="_blank" class="nav-btn btn-quiosco">👀 Simular Cliente ↗</a>

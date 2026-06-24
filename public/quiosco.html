@@ -30,7 +30,6 @@
         .btn-ver-carrito { background: #ff4757; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
         .btn-ver-carrito:hover { transform: scale(1.05); }
         
-        /* ESTILOS DEL MENÚ DINÁMICO */
         .categoria-titulo { color: #2f3542; margin: 35px 0 15px 0; border-bottom: 2px solid #ff4757; padding-bottom: 8px; display: inline-block; font-size: 22px; }
         .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 10px; }
         .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
@@ -38,7 +37,6 @@
         .info-producto { padding: 15px; }
         .btn-agregar { background: #ff4757; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
 
-        /* GLOBITO FLOTANTE INTERACTIVO */
         .chatbot-bubble { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: #2f3542; color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 999; transition: 0.3s; }
         .chatbot-bubble:hover { transform: scale(1.1); background: #ff4757; }
         
@@ -96,7 +94,6 @@
             <button class="btn-ver-carrito" onclick="abrirCarrito()">🛒 Ver Pre-orden (<span id="cart-count">0</span>)</button>
         </div>
         
-        <!-- ESTE ES EL NUEVO CONTENEDOR MÁGICO QUE DIBUJARÁ LAS CATEGORÍAS SOLITO -->
         <div id="contenedor-menu-dinamico"></div>
 
         <div class="chatbot-bubble" id="chat-bubble" onclick="abrirChat()">🤖</div>
@@ -223,24 +220,18 @@
             document.getElementById('txt-resumen-reserva').innerText = `Mesa #${datosReservaConfirmada.mesa.numero} asegurada (${datosReservaConfirmada.fecha} a las ${datosReservaConfirmada.hora})`;
         }
 
-        // --- MAGIA DEL RENDERIZADO DINÁMICO DE CATEGORÍAS ---
         function renderMenu() {
             const contenedorDinamico = document.getElementById('contenedor-menu-dinamico');
             contenedorDinamico.innerHTML = "";
 
-            // 1. Agrupar los productos por su categoría
             const categorias = {};
             productos.forEach(p => {
                 if(!categorias[p.category]) categorias[p.category] = [];
                 categorias[p.category].push(p);
             });
 
-            // 2. Dibujar una sección por cada categoría que tenga platos
             for (const cat in categorias) {
-                // Agregar el título de la categoría
                 contenedorDinamico.innerHTML += `<h2 class="categoria-titulo">${cat}</h2>`;
-                
-                // Crear la caja (grid) para los platos de esta categoría
                 let htmlGrid = `<div class="grid-productos">`;
                 
                 categorias[cat].forEach(p => {
@@ -248,15 +239,18 @@
                         <div class="card-producto">
                             <img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'">
                             <div class="info-producto">
-                                <strong style="font-size:15px; display:block; height:40px;">${p.nombre}</strong>
-                                <p style="color:#ff4757; font-weight:bold; margin-top:5px;">$${p.precio.toFixed(2)}</p>
+                                <strong style="font-size:16px; display:block; height:22px; overflow:hidden;">${p.nombre}</strong>
+                                <p style="color:#747d8c; font-size:12px; height:38px; overflow:hidden; margin: 5px 0; line-height:1.3;">
+                                    ${p.descripcion || 'Especialidad de la casa preparada al instante.'}
+                                </p>
+                                <p style="color:#ff4757; font-weight:bold; margin-top:5px; font-size:16px;">$${p.precio.toFixed(2)}</p>
                                 <button class="btn-agregar" onclick="addToCart(${p.id})">Agregar a Pre-orden</button>
                             </div>
                         </div>`;
                 });
                 
                 htmlGrid += `</div>`;
-                contenedorDinamico.innerHTML += htmlGrid; // Pegar la caja terminada
+                contenedorDinamico.innerHTML += htmlGrid;
             }
         }
 
