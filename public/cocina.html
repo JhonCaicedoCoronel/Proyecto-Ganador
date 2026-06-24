@@ -25,18 +25,15 @@
     <div class="grid-kds" id="kds-contenedor"></div>
 
     <script>
-        const socket = io();
-        const cont = document.getElementById('kds-contenedor');
+        const socket = io(); const cont = document.getElementById('kds-contenedor');
         function pedirDatosCocina() { socket.emit('obtener-pedidos-cocina'); }
         socket.on('connect', pedirDatosCocina);
-
         socket.on('cargar-pedidos-cocina', (pedidos) => { cont.innerHTML = ""; pedidos.forEach(p => renderizarTarjeta(p, false)); });
         socket.on('notificar-cocina', (p) => { renderizarTarjeta(p, true); });
 
         function renderizarTarjeta(p, esNuevo) {
             if(document.getElementById(`kds-${p.id}`)) return;
-            const div = document.createElement('div');
-            div.id = `kds-${p.id}`; div.className = "card-kds";
+            const div = document.createElement('div'); div.id = `kds-${p.id}`; div.className = "card-kds";
             const numMesa = p.datosReserva ? p.datosReserva.mesa.numero : "Barra";
             const sucursal = p.datosReserva ? p.datosReserva.sucursal : "Local Principal";
 
@@ -49,13 +46,11 @@
                     </div>
                     <p style="margin:12px 0 5px 0; font-size: 16px;"><strong>Cliente:</strong> ${p.cliente}</p>
                     <div style="font-size:12px; color:#cbd5e1;">${p.estadoCocinaTexto}</div>
-                    
                     <div style="background:#1e222b; padding:15px; border-radius:8px; margin:15px 0; font-size:16px; font-weight:bold; color: #2ed573; border: 1px solid #4b5261;">
-                        📝 ORDEN A PREPARAR:<br><span style="color:white; display:block; margin-top:8px;">${p.item}</span>
+                        📝 ORDEN:<br><span style="color:white; display:block; margin-top:8px;">${p.item}</span>
                     </div>
                 </div>
-                <div><button class="btn-ready" onclick="despachar(${p.id})">✓ Plato Listo / Despachado</button></div>
-            `;
+                <div><button class="btn-ready" onclick="despachar(${p.id})">✓ Plato Listo / Despachado</button></div>`;
             if (esNuevo) new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(() => {});
             esNuevo ? cont.prepend(div) : cont.appendChild(div);
         }

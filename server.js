@@ -10,14 +10,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 app.use(express.static('public'));
 app.get('/', (req, res) => { res.redirect('/quiosco.html'); });
 
-let contadorTurnos = 1; 
 const horariosDisponibles = ["12:00", "13:00", "14:00", "15:00", "18:00", "19:00", "20:00", "21:00"];
-
-async function iniciarServidor() {
-    const { data: maxTurno } = await supabase.from('pedidos_cocina').select('turno_fila').order('turno_fila', { ascending: false }).limit(1);
-    if (maxTurno && maxTurno.length > 0) contadorTurnos = maxTurno[0].turno_fila + 1;
-}
-iniciarServidor();
 
 async function emitirMenuActualizado() {
     const { data: menuProductos } = await supabase.from('menu').select('*').order('id', { ascending: true });
@@ -41,29 +34,34 @@ io.on('connection', async (socket) => {
         socket.emit('cargar-historial-reservas', reservasDB || []);
     });
 
+    // LÓGICA DE COLA DINÁMICA CUANDO ALGUIEN SALE
     socket.on('marcar-salida-reserva', async (datos) => {
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         const horaActual = new Date().toLocaleTimeString('en-US', opciones);
-        await supabase.from('reservas').update({ estado: 'finalizada', hora_salida: horaActual }).eq('id', datos.id);
-        await supabase.from('mesas').update({ estado: 'sucia' }).eq('numero', datos.mesa_id);
+
+        const { data: resSale } = await supabase.from('reservas').select('*').eq('id', datos.id).single();
+
+        if (resSale) {
+            await supabase.from('reservas').update({ estado: 'finalizada', hora_salida: horaActual }).eq('id', datos.id);
+            await supabase.from('mesas').update({ estado: 'sucia' }).eq('numero', datos.mesa_id);
+
+            const { data: reservasAfectadas } = await supabase
+                .from('reservas').select('*')
+                .eq('sucursal', resSale.sucursal).eq('fecha', resSale.fecha).eq('hora', resSale.hora)
+                .eq('estado', 'activa').gt('turno_sala', resSale.turno_sala);
+
+            if (reservasAfectadas && reservasAfectadas.length > 0) {
+                for (const r of reservasAfectadas) {
+                    const nuevoTurno = r.turno_sala - 1;
+                    await supabase.from('reservas').update({ turno_sala: nuevoTurno }).eq('id', r.id);
+                    io.emit('notificacion-avance-turno', { idReserva: r.id, nuevoTurno: nuevoTurno });
+                }
+            }
+        }
+
         await emitirMesasActualizadas();
         const { data: reservasDB } = await supabase.from('reservas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
         io.emit('cargar-historial-reservas', reservasDB || []);
-    });
-
-    socket.on('obtener-pedidos-cocina', async () => {
-        const { data: pedidosDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'pendiente').order('id', { ascending: true });
-        const pedidosPendientes = (pedidosDB || []).map(p => ({
-            id: p.id, cliente: p.cliente, item: p.item, pago: p.pago, tipo: p.tipo,
-            turnoFila: p.turno_fila, esFantasma: p.es_fantasma, horaRegistro: p.hora_registro,
-            horaLlegadaEstimada: p.hora_llegada_estimada, estadoCocinaTexto: p.estado_cocina_texto, datosReserva: p.datos_reserva
-        }));
-        socket.emit('cargar-pedidos-cocina', pedidosPendientes);
-    });
-
-    socket.on('obtener-historial-dia', async () => {
-        const { data: historialDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'entregado').order('id', { ascending: false }).limit(100);
-        socket.emit('cargar-historial', historialDB || []);
     });
 
     socket.on('consultar-horarios', async (datos) => {
@@ -107,16 +105,23 @@ io.on('connection', async (socket) => {
         }
     });
 
+    // CREACIÓN DE RESERVA Y TURNO INTELIGENTE
     socket.on('enviar-reserva-pedido', async (pedido) => {
-        pedido.turnoFila = contadorTurnos++;
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
         
-        // Se guarda la sucursal elegida
+        const { data: reservasMismoTurno } = await supabase
+            .from('reservas').select('id')
+            .eq('sucursal', pedido.datosReserva.sucursal).eq('fecha', pedido.datosReserva.fecha).eq('hora', pedido.datosReserva.hora).eq('estado', 'activa');
+
+        let turnoAsignado = (reservasMismoTurno ? reservasMismoTurno.length : 0) + 1;
+        pedido.turnoFila = turnoAsignado; 
+
         await supabase.from('reservas').insert([{ 
             id: pedido.id, cliente: pedido.cliente, fecha: pedido.datosReserva.fecha, 
             hora: pedido.datosReserva.hora, personas: pedido.datosReserva.personas, 
-            mesa_id: pedido.datosReserva.mesa.numero, estado: 'activa', sucursal: pedido.datosReserva.sucursal 
+            mesa_id: pedido.datosReserva.mesa.numero, estado: 'activa', sucursal: pedido.datosReserva.sucursal,
+            turno_sala: turnoAsignado
         }]);
 
         pedido.esFantasma = true; 
@@ -132,6 +137,21 @@ io.on('connection', async (socket) => {
         socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
         io.emit('notificar-cocina', pedido);
         io.emit('reserva-confirmada-actualizar', pedido.datosReserva.fecha);
+    });
+
+    socket.on('obtener-pedidos-cocina', async () => {
+        const { data: pedidosDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'pendiente').order('id', { ascending: true });
+        const pedidosPendientes = (pedidosDB || []).map(p => ({
+            id: p.id, cliente: p.cliente, item: p.item, pago: p.pago, tipo: p.tipo,
+            turnoFila: p.turno_fila, esFantasma: p.es_fantasma, horaRegistro: p.hora_registro,
+            horaLlegadaEstimada: p.hora_llegada_estimada, estadoCocinaTexto: p.estado_cocina_texto, datosReserva: p.datos_reserva
+        }));
+        socket.emit('cargar-pedidos-cocina', pedidosPendientes);
+    });
+
+    socket.on('obtener-historial-dia', async () => {
+        const { data: historialDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'entregado').order('id', { ascending: false }).limit(100);
+        socket.emit('cargar-historial', historialDB || []);
     });
 
     socket.on('guardar-encuesta-opcional', async (datos) => { await supabase.from('clientes_perfil').insert([{ cliente: datos.cliente, alergias: datos.alergias, preferencias: datos.preferencias }]); });

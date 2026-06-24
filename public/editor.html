@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Editor de Menú - J & J</title>
+    <title>Editor de Menú - La Costeñita</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
@@ -10,16 +10,15 @@
         .container { max-width: 1000px; margin: 0 auto; }
         h1 { color: #2f3542; margin-bottom: 25px; text-align: center; }
         
-        .admin-box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 30px; border-top: 4px solid #2ed573; transition: 0.3s; }
+        .admin-box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 30px; border-top: 4px solid #e15f41; transition: 0.3s; }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .form-grupo { display: flex; flex-direction: column; }
         .form-grupo.completo { grid-column: span 2; }
         .form-grupo label { font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #57606f; }
         .form-grupo input, .form-grupo select { padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; background: #fcfcfc; }
         
-        .btn-guardar { background: #2ed573; color: white; border: none; padding: 14px 20px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; transition: 0.2s; }
-        .btn-guardar:hover { opacity: 0.9; }
-        
+        .btn-guardar { background: #0a3d62; color: white; border: none; padding: 14px 20px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn-guardar:hover { background: #e15f41; }
         .btn-cancelar { background: #a4b0be; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; width: 100%; margin-top: 10px; display: none; transition: 0.2s; }
         .btn-cancelar:hover { background: #57606f; }
 
@@ -28,21 +27,21 @@
         .tabla-productos th { background: #2f3542; color: white; font-size: 14px; text-transform: uppercase; }
         .tabla-productos img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
         
-        .btn-editar { background: #3742fa; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; margin-right: 5px; transition: 0.2s; }
-        .btn-editar:hover { background: #5352ed; }
-        .btn-eliminar { background: #ff4757; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; }
-        .btn-eliminar:hover { background: #ff6b81; }
+        .btn-editar { background: #0a3d62; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; margin-right: 5px; transition: 0.2s; }
+        .btn-editar:hover { background: #082d4a; }
+        .btn-eliminar { background: #e15f41; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; }
+        .btn-eliminar:hover { background: #c44527; }
         
-        .badge-cat { background: #f1f2f6; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: #57606f; }
+        .badge-cat { background: #eaf2f8; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: #0a3d62; }
         .modo-edicion { border-top: 4px solid #ffa502 !important; background: #fffcf2 !important; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Gestión de Inventario (Control Total)</h1>
+        <h1>Gestión de Inventario</h1>
         
         <div class="admin-box" id="caja-formulario">
-            <h3 id="titulo-form" style="margin-bottom: 15px; color: #2f3542;">➕ Agregar Nuevo Plato o Bebida</h3>
+            <h3 id="titulo-form" style="margin-bottom: 15px; color: #2f3542;">➕ Agregar Plato</h3>
             <div class="form-grid">
                 <div class="form-grupo"><label>Nombre del Plato</label><input type="text" id="prod-nombre" placeholder="Ej. Bolón Mixto"></div>
                 <div class="form-grupo"><label>Precio de Venta ($)</label><input type="number" id="prod-precio" step="0.01" placeholder="3.50"></div>
@@ -64,7 +63,6 @@
                     </select>
                 </div>
                 <div class="form-grupo"><label>URL de Imagen</label><input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg"></div>
-                
                 <div class="form-grupo completo"><label>Descripción / Detalles del Plato</label><input type="text" id="prod-descripcion" placeholder="Ej. Con chicharrón, queso manaba y huevo frito..."></div>
             </div>
             <button id="btn-accion" class="btn-guardar" onclick="guardarProducto()">Guardar y Publicar 🚀</button>
@@ -80,104 +78,57 @@
     </div>
 
     <script>
-        const socket = io();
-        let idEdicion = null; 
-        let cacheProductos = [];
+        const socket = io(); let idEdicion = null; let cacheProductos = [];
 
         socket.on('cargar-menu-inicial', (data) => { cacheProductos = data; renderizarTabla(data); });
         socket.on('menu-actualizado-completo', (data) => { cacheProductos = data; renderizarTabla(data); });
 
         function renderizarTabla(productos) {
-            const tbody = document.getElementById('lista-menu');
-            tbody.innerHTML = '';
-            
-            if(!productos || productos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">Tu menú está vacío.</td></tr>'; 
-                return;
-            }
-            
+            const tbody = document.getElementById('lista-menu'); tbody.innerHTML = '';
+            if(!productos || productos.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">Tu menú está vacío.</td></tr>'; return; }
             productos.forEach(p => {
                 tbody.innerHTML += `
                     <tr>
                         <td><img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'"></td>
-                        <td>
-                            <strong style="font-size:16px;">${p.nombre}</strong><br>
-                            <span style="color:#747d8c; font-size:13px;">${p.descripcion || 'Sin descripción añadida.'}</span>
-                        </td>
+                        <td><strong style="font-size:16px;">${p.nombre}</strong><br><span style="color:#747d8c; font-size:13px;">${p.descripcion || 'Sin descripción añadida.'}</span></td>
                         <td><span class="badge-cat">${p.category}</span></td>
                         <td style="color:#2ed573; font-weight:bold;">$${p.precio.toFixed(2)}</td>
-                        <td>
-                            <button class="btn-editar" onclick="cargarModoEdicion(${p.id})">✏️ Editar</button>
-                            <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Borrar</button>
-                        </td>
+                        <td><button class="btn-editar" onclick="cargarModoEdicion(${p.id})">✏️ Editar</button> <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Borrar</button></td>
                     </tr>`;
             });
         }
 
         function cargarModoEdicion(id) {
-            const producto = cacheProductos.find(x => x.id === id);
-            if(!producto) return;
-
+            const producto = cacheProductos.find(x => x.id === id); if(!producto) return;
             idEdicion = producto.id; 
             document.getElementById('titulo-form').innerHTML = `✏️ Editando: <span style="color:#ffa502">${producto.nombre}</span>`;
-            document.getElementById('prod-nombre').value = producto.nombre;
-            document.getElementById('prod-precio').value = producto.precio;
-            document.getElementById('prod-cat').value = producto.category;
-            document.getElementById('prod-img').value = producto.img;
+            document.getElementById('prod-nombre').value = producto.nombre; document.getElementById('prod-precio').value = producto.precio;
+            document.getElementById('prod-cat').value = producto.category; document.getElementById('prod-img').value = producto.img;
             document.getElementById('prod-descripcion').value = producto.descripcion || '';
-
             document.getElementById('caja-formulario').classList.add('modo-edicion');
-            
-            const btnAccion = document.getElementById('btn-accion');
-            btnAccion.innerHTML = "💾 Guardar Cambios";
-            btnAccion.style.background = "#ffa502";
-            
-            document.getElementById('btn-cancelar').style.display = "block";
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const btnAccion = document.getElementById('btn-accion'); btnAccion.innerHTML = "💾 Guardar Cambios"; btnAccion.style.background = "#ffa502";
+            document.getElementById('btn-cancelar').style.display = "block"; window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function cancelarEdicion() {
-            idEdicion = null;
-            document.getElementById('titulo-form').innerHTML = "➕ Agregar Nuevo Plato o Bebida";
-            document.getElementById('prod-nombre').value = '';
-            document.getElementById('prod-precio').value = '';
-            document.getElementById('prod-cat').value = 'Combos'; 
-            document.getElementById('prod-img').value = '';
-            document.getElementById('prod-descripcion').value = '';
-
+            idEdicion = null; document.getElementById('titulo-form').innerHTML = "➕ Agregar Nuevo Plato o Bebida";
+            document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-cat').value = 'Combos'; 
+            document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = '';
             document.getElementById('caja-formulario').classList.remove('modo-edicion');
-            
-            const btnAccion = document.getElementById('btn-accion');
-            btnAccion.innerHTML = "Guardar y Publicar 🚀";
-            btnAccion.style.background = "#2ed573";
-            
+            const btnAccion = document.getElementById('btn-accion'); btnAccion.innerHTML = "Guardar y Publicar 🚀"; btnAccion.style.background = "#0a3d62";
             document.getElementById('btn-cancelar').style.display = "none";
         }
 
         function guardarProducto() {
-            const nombre = document.getElementById('prod-nombre').value.trim();
-            const precio = parseFloat(document.getElementById('prod-precio').value);
-            const category = document.getElementById('prod-cat').value;
-            const descripcion = document.getElementById('prod-descripcion').value.trim();
+            const nombre = document.getElementById('prod-nombre').value.trim(); const precio = parseFloat(document.getElementById('prod-precio').value);
+            const category = document.getElementById('prod-cat').value; const descripcion = document.getElementById('prod-descripcion').value.trim();
             let img = document.getElementById('prod-img').value.trim() || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
-            
             if (!nombre || isNaN(precio)) return alert("⚠️ Completa Nombre y Precio.");
-
-            if (idEdicion !== null) {
-                socket.emit('editar-producto', { id: idEdicion, nombre, precio, category, img, descripcion });
-                cancelarEdicion(); 
-            } else {
-                socket.emit('agregar-nuevo-producto', { nombre, precio, category, img, descripcion });
-                document.getElementById('prod-nombre').value = '';
-                document.getElementById('prod-precio').value = '';
-                document.getElementById('prod-img').value = '';
-                document.getElementById('prod-descripcion').value = '';
-            }
+            if (idEdicion !== null) { socket.emit('editar-producto', { id: idEdicion, nombre, precio, category, img, descripcion }); cancelarEdicion(); } 
+            else { socket.emit('agregar-nuevo-producto', { nombre, precio, category, img, descripcion }); document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = ''; }
         }
 
-        function eliminarProducto(id) {
-            if(confirm("¿Seguro que deseas eliminar este producto para siempre?")) socket.emit('eliminar-producto', id);
-        }
+        function eliminarProducto(id) { if(confirm("¿Seguro que deseas eliminar este producto?")) socket.emit('eliminar-producto', id); }
     </script>
 </body>
 </html>
