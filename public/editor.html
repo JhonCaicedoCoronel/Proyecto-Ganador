@@ -45,9 +45,7 @@
             <div class="form-grid">
                 <div class="form-grupo"><label>Nombre del Plato</label><input type="text" id="prod-nombre" placeholder="Ej. Bolón Mixto"></div>
                 <div class="form-grupo"><label>Precio de Venta ($)</label><input type="number" id="prod-precio" step="0.01" placeholder="3.50"></div>
-                <div class="form-grupo"><label>Unidades en Stock</label><input type="number" id="prod-stock" value="50"></div>
                 
-                <!-- NUEVAS CATEGORÍAS SEGÚN TU IMAGEN -->
                 <div class="form-grupo">
                     <label>Categoría</label>
                     <select id="prod-cat">
@@ -72,9 +70,9 @@
         </div>
 
         <table class="tabla-productos">
-            <thead><tr><th>Foto</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Foto</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Acciones</th></tr></thead>
             <tbody id="lista-menu">
-                <tr><td colspan="6" style="text-align: center; padding: 20px;">Cargando base de datos...</td></tr>
+                <tr><td colspan="5" style="text-align: center; padding: 20px;">Cargando base de datos...</td></tr>
             </tbody>
         </table>
     </div>
@@ -91,7 +89,7 @@
             tbody.innerHTML = '';
             
             if(!productos || productos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Tu menú está vacío.</td></tr>'; 
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">Tu menú está vacío.</td></tr>'; 
                 return;
             }
             
@@ -102,21 +100,19 @@
                         <td><strong>${p.nombre}</strong></td>
                         <td><span class="badge-cat">${p.category}</span></td>
                         <td style="color:#2ed573; font-weight:bold;">$${p.precio.toFixed(2)}</td>
-                        <td>${p.stock} und.</td>
                         <td>
-                            <button class="btn-editar" onclick="cargarModoEdicion(${p.id}, '${p.nombre.replace(/'/g, "\\'")}', ${p.precio}, ${p.stock}, '${p.category}', '${p.img}')">✏️ Editar</button>
+                            <button class="btn-editar" onclick="cargarModoEdicion(${p.id}, '${p.nombre.replace(/'/g, "\\'")}', ${p.precio}, '${p.category}', '${p.img}')">✏️ Editar</button>
                             <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Borrar</button>
                         </td>
                     </tr>`;
             });
         }
 
-        function cargarModoEdicion(id, nombre, precio, stock, category, img) {
+        function cargarModoEdicion(id, nombre, precio, category, img) {
             idEdicion = id; 
             document.getElementById('titulo-form').innerHTML = `✏️ Editando: <span style="color:#ffa502">${nombre}</span>`;
             document.getElementById('prod-nombre').value = nombre;
             document.getElementById('prod-precio').value = precio;
-            document.getElementById('prod-stock').value = stock;
             document.getElementById('prod-cat').value = category;
             document.getElementById('prod-img').value = img;
 
@@ -135,8 +131,7 @@
             document.getElementById('titulo-form').innerHTML = "➕ Agregar Nuevo Plato o Bebida";
             document.getElementById('prod-nombre').value = '';
             document.getElementById('prod-precio').value = '';
-            document.getElementById('prod-stock').value = '50';
-            document.getElementById('prod-cat').value = 'Combos'; // Resetea a la primera opción
+            document.getElementById('prod-cat').value = 'Combos'; 
             document.getElementById('prod-img').value = '';
 
             document.getElementById('caja-formulario').classList.remove('modo-edicion');
@@ -151,17 +146,16 @@
         function guardarProducto() {
             const nombre = document.getElementById('prod-nombre').value.trim();
             const precio = parseFloat(document.getElementById('prod-precio').value);
-            const stock = parseInt(document.getElementById('prod-stock').value);
             const category = document.getElementById('prod-cat').value;
             let img = document.getElementById('prod-img').value.trim() || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
             
-            if (!nombre || isNaN(precio) || isNaN(stock)) return alert("⚠️ Completa Nombre, Precio y Stock.");
+            if (!nombre || isNaN(precio)) return alert("⚠️ Completa Nombre y Precio.");
 
             if (idEdicion !== null) {
-                socket.emit('editar-producto', { id: idEdicion, nombre, precio, stock, category, img });
+                socket.emit('editar-producto', { id: idEdicion, nombre, precio, category, img });
                 cancelarEdicion(); 
             } else {
-                socket.emit('agregar-nuevo-producto', { nombre, precio, stock, category, img });
+                socket.emit('agregar-nuevo-producto', { nombre, precio, category, img });
                 document.getElementById('prod-nombre').value = '';
                 document.getElementById('prod-precio').value = '';
                 document.getElementById('prod-img').value = '';

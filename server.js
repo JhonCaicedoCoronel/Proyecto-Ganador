@@ -36,26 +36,20 @@ io.on('connection', async (socket) => {
     socket.emit('cargar-menu-inicial', menuProductos || []);
     socket.emit('cargar-mesas-inicial', estadoMesas || []);
 
-    // --- LIBRO DE RESERVAS GLOBAL ---
     socket.on('obtener-historial-reservas', async () => {
         const { data: reservasDB } = await supabase.from('reservas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
         socket.emit('cargar-historial-reservas', reservasDB || []);
     });
 
-    // --- MARCAR LA SALIDA DE UN CLIENTE (CHECK-OUT) ---
     socket.on('marcar-salida-reserva', async (datos) => {
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         const horaActual = new Date().toLocaleTimeString('en-US', opciones);
 
-        // 1. Guardar la hora y marcar como finalizada
         await supabase.from('reservas').update({ estado: 'finalizada', hora_salida: horaActual }).eq('id', datos.id);
-        
-        // 2. Poner la mesa en estado "sucia"
         await supabase.from('mesas').update({ estado: 'sucia' }).eq('numero', datos.mesa_id);
         
         await emitirMesasActualizadas();
         
-        // 3. Refrescar la tabla de reservas
         const { data: reservasDB } = await supabase.from('reservas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
         io.emit('cargar-historial-reservas', reservasDB || []);
     });
@@ -77,7 +71,6 @@ io.on('connection', async (socket) => {
 
     socket.on('consultar-horarios', async (datos) => {
         const personasRequeridas = parseInt(datos.personas) || 1;
-        // Solo bloquea el horario si la reserva sigue ACTIVA
         const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa');
         const { data: mesasDB } = await supabase.from('mesas').select('*');
         const reservasGlobales = reservasDB || []; const mesasTotales = mesasDB || [];
@@ -134,13 +127,7 @@ io.on('connection', async (socket) => {
             hora_llegada_estimada: pedido.horaLlegadaEstimada, estado_cocina_texto: pedido.estadoCocinaTexto, datos_reserva: pedido.datosReserva
         }]);
 
-        if (pedido.productosComprados && pedido.productosComprados.length > 0) {
-            for (const item of pedido.productosComprados) {
-                const { data: productoDB } = await supabase.from('menu').select('stock').eq('id', item.id).single();
-                if (productoDB) await supabase.from('menu').update({ stock: Math.max(0, productoDB.stock - item.cantidad) }).eq('id', item.id);
-            }
-            await emitirMenuActualizado();
-        }
+        // (SE ELIMINÓ EL BUCLE DE RESTAR STOCK)
 
         socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
         io.emit('notificar-cocina', pedido);
@@ -150,8 +137,10 @@ io.on('connection', async (socket) => {
     socket.on('guardar-encuesta-opcional', async (datos) => { await supabase.from('clientes_perfil').insert([{ cliente: datos.cliente, alergias: datos.alergias, preferencias: datos.preferencias }]); });
     socket.on('pedido-despachado-cocina', async (id) => { await supabase.from('pedidos_cocina').update({ estado: 'entregado' }).eq('id', id); io.emit('pedido-listo-retirar', id); });
     socket.on('cambiar-estado-mesa', async (datos) => { await supabase.from('mesas').update({ estado: datos.estado }).eq('numero', datos.numero); await emitirMesasActualizadas(); });
-    socket.on('agregar-nuevo-producto', async (p) => { await supabase.from('menu').insert([{ nombre: p.nombre, precio: p.precio, stock: p.stock, category: p.category, img: p.img }]); await emitirMenuActualizado(); });
-    socket.on('editar-producto', async (p) => { await supabase.from('menu').update({ nombre: p.nombre, precio: p.precio, stock: p.stock, category: p.category, img: p.img }).eq('id', p.id); await emitirMenuActualizado(); });
+    
+    // (SE ELIMINÓ EL ENVÍO DEL DATO "STOCK" HACIA SUPABASE)
+    socket.on('agregar-nuevo-producto', async (p) => { await supabase.from('menu').insert([{ nombre: p.nombre, precio: p.precio, category: p.category, img: p.img }]); await emitirMenuActualizado(); });
+    socket.on('editar-producto', async (p) => { await supabase.from('menu').update({ nombre: p.nombre, precio: p.precio, category: p.category, img: p.img }).eq('id', p.id); await emitirMenuActualizado(); });
     socket.on('eliminar-producto', async (id) => { await supabase.from('menu').delete().eq('id', id); await emitirMenuActualizado(); });
 });
 
