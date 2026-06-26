@@ -37,5 +37,25 @@
         }
         function updateMesa(n, est) { socket.emit('cambiar-estado-mesa', { numero: n, estado: est }); }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+    const supabaseUrl = 'TU_URL_DE_SUPABASE';
+    const supabaseKey = 'TU_ANON_KEY_DE_SUPABASE';
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function verificarSesionSegura() {
+        const { data: { user }, error } = await supabaseClient.auth.getUser();
+        if (!user || error) { window.parent.location.href = 'login.html'; return; }
+
+        const { data: roleData } = await supabaseClient
+        .from('roles_empleados')
+        .select('rol').eq('correo', user.email).single();
+
+        if (!roleData || roleData.rol !== 'cajero') {
+        window.parent.location.href = 'login.html';
+        }
+    }
+    verificarSesionSegura();
+    </script>
 </body>
 </html>

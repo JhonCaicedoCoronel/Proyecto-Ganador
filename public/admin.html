@@ -1,47 +1,71 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Panel de Control - La Costeñita</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body, html { height: 100vh; overflow: hidden; background: #1e222b; }
-        
-        .admin-header { background: #2f3542; height: 70px; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10; position: relative; }
-        .logo-text { color: #e15f41; font-size: 22px; font-weight: bold; margin-right: 30px; letter-spacing: 1px; }
-        
-        .nav-links { display: flex; gap: 10px; }
-        .nav-btn { text-decoration: none; color: white; font-weight: bold; padding: 10px 18px; background: rgba(255,255,255,0.1); border-radius: 8px; transition: 0.2s; font-size: 14px; cursor: pointer; border: none; }
-        .nav-btn:hover { background: rgba(255,255,255,0.2); }
-        .nav-btn.activo { background: #e15f41; box-shadow: 0 2px 5px rgba(225,95,65,0.4); }
-        
-        .btn-quiosco { margin-left: auto; background: transparent; border: 2px solid #2ed573; color: #2ed573; }
-        .btn-quiosco:hover { background: #2ed573; color: #1e222b; }
-
-        #visor-central { width: 100%; height: calc(100vh - 70px); border: none; background: #f4f6f8; display: block; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-width=1.0">
+  <title>Admin - La Costeñita</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background-color: #1e272e; color: white; display: flex; flex-direction: column; height: 100vh; }
+    .navbar { display: flex; justify-content: space-between; align-items: center; background-color: #2f3640; padding: 15px 20px; border-bottom: 2px solid #ff4757; }
+    .navbar h1 { margin: 0; font-size: 22px; color: #f5f6fa; }
+    .nav-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav-buttons button { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+    .nav-buttons button:hover { background: rgba(255,255,255,0.2); }
+    .nav-buttons button.activo { background: #ff4757; border-color: #ff4757; }
+    .btn-logout { background-color: #ff4757; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 20px; }
+    .btn-logout:hover { background-color: #ff6b81; }
+    iframe { flex-grow: 1; border: none; width: 100%; background: #f5f6fa; }
+  </style>
 </head>
 <body>
-    <header class="admin-header">
-        <div class="logo-text">🌊 ADMIN COSTEÑITA</div>
-        <nav class="nav-links">
-            <a href="/editor.html" target="visor-central" class="nav-btn activo" onclick="cambiarPestana(this)">🍔 Menú</a>
-            <a href="/mesas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">🪑 Mesas</a>
-            <a href="/cocina.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">👨‍🍳 Cocina</a>
-            <a href="/historial.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📈 Ventas</a>
-            <a href="/reservas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📅 Reservas</a>
-        </nav>
-        <a href="/quiosco.html" target="_blank" class="nav-btn btn-quiosco">👀 Simular Cliente ↗</a>
-    </header>
 
-    <iframe name="visor-central" id="visor-central" src="/editor.html"></iframe>
+  <div class="navbar">
+    <h1>👑 J&J ADMIN</h1>
+    <div class="nav-buttons">
+      <button class="activo" onclick="cargarPagina('editor.html', this)">📝 Editor Menú</button>
+      <button onclick="cargarPagina('reservas.html', this)">📅 Libro Reservas</button>
+      <button onclick="cargarPagina('mesas.html', this)">🪑 Monitor Mesas</button>
+      <button onclick="cargarPagina('cocina.html', this)">👨‍🍳 Pantalla Cocina</button>
+      <button onclick="cargarPagina('historial.html', this)">📊 Historial Ventas</button>
+      <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
+    </div>
+  </div>
 
-    <script>
-        function cambiarPestana(elementoClicado) {
-            let botones = document.querySelectorAll('.nav-btn:not(.btn-quiosco)');
-            botones.forEach(btn => btn.classList.remove('activo'));
-            elementoClicado.classList.add('activo');
-        }
-    </script>
+  <iframe id="visor" src="editor.html"></iframe>
+
+  <script>
+    const supabaseUrl = 'TU_URL_DE_SUPABASE';
+    const supabaseKey = 'TU_ANON_KEY_DE_SUPABASE';
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Seguridad Estricta
+    async function verificarSesion() {
+      const { data: { user }, error } = await supabaseClient.auth.getUser();
+      if (!user || error) { window.location.href = 'login.html'; return; }
+
+      const { data: roleData } = await supabaseClient
+        .from('roles_empleados')
+        .select('rol').eq('correo', user.email).single();
+
+      if (!roleData || roleData.rol !== 'cajero') {
+        alert("⛔ Acceso Denegado: Exclusivo para Cajeros.");
+        window.location.href = roleData && roleData.rol === 'cocinero' ? 'cocina.html' : 'login.html';
+      }
+    }
+
+    async function cerrarSesion() {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    }
+
+    function cargarPagina(url, btn) {
+      document.getElementById('visor').src = url;
+      document.querySelectorAll('.nav-buttons button').forEach(b => b.classList.remove('activo'));
+      if(btn) btn.classList.add('activo');
+    }
+
+    verificarSesion();
+  </script>
 </body>
 </html>
