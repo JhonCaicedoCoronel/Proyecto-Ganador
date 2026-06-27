@@ -3,180 +3,493 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Costeñita - Quiosco</title>
+    <title>La Costeñita | Menú y Reservas</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0984e3">
+    
+    <script src="/socket.io/socket.io.js"></script>
+
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #e0f7fa; margin: 0; padding: 20px; }
-        .tarjeta-blanca { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto 20px auto; }
-        h1, h2 { color: #005f73; text-align: center; }
-        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-        .btn-primario { background: #ff9800; color: white; border: none; padding: 15px; border-radius: 25px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; }
-        .btn-primario:disabled { background: #ccc; cursor: not-allowed; }
-        .grid-menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .producto-card { border: 1px solid #eee; padding: 15px; border-radius: 10px; text-align: center; }
-        .info-mesas { background: #d4edda; color: #155724; padding: 10px; border-radius: 8px; font-weight: bold; text-align: center; display: none; }
+        :root {
+            --ocean-blue: #0984e3;
+            --coral: #e17055;
+            --light: #f1f2f6;
+            --dark: #2d3436;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            /* Tema Costeño: Filtro azul océano y fondo de mariscos simulado */
+            background: linear-gradient(rgba(9, 132, 227, 0.8), rgba(45, 52, 54, 0.9)), url('https://images.unsplash.com/photo-1559742811-822873691fc8?auto=format&fit=crop&w=1920&q=80') center/cover fixed;
+            color: var(--light);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
         
-        /* Pantalla Turno Tipo Hospital */
-        #pantalla-hospital { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 95, 115, 0.95); color: white; z-index: 10000; text-align: center; padding-top: 20vh; }
-        .turno-gigante { font-size: 100px; color: #ff9800; font-weight: 900; margin: 20px 0; animation: parpadeo 1s infinite alternate; }
-        @keyframes parpadeo { from { opacity: 1; } to { opacity: 0.5; } }
+        /* Encabezado */
+        header {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--coral);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        header h1 {
+            color: white;
+            font-size: 28px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        header h1 span { color: var(--coral); }
+
+        /* Controles (Sucursal, Búsqueda, Tipo de Orden) */
+        .controls-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 16px;
+        }
+
+        /* Menú Dinámico */
+        .menu-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .categoria-titulo {
+            font-size: 24px;
+            color: var(--coral);
+            margin: 30px 0 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 5px;
+        }
+        .grid-platos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .plato-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .plato-card:hover { transform: translateY(-5px); }
+        .plato-foto {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .plato-precio {
+            font-size: 20px;
+            font-weight: bold;
+            color: #55efc4;
+            margin: 10px 0;
+        }
+        .plato-desc {
+            font-size: 13px;
+            color: #b2bec3;
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+        button.btn-add {
+            background: var(--ocean-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        button.btn-add:hover { background: #74b9ff; }
+
+        /* Modal del Carrito */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: var(--dark);
+            width: 90%;
+            max-width: 400px;
+            padding: 25px;
+            border-radius: 15px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+
+        /* Asistente Costeñito (Chatbot Flotante) */
+        .bot-bubble {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: var(--coral);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            cursor: pointer;
+            z-index: 999;
+            transition: transform 0.3s ease;
+        }
+        .bot-bubble:hover { transform: scale(1.1); }
+        .chat-window {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 320px;
+            height: 400px;
+            background: var(--light);
+            color: var(--dark);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 999;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-header {
+            background: var(--coral);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        .chat-header span.close-chat { cursor: pointer; font-size: 20px; }
+        .chat-body { flex: 1; padding: 15px; overflow-y: auto; background: #ffffff; }
+        .chat-input { display: flex; padding: 10px; background: #dfe6e9; }
+        .chat-input input { flex: 1; padding: 10px; border: none; border-radius: 5px; outline: none; color: black; }
+        .chat-input button { background: var(--ocean-blue); color: white; border: none; padding: 10px 15px; margin-left: 5px; border-radius: 5px; cursor: pointer; }
+        .msg-bot { background: #f1f2f6; padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 14px; }
+        .msg-user { background: var(--ocean-blue); color: white; padding: 10px; border-radius: 10px; margin-bottom: 10px; text-align: right; font-size: 14px; }
+
+        /* Botón Flotante Carrito */
+        .btn-flotante-carrito {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #55efc4;
+            color: #2d3436;
+            padding: 15px 25px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            border: none;
+            z-index: 998;
+        }
     </style>
 </head>
 <body>
 
-<div id="seccion-reserva" class="tarjeta-blanca">
-    <h1>🦀 La Costeñita</h1>
-    <p style="text-align:center;">Paso 1: Disponibilidad y Reserva</p>
-    
-    <label>📍 Sucursal:</label>
-    <select id="sucursal" onchange="verificarMesas()">
-        <option value="Urdesa">Urdesa Central</option>
-        <option value="Samborondon">Plaza Samborondón</option>
-        <option value="Sur">Sur</option>
-    </select>
+    <header>
+        <h1>La <span>Costeñita</span></h1>
+        <p>Sabor 100% Ecuatoriano 🇪🇨</p>
+    </header>
 
-    <label>📅 Fecha:</label>
-    <input type="date" id="fecha-reserva" onchange="verificarMesas()">
+    <div class="controls-container">
+        <select id="sucursalSelector" onchange="guardarSesion()">
+            <option value="">📍 Selecciona una Sucursal...</option>
+            <option value="Urdesa">La Costeñita - Urdesa</option>
+            <option value="Samborondon">La Costeñita - Samborondón</option>
+            <option value="Sur">La Costeñita - Sur</option>
+        </select>
 
-    <label>⏰ Hora:</label>
-    <input type="time" id="hora-reserva" onchange="verificarMesas()">
+        <select id="tipoReserva" onchange="guardarSesion()">
+            <option value="solo_reserva">🪑 Solo Reservar Mesa</option>
+            <option value="pre_orden">👻 Reservar + Pre-orden (Pedido Fantasma)</option>
+        </select>
 
-    <label>👥 Personas:</label>
-    <select id="personas" onchange="verificarMesas()">
-        <option value="2">2 Personas</option>
-        <option value="4">4 Personas</option>
-        <option value="6">6 Personas</option>
-        <option value="8">8+ Personas</option>
-    </select>
+        <input type="text" id="buscador" placeholder="🔍 Buscar encebollado, bolón..." onkeyup="filtrarMenu()">
+    </div>
 
-    <div id="info-mesas" class="info-mesas"></div>
+    <div class="menu-container" id="menuCatalogo">
+        </div>
 
-    <button id="btn-preorden" class="btn-primario" style="background:#2ecc71;" onclick="avanzarMenu()" disabled>🍔 Continuar a Pre-orden</button>
-</div>
+    <button class="btn-flotante-carrito" onclick="abrirCarrito()">🛒 Ver Mi Carrito (<span id="cartCount">0</span>)</button>
 
-<div id="seccion-menu" class="tarjeta-blanca" style="display: none;">
-    <button onclick="volverReserva()" style="background:#ccc; border:none; padding:10px; border-radius:10px; cursor:pointer;">⬅ Volver</button>
-    <h2>Menú del Día</h2>
-    <div id="catalogo-menu" class="grid-menu"></div>
-    
-    <hr>
-    <h3>Tu Datos y Pago</h3>
-    <input type="text" id="nombre-cliente" placeholder="Tu Nombre">
-    <button class="btn-primario" onclick="enviarPedido()">🚀 Confirmar Pedido y Generar Turno</button>
-</div>
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <h2 style="color: var(--coral); margin-bottom: 15px;">Tu Pedido</h2>
+            <div id="cartItems"></div>
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+            <h3>Total: $<span id="cartTotal">0.00</span></h3>
+            
+            <input type="text" id="nombreCliente" placeholder="Tu Nombre..." style="margin-top: 15px;">
+            <select id="metodoPago" style="margin-top: 10px;">
+                <option value="efectivo">💵 Pago en Efectivo (Caja)</option>
+                <option value="tarjeta">💳 Pago con Tarjeta</option>
+            </select>
+            
+            <button class="btn-add" style="margin-top: 20px; background: var(--coral);" onclick="enviarPedido()">🚀 CONFIRMAR ORDEN</button>
+            <button class="btn-add" style="margin-top: 10px; background: transparent; border: 1px solid white;" onclick="cerrarCarrito()">Cancelar</button>
+        </div>
+    </div>
 
-<div id="pantalla-hospital">
-    <h2>🔔 ATENCIÓN</h2>
-    <p style="font-size: 24px;">El siguiente turno está listo en cocina:</p>
-    <div id="turno-anuncio" class="turno-gigante">--</div>
-    <p>Por favor, retira tu pedido o infórmale a tu mesero.</p>
-    <button onclick="cerrarHospital()" style="padding:15px 30px; border-radius:20px; border:none; font-size:18px; cursor:pointer; margin-top:30px;">Entendido</button>
-</div>
+    <div class="bot-bubble" onclick="toggleBot()">🦀</div>
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            Asistente Costeñito 🇪🇨
+            <span class="close-chat" onclick="toggleBot()">✕</span>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="msg-bot">¡Habla llave! Soy el Asistente Costeñito. Pregúntame sobre horarios, locales, reservas o si somos pet friendly. ¿En qué te ayudo?</div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Escribe aquí..." onkeypress="if(event.key === 'Enter') enviarMensajeBot()">
+            <button onclick="enviarMensajeBot()">Enviar</button>
+        </div>
+    </div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    const socket = io();
-    let carrito = [];
-    let reservaActual = { mesa_id: null, sucursal: '', fecha: '', hora: '' };
+    <script>
+        const socket = io();
+        let menuActual = [];
+        let carrito = [];
 
-    // 1. Bloquear fechas pasadas al cargar la página
-    window.onload = () => {
-        const hoy = new Date().toISOString().split('T')[0];
-        document.getElementById('fecha-reserva').setAttribute('min', hoy);
-        socket.emit('pedir-menu');
-    };
+        // 💾 PERSISTENCIA: Cargar datos guardados si el usuario recarga la página
+        window.onload = () => {
+            if(sessionStorage.getItem('costenita_sucursal')) {
+                document.getElementById('sucursalSelector').value = sessionStorage.getItem('costenita_sucursal');
+            }
+            if(sessionStorage.getItem('costenita_tipo_reserva')) {
+                document.getElementById('tipoReserva').value = sessionStorage.getItem('costenita_tipo_reserva');
+            }
+            if(sessionStorage.getItem('costenita_carrito')) {
+                carrito = JSON.parse(sessionStorage.getItem('costenita_carrito'));
+                actualizarCarritoUI();
+            }
+        };
 
-    // 2. Verificar Mesas en tiempo real
-    function verificarMesas() {
-        const sucursal = document.getElementById('sucursal').value;
-        const fecha = document.getElementById('fecha-reserva').value;
-        const hora = document.getElementById('hora-reserva').value;
-        const personas = document.getElementById('personas').value;
-
-        if(sucursal && fecha && hora && personas) {
-            reservaActual = { sucursal, fecha, hora, mesa_id: null };
-            socket.emit('consultar-disponibilidad', {sucursal, fecha, hora, personas});
+        function guardarSesion() {
+            sessionStorage.setItem('costenita_sucursal', document.getElementById('sucursalSelector').value);
+            sessionStorage.setItem('costenita_tipo_reserva', document.getElementById('tipoReserva').value);
+            sessionStorage.setItem('costenita_carrito', JSON.stringify(carrito));
         }
-    }
 
-    socket.on('respuesta-disponibilidad', (mesasLibres) => {
-        const info = document.getElementById('info-mesas');
-        const btn = document.getElementById('btn-preorden');
-        
-        info.style.display = 'block';
-        if(mesasLibres.length > 0) {
-            info.style.background = '#d4edda';
-            info.style.color = '#155724';
-            info.innerHTML = `✅ ¡Hay ${mesasLibres.length} mesas disponibles! Te hemos asignado la Mesa #${mesasLibres[0].numero}`;
-            reservaActual.mesa_id = mesasLibres[0].id;
-            btn.disabled = false; // DESBLOQUEA LA TRANSICIÓN
-        } else {
-            info.style.background = '#f8d7da';
-            info.style.color = '#721c24';
-            info.innerHTML = `❌ Lo sentimos, no hay mesas para esta cantidad de personas a esta hora.`;
-            reservaActual.mesa_id = null;
-            btn.disabled = true; // BLOQUEA LA TRANSICIÓN
+        // 🍔 RECIBIR MENÚ Y RENDERIZAR DINÁMICAMENTE POR CATEGORÍAS
+        socket.on('actualizar-menu', (platos) => {
+            menuActual = platos;
+            renderMenu(menuActual);
+        });
+
+        function renderMenu(platos) {
+            const catalogo = document.getElementById('menuCatalogo');
+            catalogo.innerHTML = '';
+
+            // Extraer categorías únicas
+            const categorias = [...new Set(platos.map(p => p.categoria))];
+
+            categorias.forEach(cat => {
+                // Título de la categoría
+                let tituloCat = document.createElement('h2');
+                tituloCat.className = 'categoria-titulo';
+                tituloCat.innerText = cat.toUpperCase();
+                catalogo.appendChild(tituloCat);
+
+                // Contenedor Grid para los platos
+                let grid = document.createElement('div');
+                grid.className = 'grid-platos';
+
+                const platosDeCategoria = platos.filter(p => p.categoria === cat);
+                platosDeCategoria.forEach(plato => {
+                    grid.innerHTML += `
+                        <div class="plato-card">
+                            <img src="${plato.foto}" alt="${plato.nombre}" class="plato-foto" onerror="this.src='https://via.placeholder.com/280x180?text=La+Costenita'">
+                            <h3>${plato.nombre}</h3>
+                            <p class="plato-desc">${plato.descripcion || 'Delicioso plato típico ecuatoriano.'}</p>
+                            <p class="plato-precio">$${parseFloat(plato.precio).toFixed(2)}</p>
+                            <button class="btn-add" onclick="agregarAlCarrito(${plato.id}, '${plato.nombre}', ${plato.precio})">
+                                + Agregar
+                            </button>
+                        </div>
+                    `;
+                });
+                catalogo.appendChild(grid);
+            });
         }
-    });
 
-    // 3. Transición de Pantallas (Solución al error de no direccionar)
-    function avanzarMenu() {
-        document.getElementById('seccion-reserva').style.display = 'none';
-        document.getElementById('seccion-menu').style.display = 'block';
-    }
+        // 🔍 FILTRO DE BÚSQUEDA
+        function filtrarMenu() {
+            const texto = document.getElementById('buscador').value.toLowerCase();
+            const filtrados = menuActual.filter(p => p.nombre.toLowerCase().includes(texto) || (p.descripcion && p.descripcion.toLowerCase().includes(texto)));
+            renderMenu(filtrados);
+        }
 
-    function volverReserva() {
-        document.getElementById('seccion-menu').style.display = 'none';
-        document.getElementById('seccion-reserva').style.display = 'block';
-    }
+        // 🛒 LÓGICA DEL CARRITO
+        function agregarAlCarrito(id, nombre, precio) {
+            carrito.push({ id, nombre, precio });
+            guardarSesion();
+            actualizarCarritoUI();
+            
+            // Animación visual del botón flotante
+            const btn = document.querySelector('.btn-flotante-carrito');
+            btn.style.transform = 'scale(1.2)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 200);
+        }
 
-    // 4. Renderizar Menú y Carrito
-    socket.on('actualizar-menu', (menu) => {
-        const contenedor = document.getElementById('catalogo-menu');
-        contenedor.innerHTML = '';
-        menu.forEach(p => {
-            contenedor.innerHTML += `
-                <div class="producto-card">
-                    <h4>${p.nombre}</h4>
-                    <p style="color:red; font-weight:bold;">$${p.precio}</p>
-                    <button onclick="agregar('${p.nombre}', ${p.precio})">Agregar</button>
-                </div>
-            `;
-        });
-    });
+        function actualizarCarritoUI() {
+            document.getElementById('cartCount').innerText = carrito.length;
+            const itemsDiv = document.getElementById('cartItems');
+            itemsDiv.innerHTML = '';
+            
+            let total = 0;
+            carrito.forEach((item, index) => {
+                total += parseFloat(item.precio);
+                itemsDiv.innerHTML += `
+                    <div class="cart-item">
+                        <span>${item.nombre}</span>
+                        <span>$${parseFloat(item.precio).toFixed(2)} <button style="background:transparent; border:none; color:red; cursor:pointer;" onclick="quitarDelCarrito(${index})">✕</button></span>
+                    </div>
+                `;
+            });
+            document.getElementById('cartTotal').innerText = total.toFixed(2);
+        }
 
-    function agregar(nombre, precio) {
-        carrito.push({nombre, precio});
-        alert(`${nombre} agregado a tu pre-orden.`);
-    }
+        function quitarDelCarrito(index) {
+            carrito.splice(index, 1);
+            guardarSesion();
+            actualizarCarritoUI();
+        }
 
-    // 5. Generar Turno y Enviar
-    function enviarPedido() {
-        const cliente = document.getElementById('nombre-cliente').value;
-        if(!cliente) return alert("Ingresa tu nombre");
+        function abrirCarrito() { document.getElementById('cartModal').style.display = 'flex'; }
+        function cerrarCarrito() { document.getElementById('cartModal').style.display = 'none'; }
 
-        socket.emit('nuevo-pedido', {
-            cliente: cliente,
-            reserva: reservaActual,
-            items: carrito,
-            total: carrito.reduce((sum, i) => sum + i.precio, 0)
-        });
-    }
+        // 🚀 ENVÍO DEL PEDIDO / RESERVA
+        function enviarPedido() {
+            const sucursal = document.getElementById('sucursalSelector').value;
+            const tipo = document.getElementById('tipoReserva').value;
+            const nombre = document.getElementById('nombreCliente').value;
+            const pago = document.getElementById('metodoPago').value;
 
-    socket.on('pedido-confirmado', (turno) => {
-        alert(`¡Reserva y Pedido Confirmado!\nTU TURNO ES: ${turno}`);
-        window.location.reload();
-    });
+            if(!sucursal) return alert("Por favor, selecciona una sucursal arriba.");
+            if(!nombre) return alert("Por favor, escribe tu nombre.");
+            if(tipo === 'pre_orden' && carrito.length === 0) return alert("Tu carrito está vacío. Agrega platos o cambia a 'Solo Reservar'.");
 
-    // 6. SISTEMA DE TURNOS TIPO HOSPITAL
-    socket.on('turno-listo-hospital', (turnoAnunciado) => {
-        document.getElementById('pantalla-hospital').style.display = 'block';
-        document.getElementById('turno-anuncio').innerText = turnoAnunciado;
-        // Opcional: Reproducir sonido de campana
-    });
+            const nuevoPedido = {
+                sucursal: sucursal,
+                cliente: nombre,
+                tipo_orden: tipo, // 'solo_reserva' o 'pre_orden'
+                pago: pago,
+                estado: tipo === 'pre_orden' ? 'fantasma' : 'pendiente', // 👻
+                items: carrito,
+                total: document.getElementById('cartTotal').innerText,
+                horaRegistro: new Date().toLocaleTimeString('es-EC', { timeZone: 'America/Guayaquil' })
+            };
 
-    function cerrarHospital() {
-        document.getElementById('pantalla-hospital').style.display = 'none';
-    }
-</script>
+            socket.emit('nuevo-pedido', nuevoPedido);
+            
+            // Limpieza y alerta de éxito
+            carrito = [];
+            guardarSesion();
+            actualizarCarritoUI();
+            cerrarCarrito();
+            
+            alert(`¡Bacán, ${nombre}! Tu solicitud fue enviada a la sucursal de ${sucursal}. Te esperamos.`);
+        }
+
+        // 🤖 LÓGICA DEL BOT COSTEÑITO (9 Temas)
+        function toggleBot() {
+            const chat = document.getElementById('chatWindow');
+            chat.style.display = (chat.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function enviarMensajeBot() {
+            const input = document.getElementById('chatInput');
+            const texto = input.value.trim();
+            if(!texto) return;
+
+            const chatBody = document.getElementById('chatBody');
+            
+            // Imprimir mensaje del usuario
+            chatBody.innerHTML += `<div class="msg-user">${texto}</div>`;
+            input.value = '';
+            
+            // Lógica de palabras clave
+            setTimeout(() => {
+                let respuesta = "Chuta, no te caché bien la pregunta. Prueba preguntando por horarios, locales, menú o si aceptamos mascotas.";
+                const t = texto.toLowerCase();
+
+                if(t.includes("hola") || t.includes("saludos") || t.includes("buenas")) {
+                    respuesta = "¡Habla mi llave! Bienvenido a La Costeñita. ¿Qué se te ofrece hoy?";
+                } else if (t.includes("ubicacion") || t.includes("direccion") || t.includes("donde")) {
+                    respuesta = "📍 Estamos en 3 lados: Urdesa (Víctor Emilio), Samborondón (Plaza Lagos) y el Sur (La Saiba).";
+                } else if (t.includes("hora") || t.includes("abren") || t.includes("cierran")) {
+                    respuesta = "🕒 Atendemos todos los días desde las 08:00 AM hasta las 11:00 PM.";
+                } else if (t.includes("perro") || t.includes("mascota") || t.includes("pet")) {
+                    respuesta = "🐶 ¡Claro que sí! Somos 100% Pet Friendly en las terrazas de Urdesa y Samborondón.";
+                } else if (t.includes("parqueo") || t.includes("estacionamiento")) {
+                    respuesta = "🚗 Tranquilo, tenemos parqueo privado y guardia en todos nuestros locales.";
+                } else if (t.includes("pago") || t.includes("tarjeta") || t.includes("efectivo")) {
+                    respuesta = "💳 Aceptamos efectivo, transferencias, y todas las tarjetas de crédito o débito.";
+                } else if (t.includes("menu") || t.includes("comida") || t.includes("platos") || t.includes("encebollado")) {
+                    respuesta = "🍲 Cerramos el navegador y mira el menú de fondo, ¡tenemos los mejores encebollados y bolones de la ciudad!";
+                } else if (t.includes("reserva") || t.includes("mesa")) {
+                    respuesta = "🪑 Puedes reservar tu mesa directo arriba seleccionando tu sucursal. ¡Pilas que se llenan!";
+                } else if (t.includes("domicilio") || t.includes("delivery") || t.includes("llevar")) {
+                    respuesta = "🛵 Por ahora puedes hacer tu pedido web y pasar retirando. ¡Pronto tendremos delivery propio!";
+                }
+
+                chatBody.innerHTML += `<div class="msg-bot">${respuesta}</div>`;
+                chatBody.scrollTop = chatBody.scrollHeight; // Auto-scroll
+            }, 600);
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('✅ Service Worker de La Costeñita registrado.', reg))
+                    .catch(err => console.error('❌ Error al registrar el Service Worker', err));
+            });
+        }
+    </script>
 </body>
 </html>

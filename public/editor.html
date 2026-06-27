@@ -2,142 +2,208 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Editor de Menú - La Costeñita</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Menú | J&J Foods</title>
+    
     <script>
-        // ESCUDO DE SEGURIDAD
-        if (!sessionStorage.getItem('usuarioLogueado')) {
-            window.top.location.href = '/login.html';
+        if(sessionStorage.getItem('admin_auth') !== 'true') {
+            window.parent.location.href = 'login.html';
         }
     </script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #f4f6f8; color: #2f3542; padding: 30px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1 { color: #2f3542; margin-bottom: 25px; text-align: center; }
-        
-        .admin-box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 30px; border-top: 4px solid #e15f41; transition: 0.3s; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .form-grupo { display: flex; flex-direction: column; }
-        .form-grupo.completo { grid-column: span 2; }
-        .form-grupo label { font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #57606f; }
-        .form-grupo input, .form-grupo select { padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; background: #fcfcfc; }
-        
-        .btn-guardar { background: #0a3d62; color: white; border: none; padding: 14px 20px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; transition: 0.2s; }
-        .btn-guardar:hover { background: #e15f41; }
-        .btn-cancelar { background: #a4b0be; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; width: 100%; margin-top: 10px; display: none; transition: 0.2s; }
-        .btn-cancelar:hover { background: #57606f; }
 
-        .tabla-productos { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-        .tabla-productos th, .tabla-productos td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; }
-        .tabla-productos th { background: #2f3542; color: white; font-size: 14px; text-transform: uppercase; }
-        .tabla-productos img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f1f2f6; color: #2d3436; padding: 20px; }
         
-        .btn-editar { background: #0a3d62; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; margin-right: 5px; transition: 0.2s; }
-        .btn-editar:hover { background: #082d4a; }
-        .btn-eliminar { background: #e15f41; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; }
-        .btn-eliminar:hover { background: #c44527; }
+        .header-titulo { color: #2d3436; margin-bottom: 20px; font-size: 24px; border-bottom: 2px solid #ff4757; padding-bottom: 10px; }
         
-        .badge-cat { background: #eaf2f8; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: #0a3d62; }
-        .modo-edicion { border-top: 4px solid #ffa502 !important; background: #fffcf2 !important; }
+        /* Formulario Dinámico */
+        .form-container { 
+            background: white; padding: 20px; border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 30px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+            transition: all 0.3s ease;
+        }
+        /* ✏️ Modo Edición (Color Amarillo) */
+        .form-container.modo-edicion {
+            background-color: #fffde7;
+            border: 2px solid #fbc531;
+            box-shadow: 0 4px 15px rgba(251, 197, 49, 0.3);
+        }
+        
+        input, select, textarea {
+            width: 100%; padding: 12px; border: 1px solid #dfe6e9; border-radius: 8px; font-size: 15px; outline: none;
+        }
+        textarea { grid-column: span 2; resize: vertical; min-height: 80px; }
+        
+        .btn-accion {
+            padding: 12px; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;
+        }
+        .btn-guardar { background: #0984e3; grid-column: span 2; }
+        .btn-guardar:hover { background: #74b9ff; }
+        .btn-cancelar { background: #ff4757; display: none; grid-column: span 2; margin-top: -10px; }
+
+        /* Tabla del Menú */
+        table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        th { background: #2f3542; color: white; padding: 15px; text-align: left; font-size: 14px; }
+        td { padding: 15px; border-bottom: 1px solid #f1f2f6; vertical-align: middle; }
+        tr:hover { background-color: #f8f9fa; }
+        
+        .foto-miniatura { width: 60px; height: 50px; object-fit: cover; border-radius: 5px; }
+        
+        .btn-mini { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; color: white; margin-right: 5px; }
+        .btn-edit { background: #fbc531; color: #2d3436; }
+        .btn-delete { background: #ff4757; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Gestión de Inventario</h1>
-        
-        <div class="admin-box" id="caja-formulario">
-            <h3 id="titulo-form" style="margin-bottom: 15px; color: #2f3542;">➕ Agregar Plato</h3>
-            <div class="form-grid">
-                <div class="form-grupo"><label>Nombre del Plato</label><input type="text" id="prod-nombre" placeholder="Ej. Bolón Mixto"></div>
-                <div class="form-grupo"><label>Precio de Venta ($)</label><input type="number" id="prod-precio" step="0.01" placeholder="3.50"></div>
-                
-                <div class="form-grupo">
-                    <label>Categoría</label>
-                    <select id="prod-cat">
-                        <option value="Combos">Combos</option>
-                        <option value="Bebidas">Bebidas</option>
-                        <option value="Encebollados">Encebollados</option>
-                        <option value="Promos Típicos">Promos Típicos</option>
-                        <option value="Para Compartir">Para Compartir</option>
-                        <option value="Bolones">Bolones</option>
-                        <option value="Bolones Especiales">Bolones Especiales</option>
-                        <option value="Secos">Secos</option>
-                        <option value="Promos De Desayunos">Promos De Desayunos</option>
-                        <option value="Aguántate Un Chance">Aguántate Un Chance</option>
-                        <option value="Tongas">Tongas</option>
-                    </select>
-                </div>
-                <div class="form-grupo"><label>URL de Imagen</label><input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg"></div>
-                <div class="form-grupo completo"><label>Descripción / Detalles del Plato</label><input type="text" id="prod-descripcion" placeholder="Ej. Con chicharrón, queso manaba y huevo frito..."></div>
-            </div>
-            <button id="btn-accion" class="btn-guardar" onclick="guardarProducto()">Guardar y Publicar 🚀</button>
-            <button id="btn-cancelar" class="btn-cancelar" onclick="cancelarEdicion()">❌ Cancelar Edición</button>
-        </div>
 
-        <table class="tabla-productos">
-            <thead><tr><th>Foto</th><th>Producto y Detalles</th><th>Categoría</th><th>Precio</th><th>Acciones</th></tr></thead>
-            <tbody id="lista-menu">
-                <tr><td colspan="5" style="text-align: center; padding: 20px;">Cargando base de datos...</td></tr>
-            </tbody>
-        </table>
+    <h1 class="header-titulo">📝 Creador y Editor de Menú</h1>
+
+    <div class="form-container" id="formCaja">
+        <input type="hidden" id="platoId">
+        <input type="text" id="nombrePlato" placeholder="Nombre del Plato (Ej. Combo Triple)">
+        <input type="number" id="precioPlato" placeholder="Precio ($)" step="0.01">
+        
+        <select id="categoriaPlato">
+            <option value="">Selecciona Categoría...</option>
+            <option value="encebollados">🍲 Encebollados</option>
+            <option value="bolones">🥟 Bolones y Tigrillos</option>
+            <option value="secos">🍛 Secos y Arroces</option>
+            <option value="tongas">🌴 Tongas</option>
+            <option value="combos">🍔 Combos</option>
+            <option value="bebidas">🥤 Bebidas</option>
+        </select>
+        
+        <input type="text" id="fotoPlato" placeholder="Ruta de imagen (Ej. imagenes/bolon.jpg)">
+        
+        <textarea id="descPlato" placeholder="Descripción corta para el cliente..."></textarea>
+        
+        <button class="btn-accion btn-guardar" onclick="procesarPlato()" id="btnAccionPrincipal">💾 GUARDAR PLATO NUEVO</button>
+        <button class="btn-accion btn-cancelar" onclick="cancelarEdicion()" id="btnCancelar">❌ Cancelar Edición</button>
     </div>
 
+    <table>
+        <thead>
+            <tr>
+                <th>FOTO</th>
+                <th>NOMBRE Y DESCRIPCIÓN</th>
+                <th>CATEGORÍA</th>
+                <th>PRECIO</th>
+                <th>ACCIONES</th>
+            </tr>
+        </thead>
+        <tbody id="tablaCuerpo">
+            </tbody>
+    </table>
+
     <script>
-        const socket = io(); let idEdicion = null; let cacheProductos = [];
+        const socket = io();
+        let modoEdicionActivo = false;
 
-        socket.on('cargar-menu-inicial', (data) => { cacheProductos = data; renderizarTabla(data); });
-        socket.on('menu-actualizado-completo', (data) => { cacheProductos = data; renderizarTabla(data); });
-
-        function renderizarTabla(productos) {
-            const tbody = document.getElementById('lista-menu'); tbody.innerHTML = '';
-            if(!productos || productos.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">Tu menú está vacío.</td></tr>'; return; }
-            productos.forEach(p => {
+        // 📥 RECIBIR MENÚ ACTUALIZADO (Tiempo Real)
+        socket.on('actualizar-menu', (platos) => {
+            const tbody = document.getElementById('tablaCuerpo');
+            tbody.innerHTML = '';
+            
+            platos.forEach(p => {
                 tbody.innerHTML += `
                     <tr>
-                        <td><img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'"></td>
-                        <td><strong style="font-size:16px;">${p.nombre}</strong><br><span style="color:#747d8c; font-size:13px;">${p.descripcion || 'Sin descripción.'}</span></td>
-                        <td><span class="badge-cat">${p.category}</span></td>
-                        <td style="color:#2ed573; font-weight:bold;">$${p.precio.toFixed(2)}</td>
-                        <td><button class="btn-editar" onclick="cargarModoEdicion(${p.id})">✏️ Editar</button> <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Borrar</button></td>
-                    </tr>`;
+                        <td><img src="${p.foto || 'https://via.placeholder.com/60'}" class="foto-miniatura"></td>
+                        <td>
+                            <strong>${p.nombre}</strong><br>
+                            <span style="font-size:12px; color:#636e72;">${p.descripcion || 'Sin descripción'}</span>
+                        </td>
+                        <td style="text-transform: capitalize;">${p.categoria}</td>
+                        <td style="font-weight: bold; color: #27ae60;">$${parseFloat(p.precio).toFixed(2)}</td>
+                        <td>
+                            <button class="btn-mini btn-edit" onclick='prepararEdicion(${JSON.stringify(p)})'>✏️ Editar</button>
+                            <button class="btn-mini btn-delete" onclick="eliminarPlato(${p.id})">🗑️ Borrar</button>
+                        </td>
+                    </tr>
+                `;
             });
+        });
+
+        // 🚀 PROCESAR FORMULARIO (Crear o Editar)
+        function procesarPlato() {
+            const id = document.getElementById('platoId').value;
+            const nombre = document.getElementById('nombrePlato').value;
+            const precio = document.getElementById('precioPlato').value;
+            const categoria = document.getElementById('categoriaPlato').value;
+            const foto = document.getElementById('fotoPlato').value;
+            const descripcion = document.getElementById('descPlato').value;
+
+            if(!nombre || !precio || !categoria) return alert("Por favor, llena el nombre, precio y categoría obligatoriamente.");
+
+            const platoData = { nombre, precio, categoria, foto, descripcion };
+
+            if(modoEdicionActivo) {
+                // Modo Edición: Enviamos el ID para actualizar
+                platoData.id = id;
+                socket.emit('editar-producto', platoData);
+                cancelarEdicion();
+            } else {
+                // Modo Creación
+                socket.emit('agregar-nuevo-producto', platoData);
+            }
+
+            // Limpiar formulario
+            document.getElementById('nombrePlato').value = '';
+            document.getElementById('precioPlato').value = '';
+            document.getElementById('categoriaPlato').value = '';
+            document.getElementById('fotoPlato').value = '';
+            document.getElementById('descPlato').value = '';
         }
 
-        function cargarModoEdicion(id) {
-            const producto = cacheProductos.find(x => x.id === id); if(!producto) return;
-            idEdicion = producto.id; 
-            document.getElementById('titulo-form').innerHTML = `✏️ Editando: <span style="color:#ffa502">${producto.nombre}</span>`;
-            document.getElementById('prod-nombre').value = producto.nombre; 
-            document.getElementById('prod-precio').value = producto.precio;
-            document.getElementById('prod-cat').value = producto.category; 
-            document.getElementById('prod-img').value = producto.img;
-            document.getElementById('prod-descripcion').value = producto.descripcion || '';
+        // ✏️ MODO EDICIÓN (Cargar datos a la caja)
+        function prepararEdicion(plato) {
+            modoEdicionActivo = true;
             
-            document.getElementById('caja-formulario').classList.add('modo-edicion');
-            const btnAccion = document.getElementById('btn-accion'); btnAccion.innerHTML = "💾 Guardar Cambios"; btnAccion.style.background = "#ffa502";
-            document.getElementById('btn-cancelar').style.display = "block"; window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Subimos los datos del plato a los inputs
+            document.getElementById('platoId').value = plato.id;
+            document.getElementById('nombrePlato').value = plato.nombre;
+            document.getElementById('precioPlato').value = plato.precio;
+            document.getElementById('categoriaPlato').value = plato.categoria;
+            document.getElementById('fotoPlato').value = plato.foto;
+            document.getElementById('descPlato').value = plato.descripcion || '';
+
+            // Cambios visuales (Caja amarilla)
+            document.getElementById('formCaja').classList.add('modo-edicion');
+            document.getElementById('btnAccionPrincipal').innerText = '💾 ACTUALIZAR PLATO';
+            document.getElementById('btnAccionPrincipal').style.background = '#27ae60';
+            document.getElementById('btnCancelar').style.display = 'block';
+            
+            // Scroll hacia arriba
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // ❌ CANCELAR EDICIÓN
         function cancelarEdicion() {
-            idEdicion = null; document.getElementById('titulo-form').innerHTML = "➕ Agregar Plato";
-            document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-cat').value = 'Combos'; 
-            document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = '';
-            document.getElementById('caja-formulario').classList.remove('modo-edicion');
-            const btnAccion = document.getElementById('btn-accion'); btnAccion.innerHTML = "Guardar y Publicar 🚀"; btnAccion.style.background = "#0a3d62";
-            document.getElementById('btn-cancelar').style.display = "none";
+            modoEdicionActivo = false;
+            
+            // Limpiar todo
+            document.getElementById('platoId').value = '';
+            document.getElementById('nombrePlato').value = '';
+            document.getElementById('precioPlato').value = '';
+            document.getElementById('categoriaPlato').value = '';
+            document.getElementById('fotoPlato').value = '';
+            document.getElementById('descPlato').value = '';
+
+            // Revertir estilos
+            document.getElementById('formCaja').classList.remove('modo-edicion');
+            document.getElementById('btnAccionPrincipal').innerText = '💾 GUARDAR PLATO NUEVO';
+            document.getElementById('btnAccionPrincipal').style.background = '#0984e3';
+            document.getElementById('btnCancelar').style.display = 'none';
         }
 
-        function guardarProducto() {
-            const nombre = document.getElementById('prod-nombre').value.trim(); const precio = parseFloat(document.getElementById('prod-precio').value);
-            const category = document.getElementById('prod-cat').value; const descripcion = document.getElementById('prod-descripcion').value.trim();
-            let img = document.getElementById('prod-img').value.trim() || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
-            if (!nombre || isNaN(precio)) return alert("⚠️ Completa Nombre y Precio.");
-            if (idEdicion !== null) { socket.emit('editar-producto', { id: idEdicion, nombre, precio, category, img, descripcion }); cancelarEdicion(); } 
-            else { socket.emit('agregar-nuevo-producto', { nombre, precio, category, img, descripcion }); document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = ''; }
+        // 🗑️ ELIMINAR PLATO
+        function eliminarPlato(id) {
+            if(confirm('¿Estás 100% seguro de que deseas eliminar este plato de tu menú?')) {
+                socket.emit('eliminar-producto', id);
+            }
         }
-
-        function eliminarProducto(id) { if(confirm("¿Seguro que deseas eliminar este producto?")) socket.emit('eliminar-producto', id); }
     </script>
 </body>
 </html>

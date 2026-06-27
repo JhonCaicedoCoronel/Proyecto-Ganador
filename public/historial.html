@@ -2,59 +2,132 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Historial de Ventas</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Ventas | J&J Foods</title>
+    
     <script>
-        // ESCUDO DE SEGURIDAD
-        if (!sessionStorage.getItem('usuarioLogueado')) {
-            window.top.location.href = '/login.html';
+        if(sessionStorage.getItem('admin_auth') !== 'true') {
+            window.parent.location.href = 'login.html';
         }
     </script>
+
+    <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 30px; color: #2f3542; margin: 0; }
-        h1 { margin-bottom: 25px; text-align: center; color: #2f3542; }
-        table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; font-size: 14px; }
-        th { background: #2f3542; color: white; text-transform: uppercase; font-size: 13px; }
-        .badge { background: #2ed573; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f1f2f6; color: #2d3436; padding: 20px; }
+        
+        .header-titulo { color: #2d3436; margin-bottom: 20px; font-size: 24px; border-bottom: 2px solid #0984e3; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .contador-ventas { font-size: 16px; background: #0984e3; color: white; padding: 5px 15px; border-radius: 20px; }
+
+        /* Tabla del Historial */
+        table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        th { background: #2d3436; color: white; padding: 15px; text-align: left; font-size: 14px; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid #f1f2f6; vertical-align: top; }
+        tr:hover { background-color: #f8f9fa; }
+        
+        .badge { padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; color: white; }
+        .badge-urdesa { background-color: #e17055; }
+        .badge-sambo { background-color: #00b894; }
+        .badge-sur { background-color: #0984e3; }
+        .badge-default { background-color: #636e72; }
+        
+        .pago-efectivo { color: #d35400; font-weight: bold; }
+        .pago-tarjeta { color: #27ae60; font-weight: bold; }
+        
+        .lista-platos { list-style: none; padding-left: 0; font-size: 14px; }
+        .lista-platos li { margin-bottom: 3px; }
+        
+        .btn-refresh { background: #0984e3; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-refresh:hover { background: #74b9ff; }
     </style>
 </head>
 <body>
 
-    <h1>📈 Historial de Platos Despachados</h1>
+    <div class="header-titulo">
+        <span>📈 Auditoría de Ventas Entregadas</span>
+        <div>
+            <span class="contador-ventas" id="contadorTxt">0 Pedidos Hoy</span>
+            <button class="btn-refresh" onclick="forzarCarga()">🔄 Actualizar Data</button>
+        </div>
+    </div>
 
     <table>
         <thead>
             <tr>
-                <th>ID Orden</th>
-                <th>Cliente</th>
-                <th>Artículos Preparados</th>
-                <th>Pago / Modalidad</th>
-                <th>Estado</th>
+                <th>HORA</th>
+                <th>CLIENTE / TIPO</th>
+                <th>SUCURSAL</th>
+                <th>PEDIDO (PLATOS)</th>
+                <th>MÉTODO PAGO</th>
+                <th>TOTAL</th>
             </tr>
         </thead>
-        <tbody id="tabla-historial">
-            <tr><td colspan="5" style="text-align:center; padding: 20px;">Cargando ventas...</td></tr>
-        </tbody>
+        <tbody id="tablaHistorial">
+            </tbody>
     </table>
 
     <script>
         const socket = io();
-        socket.on('connect', () => socket.emit('obtener-historial-dia'));
 
-        socket.on('cargar-historial', (pedidos) => {
-            const tbody = document.getElementById('tabla-historial'); tbody.innerHTML = "";
-            if (pedidos.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">Aún no se han despachado pedidos.</td></tr>`; return; }
+        // 🛡️ SEGURO ANTI-FALLOS: Forzamos la descarga del historial al abrir la pestaña
+        window.onload = () => {
+            forzarCarga();
+        };
 
-            pedidos.forEach(p => {
+        function forzarCarga() {
+            document.getElementById('tablaHistorial').innerHTML = '<tr><td colspan="6" style="text-align:center;">Cargando base de datos de Supabase...</td></tr>';
+            socket.emit('pedir-historial');
+        }
+
+        // 📥 RECIBIR EL HISTORIAL DESDE EL SERVIDOR
+        socket.on('cargar-historial', (pedidosDespachados) => {
+            const tbody = document.getElementById('tablaHistorial');
+            tbody.innerHTML = '';
+            
+            document.getElementById('contadorTxt').innerText = `${pedidosDespachados.length} Pedidos Hoy`;
+            
+            if(pedidosDespachados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#636e72;">Aún no hay pedidos despachados el día de hoy.</td></tr>';
+                return;
+            }
+
+            // Invertimos para que los más recientes salgan arriba
+            pedidosDespachados.reverse().forEach(pedido => {
+                
+                // Color del badge de sucursal
+                let claseSucursal = 'badge-default';
+                if(pedido.sucursal === 'Urdesa') claseSucursal = 'badge-urdesa';
+                if(pedido.sucursal === 'Samborondon') claseSucursal = 'badge-sambo';
+                if(pedido.sucursal === 'Sur') claseSucursal = 'badge-sur';
+
+                // Lista de Platos
+                let listaItems = '<ul class="lista-platos">';
+                if(pedido.items && pedido.items.length > 0) {
+                    pedido.items.forEach(item => {
+                        listaItems += `<li>• ${item.nombre}</li>`;
+                    });
+                } else if(pedido.tipo_orden === 'solo_reserva') {
+                    listaItems += `<li>🪑 Solo Reserva (Sin consumo inicial)</li>`;
+                }
+                listaItems += '</ul>';
+
+                // Formato de Pago
+                let textoPago = pedido.pago === 'efectivo' ? '<span class="pago-efectivo">💵 Efectivo</span>' : '<span class="pago-tarjeta">💳 Tarjeta</span>';
+                if(pedido.tipo_orden === 'solo_reserva') textoPago = '-';
+
                 tbody.innerHTML += `
                     <tr>
-                        <td><strong>#${p.id}</strong></td>
-                        <td>${p.cliente}</td>
-                        <td>${p.item}</td>
-                        <td>${p.pago}</td>
-                        <td><span class="badge">✅ Entregado</span></td>
-                    </tr>`;
+                        <td style="color:#636e72; font-weight:bold;">${pedido.horaRegistro || '--:--'}</td>
+                        <td>
+                            <strong>${pedido.cliente || 'Anónimo'}</strong><br>
+                            <span style="font-size:12px; color:#a4b0be;">${pedido.tipo_orden === 'pre_orden' ? '👻 Pre-orden' : 'En Local'}</span>
+                        </td>
+                        <td><span class="badge ${claseSucursal}">${pedido.sucursal || 'General'}</span></td>
+                        <td>${listaItems}</td>
+                        <td>${textoPago}</td>
+                        <td style="font-weight: bold; font-size: 16px;">$${parseFloat(pedido.total || 0).toFixed(2)}</td>
+                    </tr>
+                `;
             });
         });
     </script>

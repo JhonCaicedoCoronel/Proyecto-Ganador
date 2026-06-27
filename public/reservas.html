@@ -2,73 +2,113 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Libro de Reservas</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libro de Reservas | J&J Foods</title>
+    
     <script>
-        // ESCUDO DE SEGURIDAD
-        if (!sessionStorage.getItem('usuarioLogueado')) {
-            window.top.location.href = '/login.html';
+        if(sessionStorage.getItem('admin_auth') !== 'true') {
+            window.parent.location.href = 'login.html';
         }
     </script>
+
+    <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 30px; color: #2f3542; margin: 0; }
-        h1 { margin-bottom: 25px; text-align: center; color: #2f3542; }
-        table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; font-size: 14px; }
-        th { background: #2f3542; color: white; text-transform: uppercase; font-size: 13px; }
-        .badge-activa { background: #e8fcf0; color: #2ed573; padding: 6px 12px; border-radius: 20px; font-weight: bold; border: 1px solid #2ed573; display: inline-block;}
-        .badge-final { background: #f1f2f6; color: #a4b0be; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-block; }
-        .btn-salida { background: #e15f41; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-salida:hover { background: #c44527; transform: scale(1.05); }
-        .txt-salida { font-size: 13px; color: #57606f; font-weight: bold; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f1f2f6; padding: 20px; }
+        
+        .header-titulo { color: #2d3436; margin-bottom: 20px; font-size: 24px; border-bottom: 2px solid #e17055; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        
+        table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        th { background: #2d3436; color: white; padding: 15px; text-align: left; font-size: 14px; }
+        td { padding: 15px; border-bottom: 1px solid #f1f2f6; vertical-align: middle; }
+        tr:hover { background-color: #f8f9fa; }
+
+        .btn-checkout { background: #d63031; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-checkout:hover { background: #ff7675; }
+        
+        .badge-sucursal { padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; color: white; background: #0984e3; }
+        .badge-mesa { background: #00b894; color: white; padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 12px; }
+        .turno-fila { font-size: 18px; font-weight: bold; color: #e17055; }
+        
+        .finalizado { color: #636e72; text-decoration: line-through; }
     </style>
 </head>
 <body>
 
-    <h1>📅 Libro Global de Reservas</h1>
+    <div class="header-titulo">
+        <span>📅 Libro Inteligente de Reservas y Fila Virtual</span>
+        <button style="background:#0984e3; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="cargarLibro()">🔄 Refrescar</button>
+    </div>
 
     <table>
         <thead>
             <tr>
-                <th>Llegada</th>
-                <th>Cliente</th>
-                <th>Sucursal y Mesa</th>
-                <th>Estado Actual</th>
-                <th>Check-out (Desocupar)</th>
+                <th>CLIENTE</th>
+                <th>SUCURSAL / FECHA</th>
+                <th>MESA ASIGNADA</th>
+                <th>COLA (TURNO)</th>
+                <th>ESTADO</th>
+                <th>ACCIÓN (CHECK-OUT)</th>
             </tr>
         </thead>
-        <tbody id="tabla-reservas">
-            <tr><td colspan="5" style="text-align:center; padding: 20px;">Cargando...</td></tr>
-        </tbody>
+        <tbody id="tablaReservas">
+            </tbody>
     </table>
 
     <script>
         const socket = io();
-        socket.on('connect', () => socket.emit('obtener-historial-reservas'));
 
-        socket.on('cargar-historial-reservas', (reservas) => {
-            const tbody = document.getElementById('tabla-reservas'); tbody.innerHTML = "";
-            if (reservas.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">No hay reservas registradas.</td></tr>`; return; }
+        window.onload = () => { cargarLibro(); };
 
-            reservas.forEach(r => {
-                let estadoHTML = (r.estado === 'activa' || !r.estado) ? `<span class="badge-activa">🟢 Fila: Turno #${r.turno_sala}</span>` : `<span class="badge-final">⚪ Finalizada</span>`;
-                let accionHTML = (r.estado === 'activa' || !r.estado) ? `<button class="btn-salida" onclick="marcarSalida(${r.id}, ${r.mesa_id})">🚪 Desocupó Mesa</button>` : `<span class="txt-salida">Salió a las: ${r.hora_salida}</span>`;
-                let sucursalTxt = r.sucursal ? r.sucursal : "Urdesa";
+        function cargarLibro() {
+            document.getElementById('tablaReservas').innerHTML = '<tr><td colspan="6" style="text-align:center;">Cargando reservas desde Supabase...</td></tr>';
+            socket.emit('pedir-reservas');
+        }
+
+        socket.on('actualizar-filas', (reservas) => {
+            const tbody = document.getElementById('tablaReservas');
+            tbody.innerHTML = '';
+            
+            if(reservas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#636e72;">No hay reservas registradas.</td></tr>';
+                return;
+            }
+
+            reservas.forEach(res => {
+                let accionBtn = '-';
+                let estadoTxt = '<span style="color:#00b894; font-weight:bold;">🟢 Activa</span>';
+                let claseFila = '';
+
+                if(res.estado === 'finalizado') {
+                    estadoTxt = `<span style="color:#636e72;">Salió a las: ${res.checkout || '--:--'}</span>`;
+                    claseFila = 'finalizado';
+                } else {
+                    // Botón para registrar salida y notificar a la cola
+                    accionBtn = `<button class="btn-checkout" onclick="desocuparMesa(${res.id}, ${res.mesa_id})">🚪 Registrar Salida</button>`;
+                }
 
                 tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${r.fecha}</strong><br><span style="color:#a4b0be; font-size:12px;">Para las ${r.hora}</span></td>
-                        <td><strong style="font-size:16px;">${r.cliente}</strong><br>👤 ${r.personas} Personas</td>
-                        <td><strong style="color:#0a3d62;">🏢 ${sucursalTxt}</strong><br>Mesa #${r.mesa_id}</td>
-                        <td>${estadoHTML}</td>
-                        <td>${accionHTML}</td>
-                    </tr>`;
+                    <tr class="${claseFila}">
+                        <td>
+                            <strong>${res.cliente_nombre}</strong><br>
+                            <span style="font-size:12px; color:#636e72;">${res.personas} personas</span>
+                        </td>
+                        <td>
+                            <span class="badge-sucursal">${res.sucursal}</span><br>
+                            <span style="font-size:12px;">${res.fecha} | ${res.hora}</span>
+                        </td>
+                        <td><span class="badge-mesa">Mesa ${res.mesa_id || 'N/A'}</span></td>
+                        <td class="turno-fila">#${res.posicion_fila || '0'}</td>
+                        <td>${estadoTxt}</td>
+                        <td>${accionBtn}</td>
+                    </tr>
+                `;
             });
         });
 
-        function marcarSalida(idReserva, idMesa) {
-            if(confirm("¿El cliente ya desocupó la mesa? Los turnos de los clientes que esperan detrás de él avanzarán automáticamente.")) {
-                socket.emit('marcar-salida-reserva', { id: idReserva, mesa_id: idMesa });
+        function desocuparMesa(reservaId, mesaId) {
+            if(confirm('¿El cliente ya desocupó la mesa? Esto registrará su hora de salida y notificará a la fila virtual.')) {
+                socket.emit('desocupar-mesa', reservaId, mesaId);
             }
         }
     </script>

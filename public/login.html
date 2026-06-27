@@ -3,38 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - La Costeñita</title>
+    <title>Acceso Restringido | J&J Foods</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1e222b; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: white; }
-        .login-box { background: #2f3542; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-top: 5px solid #e15f41; width: 350px; }
-        input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 6px; border: none; font-size: 16px; text-align: center; background: #f4f6f8; }
-        button { background: #e15f41; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #c44527; }
+        :root {
+            --primary: #ff4757;
+            --dark: #2f3542;
+            --light: #f1f2f6;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1e272e, #2f3542);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--light);
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .login-card h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        .login-card p {
+            color: #a4b0be;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .pin-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            border-radius: 8px;
+            outline: none;
+            letter-spacing: 5px;
+            transition: 0.3s ease;
+        }
+        input[type="password"]:focus {
+            border-color: var(--primary);
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background-color: #ff6b81;
+        }
+        .error-message {
+            color: #ff4757;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+            font-weight: bold;
+        }
+        .logo-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
-    <div class="login-box">
-        <h1 style="color: #e15f41; margin-bottom: 5px;">🌊 La Costeñita</h1>
-        <p style="color: #a4b0be; margin-bottom: 20px;">Acceso Seguro al Sistema</p>
-        <input type="password" id="pin" placeholder="Ingresa tu PIN" onkeypress="if(event.key === 'Enter') login()">
-        <button onclick="login()">Ingresar</button>
-        <p id="error-msg" style="color: #ff4757; font-size: 13px; margin-top: 15px; display: none;">PIN incorrecto. Intenta nuevamente.</p>
+
+    <div class="login-card">
+        <div class="logo-icon">👑</div>
+        <h1>J & J ADMIN</h1>
+        <p>Ingresa el PIN de seguridad para acceder al sistema operativo del restaurante.</p>
+        
+        <div class="pin-container">
+            <input type="password" id="pinInput" placeholder="••••" maxlength="4" autocomplete="off">
+            <button onclick="validarAcceso()">INGRESAR AL SISTEMA</button>
+        </div>
+        
+        <div id="errorMsg" class="error-message">❌ PIN incorrecto. Acceso denegado.</div>
     </div>
+
     <script>
-        function login() {
-            const pin = document.getElementById('pin').value;
-            // PIN de Admin/Cajero = admin123
-            if (pin === 'admin123') {
-                sessionStorage.setItem('usuarioLogueado', 'admin');
-                window.location.href = '/admin.html';
-            } 
-            // PIN del Cocinero = chef123
-            else if (pin === 'chef123') {
-                sessionStorage.setItem('usuarioLogueado', 'cocina');
-                window.location.href = '/cocina.html';
-            } else {
-                document.getElementById('error-msg').style.display = 'block';
+        // EL PIN MAESTRO DEL RESTAURANTE (Por ahora lo definimos aquí)
+        const PIN_MAESTRO = "1234";
+
+        // Permite presionar "Enter" para ingresar
+        document.getElementById("pinInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                validarAcceso();
             }
+        });
+
+        function validarAcceso() {
+            const pinIngresado = document.getElementById('pinInput').value;
+            const errorElement = document.getElementById('errorMsg');
+
+            if (pinIngresado === PIN_MAESTRO) {
+                // Guarda la llave de acceso en la sesión del navegador
+                sessionStorage.setItem('admin_auth', 'true');
+                
+                // Redirige al panel maestro
+                window.location.href = 'admin.html';
+            } else {
+                // Muestra error
+                errorElement.style.display = 'block';
+                document.getElementById('pinInput').value = '';
+                
+                // Ocultar error después de 3 segundos
+                setTimeout(() => {
+                    errorElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Si ya está logueado, pasarlo directo
+        if(sessionStorage.getItem('admin_auth') === 'true') {
+            window.location.href = 'admin.html';
         }
     </script>
 </body>
