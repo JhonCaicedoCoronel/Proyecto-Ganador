@@ -203,7 +203,6 @@
                 </div>
                 <button class="btn-confirmar" style="margin-top: 5px;" onclick="guardarEncuestaOpcional()">Enviar y Reclamar Premio 🎁</button>
             </div>
-            <!-- SE MODIFICÓ ESTE BOTÓN PARA LIMPIAR LA MEMORIA -->
             <button class="btn-saltar" onclick="reiniciarKiosco()">Terminar y Volver al inicio</button>
         </div>
     </div>
@@ -221,13 +220,11 @@
         let datosReservaConfirmada = {}; let ultimoNombreCliente = "";
         let miIdReserva = null; let categoriaFiltroActiva = "Todas";
         
-        // VARIABLES DE MEMORIA DE ESTADO
-        let pantallaActual = 'reserva'; // 'reserva', 'menu', 'exito'
+        let pantallaActual = 'reserva'; 
         let turnoActual = "00";
 
         document.getElementById('res-fecha').min = new Date().toISOString().split('T')[0];
 
-        // --- SISTEMA DE PERSISTENCIA (PUNTO DE GUARDADO) ---
         function guardarEstado() {
             const estado = { pantallaActual, datosReservaConfirmada, carrito, ultimoNombreCliente, miIdReserva, turnoActual };
             sessionStorage.setItem('costenitaEstado', JSON.stringify(estado));
@@ -244,13 +241,12 @@
                 miIdReserva = estado.miIdReserva || null;
                 turnoActual = estado.turnoActual || "00";
 
-                // Restaurar la vista según donde se quedó
                 if (pantallaActual === 'menu') {
                     document.getElementById('pantalla-reserva').style.display = 'none';
                     document.getElementById('pantalla-menu').style.display = 'block';
                     document.getElementById('txt-resumen-reserva').innerText = `Mesa asegurada en ${datosReservaConfirmada.sucursal} (${datosReservaConfirmada.fecha} - ${datosReservaConfirmada.hora})`;
                     document.getElementById('chat-bubble').style.display = 'flex';
-                    updateCartUI(); // Restaura el carrito visualmente
+                    updateCartUI(); 
                 } else if (pantallaActual === 'exito') {
                     document.getElementById('pantalla-reserva').style.display = 'none';
                     document.getElementById('pantalla-menu').style.display = 'none';
@@ -260,7 +256,6 @@
             }
         }
         
-        // Ejecutar recuperación al cargar
         recuperarEstado();
 
         function reiniciarKiosco() {
@@ -268,7 +263,6 @@
             location.reload();
         }
 
-        // --- SISTEMA DE NOTIFICACIONES FLOTANTES ---
         function mostrarNotificacionFila(mensaje, esTurnoUno) {
             const toast = document.createElement('div');
             toast.style.position = 'fixed'; toast.style.top = '20px'; toast.style.left = '50%'; toast.style.transform = 'translateX(-50%)'; 
@@ -284,13 +278,12 @@
             if (miIdReserva === data.idReserva) {
                 turnoActual = data.nuevoTurno;
                 document.getElementById('txt-turno').innerText = turnoActual;
-                guardarEstado(); // Guardar el nuevo turno si recarga la página
+                guardarEstado(); 
                 if (data.nuevoTurno === 1) { mostrarNotificacionFila(`🎉 ¡ERES EL TURNO #1! <br>Tu mesa ya está limpia y lista. Pasa adelante.`, true); } 
                 else { mostrarNotificacionFila(`🔔 ¡La fila se movió! <br>Avanzaste al puesto #${data.nuevoTurno}.`, false); }
             }
         });
 
-        // --- CÓDIGO NORMAL DEL QUIOSCO ---
         function solicitarHorarios() {
             const fecha = document.getElementById('res-fecha').value; const pax = document.getElementById('res-pax').value; const sucursal = document.getElementById('res-sucursal').value;
             if(fecha) { document.getElementById('res-hora').disabled = true; document.getElementById('res-hora').innerHTML = '<option value="">Buscando mesas...</option>'; socket.emit('consultar-horarios', { fecha, personas: pax, sucursal }); }
@@ -305,11 +298,7 @@
 
         socket.on('cargar-menu-inicial', (data) => { 
             productos = data; 
-            // Si recargó estando en el menú, hay que volver a dibujar el menú
-            if(pantallaActual === 'menu') {
-                dibujarBotonesFiltro();
-                aplicarFiltros();
-            }
+            if(pantallaActual === 'menu') { dibujarBotonesFiltro(); aplicarFiltros(); }
         });
         
         function verificarDisponibilidad() {
@@ -333,10 +322,7 @@
             document.getElementById('modal-eleccion').style.display = 'none'; document.getElementById('pantalla-reserva').style.display = 'none'; 
             document.getElementById('pantalla-menu').style.display = 'block'; document.getElementById('txt-resumen-reserva').innerText = `Mesa asegurada en ${datosReservaConfirmada.sucursal} (${datosReservaConfirmada.fecha} - ${datosReservaConfirmada.hora})`;
             document.getElementById('chat-bubble').style.display = 'flex'; 
-            
-            pantallaActual = 'menu';
-            guardarEstado(); // Guardamos que estamos en el menú
-            
+            pantallaActual = 'menu'; guardarEstado(); 
             dibujarBotonesFiltro(); aplicarFiltros();
         }
 
@@ -349,7 +335,7 @@
             const pedido = { id: miIdReserva, cliente: nombre, item: "🔴 SOLO RESERVA DE MESA", pago: "Solo Reserva", datosReserva: datosReservaConfirmada, productosComprados: [] };
             
             socket.emit('enviar-reserva-pedido', pedido); 
-            guardarEstado(); // Guardar variables
+            guardarEstado(); 
             
             document.getElementById('modal-solo-reserva').style.display = 'none';
             document.getElementById('txt-exito-detalle').innerText = "Mantén esta pantalla abierta. Te avisaremos aquí mismo si tu turno avanza.";
@@ -391,7 +377,7 @@
             document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0); 
             carrito.forEach(c => { tot += c.precio * c.cantidad; cont.innerHTML += `<div class="item-row"><span>${c.cantidad}x ${c.nombre}</span><span>$${(c.precio*c.cantidad).toFixed(2)}</span></div>`; }); 
             document.getElementById('total-txt').innerText = `$${tot.toFixed(2)}`; 
-            guardarEstado(); // Guardar el carrito actualizado
+            guardarEstado(); 
         }
         
         function abrirCarrito() { document.getElementById('modal-carrito').style.display = 'flex'; }
@@ -413,10 +399,10 @@
             document.getElementById('txt-turno').innerText = turnoActual; 
             document.getElementById('modal-exito').style.display = 'flex'; 
             pantallaActual = 'exito';
-            guardarEstado(); // Guardar que ya tiene la reserva exitosa
+            guardarEstado(); 
         });
         
-        function guardarEncuestaOpcional() { socket.emit('guardar-encuesta-opcional', { cliente: ultimoNombreCliente, alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", preferencias: document.getElementById('encuesta-gusto').value }); alert("🎁 ¡Guardado! Pide tus chifles extra en caja."); location.reload(); }
+        function guardarEncuestaOpcional() { socket.emit('guardar-encuesta-opcional', { cliente: ultimoNombreCliente, alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", preferencias: document.getElementById('encuesta-gusto').value }); alert("🎁 ¡Guardado! Pide tus chifles extra en caja."); reiniciarKiosco(); }
 
         function abrirChat() { document.getElementById('chat-container').style.display = 'flex'; document.getElementById('chat-bubble').style.display = 'none'; }
         function cerrarChat() { document.getElementById('chat-container').style.display = 'none'; if(document.getElementById('pantalla-menu').style.display === 'block') { document.getElementById('chat-bubble').style.display = 'flex'; } }

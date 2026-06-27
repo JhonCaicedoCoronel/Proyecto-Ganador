@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <title>Editor de Menú - La Costeñita</title>
     <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // ESCUDO DE SEGURIDAD
+        if (!sessionStorage.getItem('usuarioLogueado')) {
+            window.top.location.href = '/login.html';
+        }
+    </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: #f4f6f8; color: #2f3542; padding: 30px; }
@@ -90,7 +96,7 @@
                 tbody.innerHTML += `
                     <tr>
                         <td><img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'"></td>
-                        <td><strong style="font-size:16px;">${p.nombre}</strong><br><span style="color:#747d8c; font-size:13px;">${p.descripcion || 'Sin descripción añadida.'}</span></td>
+                        <td><strong style="font-size:16px;">${p.nombre}</strong><br><span style="color:#747d8c; font-size:13px;">${p.descripcion || 'Sin descripción.'}</span></td>
                         <td><span class="badge-cat">${p.category}</span></td>
                         <td style="color:#2ed573; font-weight:bold;">$${p.precio.toFixed(2)}</td>
                         <td><button class="btn-editar" onclick="cargarModoEdicion(${p.id})">✏️ Editar</button> <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Borrar</button></td>
@@ -102,16 +108,19 @@
             const producto = cacheProductos.find(x => x.id === id); if(!producto) return;
             idEdicion = producto.id; 
             document.getElementById('titulo-form').innerHTML = `✏️ Editando: <span style="color:#ffa502">${producto.nombre}</span>`;
-            document.getElementById('prod-nombre').value = producto.nombre; document.getElementById('prod-precio').value = producto.precio;
-            document.getElementById('prod-cat').value = producto.category; document.getElementById('prod-img').value = producto.img;
+            document.getElementById('prod-nombre').value = producto.nombre; 
+            document.getElementById('prod-precio').value = producto.precio;
+            document.getElementById('prod-cat').value = producto.category; 
+            document.getElementById('prod-img').value = producto.img;
             document.getElementById('prod-descripcion').value = producto.descripcion || '';
+            
             document.getElementById('caja-formulario').classList.add('modo-edicion');
             const btnAccion = document.getElementById('btn-accion'); btnAccion.innerHTML = "💾 Guardar Cambios"; btnAccion.style.background = "#ffa502";
             document.getElementById('btn-cancelar').style.display = "block"; window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function cancelarEdicion() {
-            idEdicion = null; document.getElementById('titulo-form').innerHTML = "➕ Agregar Nuevo Plato o Bebida";
+            idEdicion = null; document.getElementById('titulo-form').innerHTML = "➕ Agregar Plato";
             document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-cat').value = 'Combos'; 
             document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = '';
             document.getElementById('caja-formulario').classList.remove('modo-edicion');
@@ -129,26 +138,6 @@
         }
 
         function eliminarProducto(id) { if(confirm("¿Seguro que deseas eliminar este producto?")) socket.emit('eliminar-producto', id); }
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-    const supabaseUrl = 'https://cjgkzunzuajjuwuijrmi.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqZ2t6dW56dWFqanV3dWlqcm1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDMyMjQsImV4cCI6MjA5NzY3OTIyNH0.usMn3HdOtAEibFIaYklU9PeVyFU1s4DHYmQn49lyjkA';
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
-    async function verificarSesionSegura() {
-        const { data: { user }, error } = await supabaseClient.auth.getUser();
-        if (!user || error) { window.parent.location.href = 'login.html'; return; }
-
-        const { data: roleData } = await supabaseClient
-        .from('roles_empleados')
-        .select('rol').eq('correo', user.email).single();
-
-        if (!roleData || roleData.rol !== 'cajero') {
-        window.parent.location.href = 'login.html';
-        }
-    }
-    verificarSesionSegura();
     </script>
 </body>
 </html>

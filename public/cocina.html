@@ -1,95 +1,66 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-width=1.0">
-  <title>KDS Cocina - La Costeñita</title>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background-color: #1e272e; color: #f5f6fa; }
-    header { display: flex; justify-content: space-between; align-items: center; background-color: #ff9f43; padding: 15px 25px; border-radius: 8px; margin-bottom: 25px; color: #2f3640; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-    h1 { margin: 0; font-size: 24px; font-weight: bold; }
-    .btn-logout { background-color: #ee5253; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-    .grid-comandas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-    .card-comanda { background: #2f3640; border-radius: 8px; border-top: 5px solid #ff9f43; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; }
-    .card-header { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px; font-weight: bold; }
-    .items-pedido { list-style: none; padding: 0; margin: 0 0 15px 0; flex-grow: 1; }
-    .items-pedido li { padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); font-size: 15px; }
-    .btn-despachar { background: #10ac84; color: white; border: none; width: 100%; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>KDS - La Costeñita</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // ESCUDO DE SEGURIDAD PARA CHEFS Y ADMINS
+        if (!sessionStorage.getItem('usuarioLogueado')) {
+            window.top.location.href = '/login.html';
+        }
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1e222b; color: white; padding: 20px; margin: 0; }
+        .header-kds { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-historial { background: #57606f; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; border: none; cursor: pointer; }
+        .grid-kds { display: flex; flex-wrap: wrap; gap: 20px; }
+        .card-kds { background: #2f3542; padding: 15px; border-radius: 12px; width: 330px; border-left: 8px solid #a8a8ff; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; flex-direction: column; justify-content: space-between;}
+        .mesa-badge { background: #e15f41; color: white; padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 15px; }
+        .sucursal-txt { display: block; font-size: 11px; font-weight: normal; margin-top: 3px; color: #f1f2f6; text-transform: uppercase; }
+        .v-turno { background: #2ed573; color: #1e222b; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 16px; }
+        .btn-ready { background: #2ed573; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 15px; transition: 0.2s; }
+        .btn-ready:hover { background: #26af5f; }
+    </style>
 </head>
 <body>
+    <div class="header-kds">
+        <h1 style="margin: 0; color: #e15f41;">👨‍🍳 KDS - Órdenes en Vivo</h1>
+        <a href="/historial.html" class="btn-historial">Ver Historial de Hoy 📊</a>
+    </div>
+    <div class="grid-kds" id="kds-contenedor"></div>
 
-  <header>
-    <h1>👨‍🍳 KDS Kitchen La Costeñita</h1>
-    <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
-  </header>
+    <script>
+        const socket = io(); const cont = document.getElementById('kds-contenedor');
+        function pedirDatosCocina() { socket.emit('obtener-pedidos-cocina'); }
+        socket.on('connect', pedirDatosCocina);
+        socket.on('cargar-pedidos-cocina', (pedidos) => { cont.innerHTML = ""; pedidos.forEach(p => renderizarTarjeta(p, false)); });
+        socket.on('notificar-cocina', (p) => { renderizarTarjeta(p, true); });
 
-  <div class="grid-comandas" id="contenedor-comandas"></div>
+        function renderizarTarjeta(p, esNuevo) {
+            if(document.getElementById(`kds-${p.id}`)) return;
+            const div = document.createElement('div'); div.id = `kds-${p.id}`; div.className = "card-kds";
+            const numMesa = p.datosReserva ? p.datosReserva.mesa.numero : "Barra";
+            const sucursal = p.datosReserva ? p.datosReserva.sucursal : "Local Principal";
 
-  <script>
-    const SUPABASE_URL = 'TU_URL_DE_SUPABASE';
-    const SUPABASE_ANON_KEY = 'TU_ANON_KEY_DE_SUPABASE';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const socket = io();
-
-    async function verificarAccesoCocina() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!user || error) { window.location.href = 'login.html'; return; }
-
-      const { data: roleData } = await supabase.from('roles_empleados').select('rol').eq('correo', user.email).maybeSingle();
-      const rol = roleData ? roleData.rol.toLowerCase().trim() : '';
-
-      if (rol !== 'cocinero' && rol !== 'administrador') {
-        alert("⛔ Acceso denegado.");
-        window.location.href = (rol === 'cajero') ? 'admin.html' : 'login.html';
-      } else {
-        cargarComandasIniciales();
-      }
-    }
-
-    async function cargarComandasIniciales() {
-      const { data: pedidos } = await supabase.from('pedidos').select('*').eq('estado', 'pendiente').order('id', { ascending: true });
-      if(pedidos) {
-        document.getElementById('contenedor-comandas').innerHTML = '';
-        pedidos.forEach(p => renderizarComandaCard(p));
-      }
-    }
-
-    function renderizarComandaCard(pedido) {
-      if (document.getElementById(`pedido-${pedido.id}`)) return;
-      const card = document.createElement('div');
-      card.className = 'card-comanda';
-      card.id = `pedido-${pedido.id}`;
-
-      let listaPlatosHtml = '';
-      const items = typeof pedido.items === 'string' ? JSON.parse(pedido.items) : pedido.items;
-      items.forEach(item => { listaPlatosHtml += `<li>📌 <strong>${item.cantidad}x</strong> ${item.nombre}</li>`; });
-
-      card.innerHTML = `
-        <div>
-          <div class="card-header"><span>Mesa: ${pedido.mesa || 'Para Llevar'}</span><span>#${pedido.id}</span></div>
-          <ul class="items-pedido">${listaPlatosHtml}</ul>
-        </div>
-        <button class="btn-despachar" onclick="despacharPedido(${pedido.id})">✅ Marcar como Listo</button>
-      `;
-      document.getElementById('contenedor-comandas').appendChild(card);
-    }
-
-    async function despacharPedido(id) {
-      const { error } = await supabase.from('pedidos').update({ estado: 'listo' }).eq('id', id);
-      if (!error) {
-        document.getElementById(`pedido-${id}`).remove();
-        socket.emit('pedido-despachado', id);
-      }
-    }
-
-    socket.on('nuevo-pedido-cocina', (nuevoPedido) => renderizarComandaCard(nuevoPedido));
-
-    async function cerrarSesion() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
-    
-    verificarAccesoCocina();
-  </script>
+            div.innerHTML = `
+                <div>
+                    <div class="mesa-badge">📍 MESA #${numMesa} <span class="sucursal-txt">🏢 SUCURSAL: ${sucursal}</span></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #4b5261; padding-bottom:8px;">
+                        <span class="v-turno">TURNO #${p.turnoFila}</span>
+                        <span style="font-size: 13px; color: #a4b0be;">🗓️ ${p.horaLlegadaEstimada}</span>
+                    </div>
+                    <p style="margin:12px 0 5px 0; font-size: 16px;"><strong>Cliente:</strong> ${p.cliente}</p>
+                    <div style="font-size:12px; color:#cbd5e1;">${p.estadoCocinaTexto}</div>
+                    <div style="background:#1e222b; padding:15px; border-radius:8px; margin:15px 0; font-size:16px; font-weight:bold; color: #2ed573; border: 1px solid #4b5261;">
+                        📝 ORDEN:<br><span style="color:white; display:block; margin-top:8px;">${p.item}</span>
+                    </div>
+                </div>
+                <div><button class="btn-ready" onclick="despachar(${p.id})">✓ Plato Listo / Despachado</button></div>`;
+            if (esNuevo) new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(() => {});
+            esNuevo ? cont.prepend(div) : cont.appendChild(div);
+        }
+        function despachar(id) { const el = document.getElementById(`kds-${id}`); if(el) { el.remove(); socket.emit('pedido-despachado-cocina', id); } }
+    </script>
 </body>
 </html>

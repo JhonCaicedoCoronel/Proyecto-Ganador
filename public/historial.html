@@ -2,24 +2,26 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Historial de Ventas - J & J</title>
+    <title>Historial de Ventas</title>
     <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // ESCUDO DE SEGURIDAD
+        if (!sessionStorage.getItem('usuarioLogueado')) {
+            window.top.location.href = '/login.html';
+        }
+    </script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f1f2f6; padding: 30px; color: #2f3542; margin: 0; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff4757; padding-bottom: 10px; margin-bottom: 25px; }
-        .btn-volver { background: #2f3542; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; }
-        table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-        th { background: #2f3542; color: white; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 30px; color: #2f3542; margin: 0; }
+        h1 { margin-bottom: 25px; text-align: center; color: #2f3542; }
+        table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; font-size: 14px; }
+        th { background: #2f3542; color: white; text-transform: uppercase; font-size: 13px; }
         .badge { background: #2ed573; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>📊 Historial de Pedidos Entregados</h1>
-        <a href="/cocina.html" class="btn-volver">⬅ Volver a Cocina</a>
-    </div>
+    <h1>📈 Historial de Platos Despachados</h1>
 
     <table>
         <thead>
@@ -27,66 +29,34 @@
                 <th>ID Orden</th>
                 <th>Cliente</th>
                 <th>Artículos Preparados</th>
-                <th>Mesa / Modalidad</th>
-                <th>Pago</th>
+                <th>Pago / Modalidad</th>
                 <th>Estado</th>
             </tr>
         </thead>
         <tbody id="tabla-historial">
-            <tr><td colspan="6" style="text-align:center; color:#999;">Cargando historial desde la nube...</td></tr>
+            <tr><td colspan="5" style="text-align:center; padding: 20px;">Cargando ventas...</td></tr>
         </tbody>
     </table>
 
     <script>
         const socket = io();
+        socket.on('connect', () => socket.emit('obtener-historial-dia'));
 
-        function pedirHistorial() { socket.emit('obtener-historial-dia'); }
-        socket.on('connect', pedirHistorial);
-        if (socket.connected) pedirHistorial();
+        socket.on('cargar-historial', (pedidos) => {
+            const tbody = document.getElementById('tabla-historial'); tbody.innerHTML = "";
+            if (pedidos.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">Aún no se han despachado pedidos.</td></tr>`; return; }
 
-        socket.on('cargar-historial', (pedidosEntregados) => {
-            const tbody = document.getElementById('tabla-historial');
-            tbody.innerHTML = "";
-
-            if (pedidosEntregados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999;">Aún no se han entregado pedidos.</td></tr>`;
-                return;
-            }
-
-            pedidosEntregados.forEach(p => {
-                const mesaTexto = p.datos_reserva ? `Mesa #${p.datos_reserva.mesa.numero}` : "Barra";
+            pedidos.forEach(p => {
                 tbody.innerHTML += `
                     <tr>
                         <td><strong>#${p.id}</strong></td>
                         <td>${p.cliente}</td>
                         <td>${p.item}</td>
-                        <td>${mesaTexto}</td>
                         <td>${p.pago}</td>
                         <td><span class="badge">✅ Entregado</span></td>
-                    </tr>
-                `;
+                    </tr>`;
             });
         });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-    const supabaseUrl = 'https://cjgkzunzuajjuwuijrmi.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqZ2t6dW56dWFqanV3dWlqcm1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDMyMjQsImV4cCI6MjA5NzY3OTIyNH0.usMn3HdOtAEibFIaYklU9PeVyFU1s4DHYmQn49lyjkA';
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
-    async function verificarSesionSegura() {
-        const { data: { user }, error } = await supabaseClient.auth.getUser();
-        if (!user || error) { window.parent.location.href = 'login.html'; return; }
-
-        const { data: roleData } = await supabaseClient
-        .from('roles_empleados')
-        .select('rol').eq('correo', user.email).single();
-
-        if (!roleData || roleData.rol !== 'cajero') {
-        window.parent.location.href = 'login.html';
-        }
-    }
-    verificarSesionSegura();
     </script>
 </body>
 </html>

@@ -1,83 +1,41 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-width=1.0">
-  <title>Acceso - La Costeñita</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%); margin: 0; }
-    .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); width: 100%; max-width: 360px; text-align: center; }
-    h2 { color: #2f3640; margin-bottom: 5px; font-size: 28px; }
-    p.subtitle { color: #718093; margin-bottom: 25px; font-size: 14px; }
-    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-    input:focus { border-color: #ff4757; outline: none; }
-    button { background-color: #ff4757; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 15px; transition: background 0.3s; }
-    button:hover { background-color: #ff6b81; }
-    .error { color: #ee5253; margin-top: 15px; font-size: 14px; font-weight: bold; min-height: 20px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - La Costeñita</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1e222b; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: white; }
+        .login-box { background: #2f3542; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-top: 5px solid #e15f41; width: 350px; }
+        input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 6px; border: none; font-size: 16px; text-align: center; background: #f4f6f8; }
+        button { background: #e15f41; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #c44527; }
+    </style>
 </head>
 <body>
-
-  <div class="login-box">
-    <h2>🌊 La Costeñita</h2>
-    <p class="subtitle">Plataforma Operativa SaaS</p>
-    <input type="email" id="email" placeholder="Correo electrónico" required>
-    <input type="password" id="password" placeholder="Contraseña" required>
-    <button onclick="iniciarSesion()">Ingresar al Sistema</button>
-    <p id="mensaje-error" class="error"></p>
-  </div>
-
-  <script>
-    const SUPABASE_URL = 'https://cjgkzunzuajjuwuijrmi.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqZ2t6dW56dWFqanV3dWlqcm1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDMyMjQsImV4cCI6MjA5NzY3OTIyNH0.usMn3HdOtAEibFIaYklU9PeVyFU1s4DHYmQn49lyjkA';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    async function iniciarSesion() {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      const errorMsg = document.getElementById('mensaje-error');
-      errorMsg.textContent = "";
-
-      if (!email || !password) {
-        errorMsg.textContent = "⚠️ Completa todos los campos.";
-        return;
-      }
-
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: email, password: password,
-        });
-
-        if (authError) {
-          errorMsg.textContent = "❌ Correo o contraseña incorrectos.";
-          return;
+    <div class="login-box">
+        <h1 style="color: #e15f41; margin-bottom: 5px;">🌊 La Costeñita</h1>
+        <p style="color: #a4b0be; margin-bottom: 20px;">Acceso Seguro al Sistema</p>
+        <input type="password" id="pin" placeholder="Ingresa tu PIN" onkeypress="if(event.key === 'Enter') login()">
+        <button onclick="login()">Ingresar</button>
+        <p id="error-msg" style="color: #ff4757; font-size: 13px; margin-top: 15px; display: none;">PIN incorrecto. Intenta nuevamente.</p>
+    </div>
+    <script>
+        function login() {
+            const pin = document.getElementById('pin').value;
+            // PIN de Admin/Cajero = admin123
+            if (pin === 'admin123') {
+                sessionStorage.setItem('usuarioLogueado', 'admin');
+                window.location.href = '/admin.html';
+            } 
+            // PIN del Cocinero = chef123
+            else if (pin === 'chef123') {
+                sessionStorage.setItem('usuarioLogueado', 'cocina');
+                window.location.href = '/cocina.html';
+            } else {
+                document.getElementById('error-msg').style.display = 'block';
+            }
         }
-
-        const { data: roleData, error: roleError } = await supabase
-          .from('roles_empleados')
-          .select('rol')
-          .eq('correo', email)
-          .maybeSingle();
-
-        if (roleError || !roleData) {
-          errorMsg.textContent = "⚠️ Tu cuenta existe pero no tienes un rol asignado.";
-          return;
-        }
-
-        const rol = roleData.rol.toLowerCase().trim();
-
-        if (rol === 'cajero' || rol === 'administrador') {
-          window.location.href = 'admin.html';
-        } else if (rol === 'cocinero') {
-          window.location.href = 'cocina.html';
-        } else {
-          errorMsg.textContent = `⚠️ Rol '${rol}' no reconocido.`;
-        }
-      } catch (err) {
-        errorMsg.textContent = "💥 Error inesperado al conectar.";
-      }
-    }
-  </script>
+    </script>
 </body>
 </html>

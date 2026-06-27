@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <title>Libro de Reservas</title>
     <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // ESCUDO DE SEGURIDAD
+        if (!sessionStorage.getItem('usuarioLogueado')) {
+            window.top.location.href = '/login.html';
+        }
+    </script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 30px; color: #2f3542; margin: 0; }
         h1 { margin-bottom: 25px; text-align: center; color: #2f3542; }
@@ -65,26 +71,6 @@
                 socket.emit('marcar-salida-reserva', { id: idReserva, mesa_id: idMesa });
             }
         }
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-    const supabaseUrl = 'https://cjgkzunzuajjuwuijrmi.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqZ2t6dW56dWFqanV3dWlqcm1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDMyMjQsImV4cCI6MjA5NzY3OTIyNH0.usMn3HdOtAEibFIaYklU9PeVyFU1s4DHYmQn49lyjkA';
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
-    async function verificarSesionSegura() {
-        const { data: { user }, error } = await supabaseClient.auth.getUser();
-        if (!user || error) { window.parent.location.href = 'login.html'; return; }
-
-        const { data: roleData } = await supabaseClient
-        .from('roles_empleados')
-        .select('rol').eq('correo', user.email).single();
-
-        if (!roleData || roleData.rol !== 'cajero') {
-        window.parent.location.href = 'login.html';
-        }
-    }
-    verificarSesionSegura();
     </script>
 </body>
 </html>

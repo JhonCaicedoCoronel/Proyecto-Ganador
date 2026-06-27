@@ -1,67 +1,62 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-width=1.0">
-  <title>Panel Maestro - La Costeñita</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background-color: #1e272e; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    .navbar { display: flex; justify-content: space-between; align-items: center; background-color: #2f3640; padding: 12px 20px; border-bottom: 3px solid #ff4757; }
-    .brand { font-size: 20px; font-weight: bold; color: #f5f6fa; }
-    .nav-buttons { display: flex; gap: 8px; align-items: center; }
-    .nav-buttons button { background: rgba(255,255,255,0.05); color: #f5f6fa; border: 1px solid rgba(255,255,255,0.1); padding: 10px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 13px; }
-    .nav-buttons button:hover { background: rgba(255,255,255,0.15); }
-    .nav-buttons button.activo { background: #ff4757; border-color: #ff4757; }
-    .btn-logout { background-color: #eb4d4b !important; border-color: #eb4d4b !important; margin-left: 15px; }
-    iframe { flex-grow: 1; border: none; width: 100%; background: #f5f6fa; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - La Costeñita</title>
+    <script>
+        // ESCUDO DE SEGURIDAD
+        if (!sessionStorage.getItem('usuarioLogueado') || sessionStorage.getItem('usuarioLogueado') !== 'admin') {
+            window.location.href = '/login.html';
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body, html { height: 100vh; overflow: hidden; background: #1e222b; }
+        
+        .admin-header { background: #2f3542; height: 70px; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10; position: relative; }
+        .logo-text { color: #e15f41; font-size: 22px; font-weight: bold; margin-right: 30px; letter-spacing: 1px; }
+        
+        .nav-links { display: flex; gap: 10px; }
+        .nav-btn { text-decoration: none; color: white; font-weight: bold; padding: 10px 18px; background: rgba(255,255,255,0.1); border-radius: 8px; transition: 0.2s; font-size: 14px; cursor: pointer; border: none; }
+        .nav-btn:hover { background: rgba(255,255,255,0.2); }
+        .nav-btn.activo { background: #e15f41; box-shadow: 0 2px 5px rgba(225,95,65,0.4); }
+        
+        .btn-quiosco { margin-left: auto; background: transparent; border: 2px solid #2ed573; color: #2ed573; }
+        .btn-quiosco:hover { background: #2ed573; color: #1e222b; }
+        
+        .btn-logout { background: #ff4757; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-left: 10px; transition: 0.2s;}
+        .btn-logout:hover { background: #c44527; }
+
+        #visor-central { width: 100%; height: calc(100vh - 70px); border: none; background: #f4f6f8; display: block; }
+    </style>
 </head>
 <body>
+    <header class="admin-header">
+        <div class="logo-text">🌊 ADMIN COSTEÑITA</div>
+        <nav class="nav-links">
+            <a href="/editor.html" target="visor-central" class="nav-btn activo" onclick="cambiarPestana(this)">🍔 Menú</a>
+            <a href="/mesas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">🪑 Mesas</a>
+            <a href="/cocina.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">👨‍🍳 Cocina</a>
+            <a href="/historial.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📈 Ventas</a>
+            <a href="/reservas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📅 Reservas</a>
+        </nav>
+        <a href="/quiosco.html" target="_blank" class="nav-btn btn-quiosco">👀 Simular Cliente ↗</a>
+        <button class="btn-logout" onclick="cerrarSesion()">Salir 🚪</button>
+    </header>
 
-  <div class="navbar">
-    <div class="brand">👑 J&J Centro Operativo</div>
-    <div class="nav-buttons">
-      <button class="activo" onclick="cargarPagina('editor.html', this)">📝 Menú</button>
-      <button onclick="cargarPagina('reservas.html', this)">📅 Reservas</button>
-      <button onclick="cargarPagina('mesas.html', this)">🪑 Mesas</button>
-      <button onclick="cargarPagina('historial.html', this)">📊 Historial</button>
-      <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
-    </div>
-  </div>
+    <iframe name="visor-central" id="visor-central" src="/editor.html"></iframe>
 
-  <iframe id="visor" src="editor.html"></iframe>
-
-  <script>
-    const SUPABASE_URL = 'TU_URL_DE_SUPABASE';
-    const SUPABASE_ANON_KEY = 'TU_ANON_KEY_DE_SUPABASE';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    async function verificarAcceso() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!user || error) { window.location.href = 'login.html'; return; }
-
-      const { data: roleData } = await supabase.from('roles_empleados').select('rol').eq('correo', user.email).maybeSingle();
-      const rol = roleData ? roleData.rol.toLowerCase().trim() : '';
-
-      if (rol !== 'cajero' && rol !== 'administrador') {
-        alert("⛔ Acceso denegado: Esta zona es para cajeros.");
-        window.location.href = (rol === 'cocinero') ? 'cocina.html' : 'login.html';
-      }
-    }
-
-    function cargarPagina(url, boton) {
-      document.getElementById('visor').src = url;
-      document.querySelectorAll('.nav-buttons button').forEach(btn => btn.classList.remove('activo'));
-      if (boton) boton.classList.add('activo');
-    }
-
-    async function cerrarSesion() {
-      await supabase.auth.signOut();
-      window.location.href = 'login.html';
-    }
-
-    verificarAcceso();
-  </script>
+    <script>
+        function cambiarPestana(elementoClicado) {
+            let botones = document.querySelectorAll('.nav-btn:not(.btn-quiosco)');
+            botones.forEach(btn => btn.classList.remove('activo'));
+            elementoClicado.classList.add('activo');
+        }
+        function cerrarSesion() {
+            sessionStorage.removeItem('usuarioLogueado');
+            window.location.href = '/login.html';
+        }
+    </script>
 </body>
 </html>
