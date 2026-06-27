@@ -6,95 +6,76 @@
   <title>Acceso - La Costeñita</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      margin: 0;
-    }
-    .login-box {
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 360px;
-      text-align: center;
-    }
-    h2 { color: #333; margin-bottom: 24px; }
-    input {
-      width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc;
-      border-radius: 6px; box-sizing: border-box; font-size: 14px;
-    }
-    input:focus { border-color: #28a745; outline: none; }
-    button {
-      background-color: #28a745; color: white; border: none; padding: 12px;
-      width: 100%; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 15px;
-    }
-    button:hover { background-color: #218838; }
-    .error { color: #dc3545; margin-top: 15px; font-size: 14px; font-weight: bold; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%); margin: 0; }
+    .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); width: 100%; max-width: 360px; text-align: center; }
+    h2 { color: #2f3640; margin-bottom: 5px; font-size: 28px; }
+    p.subtitle { color: #718093; margin-bottom: 25px; font-size: 14px; }
+    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+    input:focus { border-color: #ff4757; outline: none; }
+    button { background-color: #ff4757; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 15px; transition: background 0.3s; }
+    button:hover { background-color: #ff6b81; }
+    .error { color: #ee5253; margin-top: 15px; font-size: 14px; font-weight: bold; min-height: 20px; }
   </style>
 </head>
 <body>
 
   <div class="login-box">
-    <h2>🌊 La Costeñita SaaS</h2>
-    <input type="email" id="email" placeholder="Correo electrónico del empleado" required>
+    <h2>🌊 La Costeñita</h2>
+    <p class="subtitle">Plataforma Operativa SaaS</p>
+    <input type="email" id="email" placeholder="Correo electrónico" required>
     <input type="password" id="password" placeholder="Contraseña" required>
     <button onclick="iniciarSesion()">Ingresar al Sistema</button>
     <p id="mensaje-error" class="error"></p>
   </div>
 
   <script>
-    // REEMPLAZA CON TUS LLAVES DE SUPABASE
-    const supabaseUrl = 'TU_URL_DE_SUPABASE';
-    const supabaseKey = 'TU_ANON_KEY_DE_SUPABASE';
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    const SUPABASE_URL = 'TU_URL_DE_SUPABASE';
+    const SUPABASE_ANON_KEY = 'TU_ANON_KEY_DE_SUPABASE';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     async function iniciarSesion() {
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const errorMsg = document.getElementById('mensaje-error');
       errorMsg.textContent = "";
 
       if (!email || !password) {
-        errorMsg.textContent = "Por favor, completa todos los campos.";
+        errorMsg.textContent = "⚠️ Completa todos los campos.";
         return;
       }
 
-      // 1. Autenticar en Supabase Auth
-      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-        email: email, password: password,
-      });
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: email, password: password,
+        });
 
-      if (authError) {
-        errorMsg.textContent = "Credenciales incorrectas.";
-        return;
-      }
+        if (authError) {
+          errorMsg.textContent = "❌ Correo o contraseña incorrectos.";
+          return;
+        }
 
-      // 2. Buscar rol en la tabla roles_empleados
-      const { data: roleData, error: roleError } = await supabaseClient
-        .from('roles_empleados')
-        .select('rol')
-        .eq('correo', email)
-        .single();
+        const { data: roleData, error: roleError } = await supabase
+          .from('roles_empleados')
+          .select('rol')
+          .eq('correo', email)
+          .maybeSingle();
 
-      if (roleError || !roleData) {
-        errorMsg.textContent = "Acceso denegado: Usuario sin rol asignado.";
-        return;
-      }
+        if (roleError || !roleData) {
+          errorMsg.textContent = "⚠️ Tu cuenta existe pero no tienes un rol asignado.";
+          return;
+        }
 
-      // 3. Redirigir según rol
-      const rol = roleData.rol;
-      if (rol === 'cajero') {
-        window.location.href = 'admin.html';
-      } else if (rol === 'cocinero') {
-        window.location.href = 'cocina.html';
-      } else {
-        errorMsg.textContent = "Rol desconocido en el sistema.";
+        const rol = roleData.rol.toLowerCase().trim();
+
+        if (rol === 'cajero' || rol === 'administrador') {
+          window.location.href = 'admin.html';
+        } else if (rol === 'cocinero') {
+          window.location.href = 'cocina.html';
+        } else {
+          errorMsg.textContent = `⚠️ Rol '${rol}' no reconocido.`;
+        }
+      } catch (err) {
+        errorMsg.textContent = "💥 Error inesperado al conectar.";
       }
     }
   </script>

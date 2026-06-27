@@ -3,69 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-width=1.0">
-  <title>Admin - La Costeñita</title>
+  <title>Panel Maestro - La Costeñita</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background-color: #1e272e; color: white; display: flex; flex-direction: column; height: 100vh; }
-    .navbar { display: flex; justify-content: space-between; align-items: center; background-color: #2f3640; padding: 15px 20px; border-bottom: 2px solid #ff4757; }
-    .navbar h1 { margin: 0; font-size: 22px; color: #f5f6fa; }
-    .nav-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-    .nav-buttons button { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: bold; }
-    .nav-buttons button:hover { background: rgba(255,255,255,0.2); }
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background-color: #1e272e; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    .navbar { display: flex; justify-content: space-between; align-items: center; background-color: #2f3640; padding: 12px 20px; border-bottom: 3px solid #ff4757; }
+    .brand { font-size: 20px; font-weight: bold; color: #f5f6fa; }
+    .nav-buttons { display: flex; gap: 8px; align-items: center; }
+    .nav-buttons button { background: rgba(255,255,255,0.05); color: #f5f6fa; border: 1px solid rgba(255,255,255,0.1); padding: 10px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 13px; }
+    .nav-buttons button:hover { background: rgba(255,255,255,0.15); }
     .nav-buttons button.activo { background: #ff4757; border-color: #ff4757; }
-    .btn-logout { background-color: #ff4757; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 20px; }
-    .btn-logout:hover { background-color: #ff6b81; }
+    .btn-logout { background-color: #eb4d4b !important; border-color: #eb4d4b !important; margin-left: 15px; }
     iframe { flex-grow: 1; border: none; width: 100%; background: #f5f6fa; }
   </style>
 </head>
 <body>
 
   <div class="navbar">
-    <h1>👑 J&J ADMIN</h1>
+    <div class="brand">👑 J&J Centro Operativo</div>
     <div class="nav-buttons">
-      <button class="activo" onclick="cargarPagina('editor.html', this)">📝 Editor Menú</button>
-      <button onclick="cargarPagina('reservas.html', this)">📅 Libro Reservas</button>
-      <button onclick="cargarPagina('mesas.html', this)">🪑 Monitor Mesas</button>
-      <button onclick="cargarPagina('cocina.html', this)">👨‍🍳 Pantalla Cocina</button>
-      <button onclick="cargarPagina('historial.html', this)">📊 Historial Ventas</button>
-      <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
+      <button class="activo" onclick="cargarPagina('editor.html', this)">📝 Menú</button>
+      <button onclick="cargarPagina('reservas.html', this)">📅 Reservas</button>
+      <button onclick="cargarPagina('mesas.html', this)">🪑 Mesas</button>
+      <button onclick="cargarPagina('historial.html', this)">📊 Historial</button>
+      <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
   </div>
 
   <iframe id="visor" src="editor.html"></iframe>
 
   <script>
-    const supabaseUrl = 'TU_URL_DE_SUPABASE';
-    const supabaseKey = 'TU_ANON_KEY_DE_SUPABASE';
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    const SUPABASE_URL = 'TU_URL_DE_SUPABASE';
+    const SUPABASE_ANON_KEY = 'TU_ANON_KEY_DE_SUPABASE';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Seguridad Estricta
-    async function verificarSesion() {
-      const { data: { user }, error } = await supabaseClient.auth.getUser();
+    async function verificarAcceso() {
+      const { data: { user }, error } = await supabase.auth.getUser();
       if (!user || error) { window.location.href = 'login.html'; return; }
 
-      const { data: roleData } = await supabaseClient
-        .from('roles_empleados')
-        .select('rol').eq('correo', user.email).single();
+      const { data: roleData } = await supabase.from('roles_empleados').select('rol').eq('correo', user.email).maybeSingle();
+      const rol = roleData ? roleData.rol.toLowerCase().trim() : '';
 
-      if (!roleData || roleData.rol !== 'cajero') {
-        alert("⛔ Acceso Denegado: Exclusivo para Cajeros.");
-        window.location.href = roleData && roleData.rol === 'cocinero' ? 'cocina.html' : 'login.html';
+      if (rol !== 'cajero' && rol !== 'administrador') {
+        alert("⛔ Acceso denegado: Esta zona es para cajeros.");
+        window.location.href = (rol === 'cocinero') ? 'cocina.html' : 'login.html';
       }
     }
 
+    function cargarPagina(url, boton) {
+      document.getElementById('visor').src = url;
+      document.querySelectorAll('.nav-buttons button').forEach(btn => btn.classList.remove('activo'));
+      if (boton) boton.classList.add('activo');
+    }
+
     async function cerrarSesion() {
-      await supabaseClient.auth.signOut();
+      await supabase.auth.signOut();
       window.location.href = 'login.html';
     }
 
-    function cargarPagina(url, btn) {
-      document.getElementById('visor').src = url;
-      document.querySelectorAll('.nav-buttons button').forEach(b => b.classList.remove('activo'));
-      if(btn) btn.classList.add('activo');
-    }
-
-    verificarSesion();
+    verificarAcceso();
   </script>
 </body>
 </html>

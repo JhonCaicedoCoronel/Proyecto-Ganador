@@ -3,55 +3,93 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-width=1.0">
-  <title>Cocina - La Costeñita</title>
+  <title>KDS Cocina - La Costeñita</title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #111; color: white; }
-    header { display: flex; justify-content: space-between; align-items: center; background-color: #ff9f43; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; color: black; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background-color: #1e272e; color: #f5f6fa; }
+    header { display: flex; justify-content: space-between; align-items: center; background-color: #ff9f43; padding: 15px 25px; border-radius: 8px; margin-bottom: 25px; color: #2f3640; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
     h1 { margin: 0; font-size: 24px; font-weight: bold; }
-    .btn-logout { background-color: #e15f41; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    /* AQUÍ VAN TUS ESTILOS DE TARJETAS DE COCINA ANTERIORES */
+    .btn-logout { background-color: #ee5253; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .grid-comandas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .card-comanda { background: #2f3640; border-radius: 8px; border-top: 5px solid #ff9f43; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; }
+    .card-header { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px; font-weight: bold; }
+    .items-pedido { list-style: none; padding: 0; margin: 0 0 15px 0; flex-grow: 1; }
+    .items-pedido li { padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); font-size: 15px; }
+    .btn-despachar { background: #10ac84; color: white; border: none; width: 100%; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px; }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>👨‍🍳 KDS La Costeñita</h1>
+    <h1>👨‍🍳 KDS Kitchen La Costeñita</h1>
     <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
   </header>
 
-  <div id="contenedor-pedidos">
-    </div>
+  <div class="grid-comandas" id="contenedor-comandas"></div>
 
   <script>
-    const supabaseUrl = 'TU_URL_DE_SUPABASE';
-    const supabaseKey = 'TU_ANON_KEY_DE_SUPABASE';
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    const SUPABASE_URL = 'TU_URL_DE_SUPABASE';
+    const SUPABASE_ANON_KEY = 'TU_ANON_KEY_DE_SUPABASE';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const socket = io();
 
-    // Seguridad Estricta
-    async function verificarSesion() {
-      const { data: { user }, error } = await supabaseClient.auth.getUser();
+    async function verificarAccesoCocina() {
+      const { data: { user }, error } = await supabase.auth.getUser();
       if (!user || error) { window.location.href = 'login.html'; return; }
 
-      const { data: roleData } = await supabaseClient
-        .from('roles_empleados')
-        .select('rol').eq('correo', user.email).single();
+      const { data: roleData } = await supabase.from('roles_empleados').select('rol').eq('correo', user.email).maybeSingle();
+      const rol = roleData ? roleData.rol.toLowerCase().trim() : '';
 
-      if (!roleData || roleData.rol !== 'cocinero') {
-        alert("⛔ Acceso Denegado: Exclusivo para Cocineros.");
-        window.location.href = roleData && roleData.rol === 'cajero' ? 'admin.html' : 'login.html';
+      if (rol !== 'cocinero' && rol !== 'administrador') {
+        alert("⛔ Acceso denegado.");
+        window.location.href = (rol === 'cajero') ? 'admin.html' : 'login.html';
+      } else {
+        cargarComandasIniciales();
       }
     }
 
-    async function cerrarSesion() {
-      await supabaseClient.auth.signOut();
-      window.location.href = 'login.html';
+    async function cargarComandasIniciales() {
+      const { data: pedidos } = await supabase.from('pedidos').select('*').eq('estado', 'pendiente').order('id', { ascending: true });
+      if(pedidos) {
+        document.getElementById('contenedor-comandas').innerHTML = '';
+        pedidos.forEach(p => renderizarComandaCard(p));
+      }
     }
 
-    verificarSesion();
+    function renderizarComandaCard(pedido) {
+      if (document.getElementById(`pedido-${pedido.id}`)) return;
+      const card = document.createElement('div');
+      card.className = 'card-comanda';
+      card.id = `pedido-${pedido.id}`;
 
-    // AQUÍ VA TU LÓGICA DE SOCKET.IO Y SUPABASE PARA DIBUJAR LOS PEDIDOS
+      let listaPlatosHtml = '';
+      const items = typeof pedido.items === 'string' ? JSON.parse(pedido.items) : pedido.items;
+      items.forEach(item => { listaPlatosHtml += `<li>📌 <strong>${item.cantidad}x</strong> ${item.nombre}</li>`; });
+
+      card.innerHTML = `
+        <div>
+          <div class="card-header"><span>Mesa: ${pedido.mesa || 'Para Llevar'}</span><span>#${pedido.id}</span></div>
+          <ul class="items-pedido">${listaPlatosHtml}</ul>
+        </div>
+        <button class="btn-despachar" onclick="despacharPedido(${pedido.id})">✅ Marcar como Listo</button>
+      `;
+      document.getElementById('contenedor-comandas').appendChild(card);
+    }
+
+    async function despacharPedido(id) {
+      const { error } = await supabase.from('pedidos').update({ estado: 'listo' }).eq('id', id);
+      if (!error) {
+        document.getElementById(`pedido-${id}`).remove();
+        socket.emit('pedido-despachado', id);
+      }
+    }
+
+    socket.on('nuevo-pedido-cocina', (nuevoPedido) => renderizarComandaCard(nuevoPedido));
+
+    async function cerrarSesion() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+    
+    verificarAccesoCocina();
   </script>
 </body>
 </html>
