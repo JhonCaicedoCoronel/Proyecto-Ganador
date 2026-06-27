@@ -3,437 +3,480 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>La Costeñita - Reserva y Menú</title>
+    <title>La Costeñita - Pedidos y Reservas</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#005f73">
     
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a3d62">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="La Costeñita">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081075.png">
-
-    <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #f8f9fa; min-height: 100vh; color: #333; overflow-x: hidden; }
+        /* Tema Azul Océano Costeño */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(rgba(0, 95, 115, 0.9), rgba(10, 147, 150, 0.9)), url('https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80') center/cover fixed;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            padding-bottom: 80px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .tarjeta-blanca {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        h1, h2, h3 { color: #005f73; }
+        .btn-primario {
+            background: #ff9800; /* Naranja tropical */
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .btn-primario:active { transform: scale(0.95); }
         
-        #pantalla-reserva { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(rgba(10, 61, 98, 0.8), rgba(10, 61, 98, 0.8)), url('https://images.unsplash.com/photo-1559742811-822873691fc8?w=1600') center/cover; padding: 20px; }
-        .reserva-box { background: white; padding: 35px 40px; border-radius: 16px; width: 480px; max-width: 100%; box-shadow: 0 15px 35px rgba(0,0,0,0.5); text-align: center; }
-        .reserva-box h1 { color: #e15f41; margin-bottom: 5px; font-size: 34px; font-weight: 800; }
-        .reserva-box p.slogan { color: #57606f; margin-bottom: 25px; font-size: 15px; font-weight: 600; }
+        /* Grid del Menú */
+        .grid-menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .producto-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            position: relative;
+        }
         
-        .form-grid-main { text-align: left; }
-        .form-grupo { margin-bottom: 18px; text-align: left; }
-        .form-grupo label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #2f3542; }
-        .form-grupo input, .form-grupo select { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 15px; background: #fcfcfc; }
-        .form-grupo select:disabled { background: #eee; cursor: not-allowed; }
+        /* Carrito Flotante Modal */
+        #carrito-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+        }
+        .carrito-contenido {
+            background: white;
+            position: absolute;
+            bottom: 0; width: 100%;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            box-sizing: border-box;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
         
-        .btn-verificar { background: #e15f41; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 5px; }
-        .btn-verificar:hover { background: #c44527; transform: scale(1.02); }
-        .btn-secundario { background: #0a3d62; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-        .btn-secundario:hover { background: #082d4a; transform: scale(1.02); }
+        /* Botón Flotante Carrito */
+        .btn-flotante-carrito {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e74c3c;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 999;
+            display: none;
+        }
 
-        .alerta-horarios { background: #fff2cc; border: 1px dashed #ffa502; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; text-align: left; }
-        .horario-btn { background: #0a3d62; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin: 5px 5px 0 0; font-weight: bold; transition: 0.2s; }
+        /* Globito Chatbot */
+        #chatbot-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #005f73;
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 999;
+        }
+        #chatbot-ventana {
+            display: none;
+            position: fixed;
+            bottom: 90px; right: 20px;
+            width: 300px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            overflow: hidden;
+        }
+        .chat-header {
+            background: #005f73; color: white; padding: 15px;
+            display: flex; justify-content: space-between;
+        }
+        .chat-cuerpo { height: 250px; overflow-y: auto; padding: 10px; font-size: 14px;}
+        .chat-input { display: flex; border-top: 1px solid #ccc; }
+        .chat-input input { flex: 1; padding: 10px; border: none; outline: none; }
+        .chat-input button { background: #ff9800; border: none; color: white; padding: 10px; cursor: pointer; }
 
-        #pantalla-menu { display: none; width: 100%; padding: 30px 8%; position: relative; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e15f41; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        .btn-ver-carrito { background: #e15f41; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(225, 95, 65, 0.3); }
-        .btn-ver-carrito:hover { transform: scale(1.05); }
-        
-        .filtros-container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; border: 1px solid #eee; }
-        .input-buscar { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ced4da; font-size: 15px; margin-bottom: 15px; }
-        .botones-filtro { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
-        .btn-filtro { background: #f1f2f6; border: none; padding: 8px 16px; border-radius: 20px; font-weight: bold; color: #57606f; cursor: pointer; white-space: nowrap; transition: 0.2s; }
-        .btn-filtro:hover { background: #dfe4ea; }
-        .btn-filtro.activo { background: #0a3d62; color: white; }
-
-        .categoria-titulo { color: #0a3d62; margin: 25px 0 15px 0; border-bottom: 2px solid #e15f41; padding-bottom: 8px; display: inline-block; font-size: 22px; text-transform: uppercase; }
-        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 10px; }
-        .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.2s; }
-        .card-producto:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
-        .card-producto img { width: 100%; height: 140px; object-fit: cover; border-bottom: 3px solid #e15f41;}
-        .info-producto { padding: 15px; }
-        .btn-agregar { background: #0a3d62; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s;}
-        .btn-agregar:hover { background: #e15f41; }
-
-        .chatbot-bubble { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: #0a3d62; color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 999; transition: 0.3s; }
-        .chatbot-bubble:hover { transform: scale(1.1); background: #e15f41; }
-        
-        .chatbot-container { position: fixed; bottom: 25px; right: 25px; width: 340px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); overflow: hidden; border: 1px solid #e1e8ed; z-index: 1000; display: none; flex-direction: column; animation: despliegueUp 0.3s ease; }
-        @keyframes despliegueUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        
-        .chatbot-header { background: #0a3d62; color: white; padding: 15px 20px; font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-cerrar-chat { background: transparent; border: none; color: white; font-size: 22px; cursor: pointer; font-weight: bold; transition: 0.2s; padding: 0 5px; }
-        .btn-cerrar-chat:hover { color: #e15f41; transform: scale(1.2); }
-        
-        .chatbot-messages { height: 320px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
-        .msg-bot { background: #eaf2f8; border: 1px solid #a3c2e9; padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%; line-height: 1.4; }
-        .msg-user { background: #e15f41; color: white; padding: 12px; border-radius: 12px 12px 0 12px; align-self: flex-end; max-width: 85%; }
-        
-        .chatbot-input { display: flex; border-top: 1px solid #ddd; background: white; }
-        .chatbot-input input { flex-grow: 1; border: none; padding: 15px; outline: none; font-size: 14px; }
-        .chatbot-input button { background: #0a3d62; color: white; border: none; padding: 0 18px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .chatbot-input button:hover { background: #e15f41; }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none; }
-        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 500px; max-width: 95%; max-height: 90vh; overflow-y: auto; position: relative; }
-        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 26px; cursor: pointer; background: none; border: none; color: #a4b0be; }
-
-        .lista-items { margin: 15px 0; background: #f1f2f6; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; }
-        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ced4da; font-size: 14px; }
-        .btn-confirmar { background: #2ed573; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-top: 15px; cursor: pointer; }
-        
-        .encuesta-card { background: #eaf2f8; border: 1px solid #a3c2e9; padding: 18px; border-radius: 10px; margin-top: 25px; text-align: left; }
-        .btn-saltar { background: none; border: none; color: #57606f; text-decoration: underline; width: 100%; margin-top: 15px; cursor: pointer; font-size: 14px; }
+        input, select, textarea {
+            width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px;
+            border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
 
-    <div id="pantalla-reserva">
-        <div class="reserva-box">
-            <h1>🌊 La Costeñita</h1>
-            <p class="slogan">El auténtico sabor de nuestra costa ecuatoriana.</p>
-            
-            <div class="form-grid-main">
-                <div class="form-grupo">
-                    <label>📍 Sucursal de preferencia</label>
-                    <select id="res-sucursal" onchange="solicitarHorarios()">
-                        <option value="Urdesa">Urdesa (V.E. Estrada)</option>
-                        <option value="Samborondón">Samborondón (Plaza Lagos)</option>
-                        <option value="Sur">Sur (Barrio del Centenario)</option>
-                    </select>
-                </div>
-                <div class="form-grupo"><label>Fecha de tu visita</label><input type="date" id="res-fecha" required></div>
-                <div class="form-grupo"><label>Número de Personas</label><input type="number" id="res-pax" min="1" max="10" value="2"></div>
-                <div class="form-grupo">
-                    <label>Hora deseada (Disponibilidad en vivo)</label>
-                    <select id="res-hora" disabled><option value="">Selecciona una fecha primero...</option></select>
-                </div>
-            </div>
-            <button class="btn-verificar" onclick="verificarDisponibilidad()">Verificar Mesa 🔍</button>
-            
-            <div class="alerta-horarios" id="alerta-lleno">
-                <strong style="color:#d35400;">⚠️ Lo sentimos, este horario está lleno en la sucursal elegida.</strong><br>
-                <span style="font-size: 13px;">Intenta con una alternativa:</span>
-                <div id="opciones-alternativas" style="margin-top: 10px;"></div>
-            </div>
+<div class="container">
+    
+    <div id="seccion-reserva" class="tarjeta-blanca">
+        <h1 style="text-align: center;">🦀 La Costeñita</h1>
+        <p style="text-align: center; color: #666;">Selecciona tu sucursal y fecha para iniciar</p>
+        
+        <label>📍 Sucursal:</label>
+        <select id="sucursal">
+            <option value="Urdesa">Urdesa Central</option>
+            <option value="Samborondon">Plaza Samborondón</option>
+            <option value="Sur">Sur (Barrio del Centenario)</option>
+        </select>
+
+        <label>📅 Fecha de Reserva:</label>
+        <input type="date" id="fecha-reserva" onchange="cargarHorarios()">
+
+        <label>👥 Cantidad de Personas:</label>
+        <select id="personas" onchange="cargarHorarios()">
+            <option value="2">2 Personas</option>
+            <option value="4">4 Personas</option>
+            <option value="6">6 Personas</option>
+            <option value="8">Grupo Grande (8+)</option>
+        </select>
+
+        <label>⏰ Horarios Disponibles:</label>
+        <select id="hora-reserva">
+            <option value="">Selecciona una fecha primero...</option>
+        </select>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-primario" style="background: #2ecc71;" onclick="avanzarMenu()">🍽️ Hacer Pre-orden</button>
+            <button class="btn-primario" style="background: #3498db;" onclick="soloReservar()">Solo Reservar Mesa</button>
         </div>
     </div>
 
-    <div class="modal-overlay" id="modal-eleccion">
-        <div class="modal-content" style="text-align: center;">
-            <h2 style="color:#0a3d62; margin-bottom: 10px;">🎉 ¡Mesa Disponible!</h2>
-            <p style="color:#57606f; margin-bottom: 25px;">Tenemos una mesa lista para tu grupo en <strong>La Costeñita (<span id="lbl-sucursal"></span>)</strong>.</p>
-            <p style="font-weight: bold; font-size: 18px; margin-bottom: 15px;">¿Qué deseas hacer ahora?</p>
-            
-            <button class="btn-verificar" onclick="irAlMenu()">Ver Menú y Pre-ordenar 🤤</button>
-            <p style="font-size: 12px; color: #747d8c; margin-bottom: 15px;">(Tu comida estará lista al llegar)</p>
-            
-            <button class="btn-secundario" onclick="abrirSoloReserva()">Solo Reservar Mesa 🪑</button>
-            <p style="font-size: 12px; color: #747d8c;">(Pedirás la comida al mesero en el local)</p>
+    <div id="seccion-menu" class="tarjeta-blanca" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>🌊 Nuestro Menú Costeño</h2>
+            <button onclick="volverAEditarReserva()" style="background: #ff9800; color: white; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                ✏️ Cambiar Reserva
+            </button>
         </div>
-    </div>
-
-    <div class="modal-overlay" id="modal-solo-reserva">
-        <div class="modal-content">
-            <button class="close-modal" onclick="cerrarSoloReserva()">✕</button>
-            <h2 style="margin-bottom:15px; color:#0a3d62;">📝 Confirmar Reserva de Mesa</h2>
-            <p style="margin-bottom: 20px; font-size: 14px; color: #57606f;">Se asegurará tu mesa. Recuerda llegar puntual al local.</p>
-            <div class="form-grupo"><label>A nombre de:</label><input type="text" id="cliente-nombre-solo" placeholder="Ej. Carlos Mendoza"></div>
-            <button class="btn-secundario" onclick="finalizarSoloReserva()">Confirmar Reserva 🚀</button>
-        </div>
-    </div>
-
-    <div id="pantalla-menu">
-        <div class="header">
-            <div>
-                <h1 style="color:#e15f41;">🌊 La Costeñita</h1>
-                <p style="color:#666; font-size:14px;" id="txt-resumen-reserva">Armando tu pre-orden...</p>
+        <p style="margin-top: 0; color: #666; font-size: 14px;">Mesa asignada y guardada temporalmente.</p>
+        
+        <div id="catalogo-menu">
             </div>
-            <button class="btn-ver-carrito" onclick="abrirCarrito()">🛒 Ver Orden (<span id="cart-count">0</span>)</button>
+    </div>
+
+</div>
+
+<div id="btn-ver-carrito" class="btn-flotante-carrito" onclick="abrirCarrito()">
+    🛒 Ver Carrito (<span id="contador-carrito">0</span>)
+</div>
+
+<div id="carrito-modal">
+    <div class="carrito-contenido">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+            <h2>🛒 Tu Pedido</h2>
+            <button onclick="cerrarCarrito()" style="background: none; border: none; font-size: 24px; cursor: pointer;">❌</button>
         </div>
         
-        <div class="filtros-container">
-            <input type="text" id="buscar-menu" class="input-buscar" placeholder="🔍 Buscar plato por nombre o ingrediente..." onkeyup="aplicarFiltros()">
-            <div class="botones-filtro" id="botones-categorias"></div>
-        </div>
-
-        <div id="contenedor-menu-dinamico"></div>
-    </div>
-
-    <div class="modal-overlay" id="modal-carrito">
-        <div class="modal-content">
-            <button class="close-modal" onclick="cerrarCarrito()">✕</button>
-            <h2 style="margin-bottom:15px; color:#0a3d62;">🛒 Confirmar Pre-orden</h2>
-            <div class="lista-items" id="carrito-contenedor"></div>
-            <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                <span>Total a pagar:</span><span id="total-txt" style="color:#e15f41;">$0.00</span>
-            </div>
-            <div class="form-grupo"><label>A nombre de:</label><input type="text" id="cliente-nombre" placeholder="Ej. Carlos Mendoza"></div>
-            <div class="form-grupo">
-                <label>Forma de Pago</label>
-                <select id="cliente-pago">
-                    <option value="Tarjeta">💳 Tarjeta (Pago Inmediato Seguro)</option>
-                    <option value="Efectivo">💵 Efectivo (Pagar en el local)</option>
-                </select>
-            </div>
-            <button class="btn-confirmar" onclick="finalizarReservaPedido()">Confirmar y Enviar 🚀</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modal-exito">
-        <div class="modal-content" style="text-align: center;">
-            <h2 style="color:#2ed573;">🎉 ¡Todo Listo, ñaño!</h2>
-            <p style="color:#57606f; margin-top:10px;" id="txt-exito-detalle">Tu mesa y tu pedido están asegurados para tu llegada.</p>
-            <p style="margin-top:20px; font-weight:bold;">TU NÚMERO DE FILA:</p>
-            <div style="font-size: 48px; font-weight: bold; color: #e15f41; background: #fff1f2; padding: 15px; border-radius: 12px; border: 2px dashed #e15f41; margin: 15px 0;">#<span id="txt-turno">00</span></div>
-            
-            <div class="encuesta-card">
-                <strong style="color:#0a3d62; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Gana una porción de chifles</strong>
-                <div class="form-grupo"><label>¿Padeces alguna alergia? (Opcional)</label><input type="text" id="encuesta-alergia" placeholder="Ej. Mariscos, Maní"></div>
-                <div class="form-grupo">
-                    <label>¿Tu plato costeño favorito? (Opcional)</label>
-                    <select id="encuesta-gusto">
-                        <option value="Encebollado">El Buen Encebollado 🍲</option>
-                        <option value="Ceviche">Ceviche Mixto 🍤</option>
-                        <option value="Bolon">Bolón de Chicharrón 🧀</option>
-                        <option value="Arroz Marinero">Arroz Marinero 🥘</option>
-                    </select>
-                </div>
-                <button class="btn-confirmar" style="margin-top: 5px;" onclick="guardarEncuestaOpcional()">Enviar y Reclamar Premio 🎁</button>
-            </div>
-            <button class="btn-saltar" onclick="reiniciarKiosco()">Terminar y Volver al inicio</button>
-        </div>
-    </div>
-
-    <div class="chatbot-bubble" id="chat-bubble" onclick="abrirChat()">🦀</div>
-    <div class="chatbot-container" id="chat-container">
-        <div class="chatbot-header"><span>🦀 Asistente Costeñito</span><button type="button" class="btn-cerrar-chat" onclick="cerrarChat()">✕</button></div>
-        <div class="chatbot-messages" id="chat-mensajes"><div class="msg-bot">¡Qué más, ve! Soy el asistente de La Costeñita. Te puedo ayudar con información sobre:<br>📍 <strong>Locales y horarios</strong><br>🚗 <strong>Parqueos y mascotas</strong><br>🍲 <strong>Menú y reservas</strong><br>Pregúntame con confianza.</div></div>
-        <div class="chatbot-input"><input type="text" id="chat-input" placeholder="Pregunta lo que sea..." onkeypress="if(event.key === 'Enter') enviarMensajeBot()"><button onclick="enviarMensajeBot()">Enviar</button></div>
-    </div>
-
-    <script>
-        const socket = io();
-        let productos = []; let carrito = [];
-        let datosReservaConfirmada = {}; let ultimoNombreCliente = "";
-        let miIdReserva = null; let categoriaFiltroActiva = "Todas";
+        <div id="lista-carrito" style="margin: 15px 0;"></div>
+        <h3 style="text-align: right; color: #e74c3c;">Total: $<span id="total-carrito">0.00</span></h3>
         
-        let pantallaActual = 'reserva'; 
-        let turnoActual = "00";
+        <hr>
+        <h3>Datos para confirmar:</h3>
+        <input type="text" id="nombre-cliente" placeholder="Tu Nombre y Apellido" required>
+        <textarea id="notas-pedido" placeholder="Ej: Sin cebolla, extra limón..."></textarea>
+        
+        <label>💳 Método de Pago:</label>
+        <select id="metodo-pago">
+            <option value="Efectivo">💵 Efectivo (Pagar en el local)</option>
+            <option value="Tarjeta">💳 Tarjeta / Transferencia</option>
+        </select>
+        
+        <button class="btn-primario" style="margin-top: 15px;" onclick="enviarOrden()">🚀 Confirmar y Enviar a Cocina</button>
+    </div>
+</div>
 
-        document.getElementById('res-fecha').min = new Date().toISOString().split('T')[0];
+<div id="chatbot-btn" onclick="toggleChat()">🤖</div>
+<div id="chatbot-ventana">
+    <div class="chat-header">
+        <b>🦀 Asistente Costeñito</b>
+        <span onclick="toggleChat()" style="cursor: pointer; color: white; font-weight: bold;">✕</span>
+    </div>
+    <div class="chat-cuerpo" id="chat-mensajes">
+        <p><b>Bot:</b> ¡Hola! ¿En qué te ayudo hoy? Pregúntame sobre parqueos, horarios o el menú.</p>
+    </div>
+    <div class="chat-input">
+        <input type="text" id="chat-input-text" placeholder="Escribe aquí...">
+        <button onclick="enviarMensajeBot()">Enviar</button>
+    </div>
+</div>
 
-        function guardarEstado() {
-            const estado = { pantallaActual, datosReservaConfirmada, carrito, ultimoNombreCliente, miIdReserva, turnoActual };
-            sessionStorage.setItem('costenitaEstado', JSON.stringify(estado));
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    let menuProductos = [];
+    
+    // PERSISTENCIA CON SESSION STORAGE
+    let carrito = JSON.parse(sessionStorage.getItem('carrito')) || [];
+    let reservaDatos = JSON.parse(sessionStorage.getItem('reservaDatos')) || null;
+
+    // Recuperar estado al recargar la página
+    window.onload = () => {
+        if (reservaDatos) {
+            document.getElementById('sucursal').value = reservaDatos.sucursal;
+            document.getElementById('fecha-reserva').value = reservaDatos.fecha;
+            document.getElementById('personas').value = reservaDatos.personas;
+            document.getElementById('seccion-reserva').style.display = 'none';
+            document.getElementById('seccion-menu').style.display = 'block';
+            document.getElementById('btn-ver-carrito').style.display = 'block';
         }
+        actualizarCarrito();
+    };
 
-        function recuperarEstado() {
-            const guardado = sessionStorage.getItem('costenitaEstado');
-            if (guardado) {
-                const estado = JSON.parse(guardado);
-                pantallaActual = estado.pantallaActual;
-                datosReservaConfirmada = estado.datosReservaConfirmada || {};
-                carrito = estado.carrito || [];
-                ultimoNombreCliente = estado.ultimoNombreCliente || "";
-                miIdReserva = estado.miIdReserva || null;
-                turnoActual = estado.turnoActual || "00";
+    // Recibir menú desde el servidor
+    socket.on('actualizar-menu', (menu) => {
+        menuProductos = menu;
+        renderMenu();
+    });
 
-                if (pantallaActual === 'menu') {
-                    document.getElementById('pantalla-reserva').style.display = 'none';
-                    document.getElementById('pantalla-menu').style.display = 'block';
-                    document.getElementById('txt-resumen-reserva').innerText = `Mesa asegurada en ${datosReservaConfirmada.sucursal} (${datosReservaConfirmada.fecha} - ${datosReservaConfirmada.hora})`;
-                    document.getElementById('chat-bubble').style.display = 'flex';
-                    updateCartUI(); 
-                } else if (pantallaActual === 'exito') {
-                    document.getElementById('pantalla-reserva').style.display = 'none';
-                    document.getElementById('pantalla-menu').style.display = 'none';
-                    document.getElementById('txt-turno').innerText = turnoActual;
-                    document.getElementById('modal-exito').style.display = 'flex';
+    // 1. LÓGICA DE RESERVAS
+    function cargarHorarios() {
+        const selectHora = document.getElementById('hora-reserva');
+        selectHora.innerHTML = `
+            <option value="12:00">12:00 PM - ✅ Disponible</option>
+            <option value="13:00">13:00 PM - ✅ Disponible</option>
+            <option value="14:00">14:00 PM - ✅ Disponible</option>
+            <option value="19:00">19:00 PM - ✅ Disponible</option>
+            <option value="20:00">20:00 PM - ✅ Disponible</option>
+        `;
+    }
+
+    function avanzarMenu() {
+        const fecha = document.getElementById('fecha-reserva').value;
+        const hora = document.getElementById('hora-reserva').value;
+        if(!fecha || !hora) return alert("Por favor selecciona fecha y hora.");
+
+        reservaDatos = {
+            sucursal: document.getElementById('sucursal').value,
+            fecha: fecha,
+            hora: hora,
+            personas: document.getElementById('personas').value
+        };
+        sessionStorage.setItem('reservaDatos', JSON.stringify(reservaDatos));
+
+        document.getElementById('seccion-reserva').style.display = 'none';
+        document.getElementById('seccion-menu').style.display = 'block';
+        document.getElementById('btn-ver-carrito').style.display = 'block';
+    }
+
+    function soloReservar() {
+        avanzarMenu();
+        abrirCarrito();
+        document.getElementById('notas-pedido').value = "Solo reserva de mesa. Pedido se hará en el local.";
+    }
+
+    // NUEVO: Volver a Editar Reserva
+    function volverAEditarReserva() {
+        document.getElementById('seccion-menu').style.display = 'none';
+        document.getElementById('seccion-reserva').style.display = 'block';
+        document.getElementById('btn-ver-carrito').style.display = carrito.length > 0 ? 'block' : 'none';
+        
+        // Mensaje dinámico del bot
+        mostrarMensajeBot("¡Claro! Puedes cambiar la sucursal, el día o la hora. Lo que ya agregaste al carrito te esperará guardado. 🦀");
+        if(document.getElementById('chatbot-ventana').style.display === 'none') {
+            toggleChat();
+        }
+    }
+
+    // 2. LÓGICA DEL MENÚ Y ETIQUETAS (BADGES)
+    function renderMenu() {
+        const contenedor = document.getElementById('catalogo-menu');
+        contenedor.innerHTML = '';
+
+        // Agrupar por categorías
+        const categorias = [...new Set(menuProductos.map(p => p.categoria || 'Otros'))];
+
+        categorias.forEach(cat => {
+            const seccion = document.createElement('div');
+            seccion.innerHTML = `<h3 style="border-bottom: 2px solid #ff9800; padding-bottom: 5px; text-transform: capitalize;">🥘 ${cat}</h3>`;
+            const grid = document.createElement('div');
+            grid.className = 'grid-menu';
+
+            menuProductos.filter(p => p.categoria === cat).forEach(producto => {
+                const div = document.createElement('div');
+                div.className = 'producto-card';
+
+                // NUEVO: Lógica visual para Etiquetas Inteligentes (Badges)
+                let badgeHTML = "";
+                let descripcionLower = producto.descripcion ? producto.descripcion.toLowerCase() : "";
+
+                if (descripcionLower.includes("picante")) {
+                    badgeHTML = `<span style="background: #e74c3c; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; position: absolute; top: 10px; right: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2;">🌶️ Picante</span>`;
+                } else if (descripcionLower.includes("recomendado") || descripcionLower.includes("estrella")) {
+                    badgeHTML = `<span style="background: #f1c40f; color: #333; padding: 3px 8px; border-radius: 12px; font-size: 11px; position: absolute; top: 10px; right: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2;">⭐ Recomendado</span>`;
+                } else if (descripcionLower.includes("vegano")) {
+                    badgeHTML = `<span style="background: #2ecc71; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; position: absolute; top: 10px; right: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2;">🌱 Vegano</span>`;
                 }
-            }
-        }
-        
-        recuperarEstado();
 
-        function reiniciarKiosco() {
-            sessionStorage.removeItem('costenitaEstado');
-            location.reload();
-        }
-
-        function mostrarNotificacionFila(mensaje, esTurnoUno) {
-            const toast = document.createElement('div');
-            toast.style.position = 'fixed'; toast.style.top = '20px'; toast.style.left = '50%'; toast.style.transform = 'translateX(-50%)'; 
-            toast.style.zIndex = '9999'; toast.style.padding = '15px 25px'; toast.style.borderRadius = '12px'; toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)'; 
-            toast.style.fontWeight = 'bold'; toast.style.fontSize = '16px'; toast.style.textAlign = 'center'; toast.style.color = 'white';
-            toast.style.background = esTurnoUno ? '#2ed573' : '#0a3d62'; toast.style.border = esTurnoUno ? '2px solid white' : '2px solid #e15f41';
-            toast.innerHTML = mensaje; document.body.appendChild(toast);
-            new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(() => {});
-            if(!esTurnoUno) { setTimeout(() => { toast.remove(); }, 5000); }
-        }
-
-        socket.on('notificacion-avance-turno', (data) => {
-            if (miIdReserva === data.idReserva) {
-                turnoActual = data.nuevoTurno;
-                document.getElementById('txt-turno').innerText = turnoActual;
-                guardarEstado(); 
-                if (data.nuevoTurno === 1) { mostrarNotificacionFila(`🎉 ¡ERES EL TURNO #1! <br>Tu mesa ya está limpia y lista. Pasa adelante.`, true); } 
-                else { mostrarNotificacionFila(`🔔 ¡La fila se movió! <br>Avanzaste al puesto #${data.nuevoTurno}.`, false); }
-            }
-        });
-
-        function solicitarHorarios() {
-            const fecha = document.getElementById('res-fecha').value; const pax = document.getElementById('res-pax').value; const sucursal = document.getElementById('res-sucursal').value;
-            if(fecha) { document.getElementById('res-hora').disabled = true; document.getElementById('res-hora').innerHTML = '<option value="">Buscando mesas...</option>'; socket.emit('consultar-horarios', { fecha, personas: pax, sucursal }); }
-        }
-        document.getElementById('res-fecha').addEventListener('change', solicitarHorarios); document.getElementById('res-pax').addEventListener('change', solicitarHorarios);
-        
-        socket.on('horarios-para-fecha', (horarios) => {
-            const selectHora = document.getElementById('res-hora'); selectHora.innerHTML = ""; let hayOpciones = false;
-            horarios.forEach(h => { if(h.lleno) selectHora.innerHTML += `<option value="${h.hora}" disabled>❌ ${h.hora} (Sin mesas)</option>`; else { selectHora.innerHTML += `<option value="${h.hora}">✅ ${h.hora} (${h.disponibles} mesas)</option>`; hayOpciones = true; } });
-            if(!hayOpciones) selectHora.innerHTML = `<option value="" disabled>Sin disponibilidad</option>`; selectHora.disabled = false;
-        });
-
-        socket.on('cargar-menu-inicial', (data) => { 
-            productos = data; 
-            if(pantallaActual === 'menu') { dibujarBotonesFiltro(); aplicarFiltros(); }
-        });
-        
-        function verificarDisponibilidad() {
-            const fecha = document.getElementById('res-fecha').value; const hora = document.getElementById('res-hora').value; const pax = document.getElementById('res-pax').value; const sucursal = document.getElementById('res-sucursal').value;
-            if(!fecha || !hora) return alert("Selecciona una fecha y hora válidas."); socket.emit('verificar-disponibilidad', { fecha, hora, personas: pax, sucursal });
-        }
-        
-        socket.on('resultado-disponibilidad', (res) => {
-            if (res.disponible) {
-                datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: res.horaExacta, personas: document.getElementById('res-pax').value, mesa: res.mesa, sucursal: res.sucursal };
-                document.getElementById('lbl-sucursal').innerText = res.sucursal; document.getElementById('modal-eleccion').style.display = 'flex';
-            } else {
-                solicitarHorarios(); document.getElementById('alerta-lleno').style.display = 'block'; const contAlt = document.getElementById('opciones-alternativas'); contAlt.innerHTML = "";
-                if (res.alternativas.length === 0) contAlt.innerHTML = "<span style='color:red;'>No hay mesas disponibles.</span>"; else res.alternativas.forEach(alt => { contAlt.innerHTML += `<button class="horario-btn" onclick="seleccionarAlternativa('${alt}')">${alt}</button>`; });
-            }
-        });
-        
-        function seleccionarAlternativa(hora) { document.getElementById('res-hora').value = hora; verificarDisponibilidad(); }
-        
-        function irAlMenu() {
-            document.getElementById('modal-eleccion').style.display = 'none'; document.getElementById('pantalla-reserva').style.display = 'none'; 
-            document.getElementById('pantalla-menu').style.display = 'block'; document.getElementById('txt-resumen-reserva').innerText = `Mesa asegurada en ${datosReservaConfirmada.sucursal} (${datosReservaConfirmada.fecha} - ${datosReservaConfirmada.hora})`;
-            document.getElementById('chat-bubble').style.display = 'flex'; 
-            pantallaActual = 'menu'; guardarEstado(); 
-            dibujarBotonesFiltro(); aplicarFiltros();
-        }
-
-        function abrirSoloReserva() { document.getElementById('modal-eleccion').style.display = 'none'; document.getElementById('modal-solo-reserva').style.display = 'flex'; }
-        function cerrarSoloReserva() { document.getElementById('modal-solo-reserva').style.display = 'none'; document.getElementById('modal-eleccion').style.display = 'flex'; }
-        
-        function finalizarSoloReserva() {
-            const nombre = document.getElementById('cliente-nombre-solo').value.trim(); if(!nombre) return alert("Por favor ingresa tu nombre.");
-            ultimoNombreCliente = nombre; miIdReserva = Math.floor(Math.random() * 9000) + 1000;
-            const pedido = { id: miIdReserva, cliente: nombre, item: "🔴 SOLO RESERVA DE MESA", pago: "Solo Reserva", datosReserva: datosReservaConfirmada, productosComprados: [] };
-            
-            socket.emit('enviar-reserva-pedido', pedido); 
-            guardarEstado(); 
-            
-            document.getElementById('modal-solo-reserva').style.display = 'none';
-            document.getElementById('txt-exito-detalle').innerText = "Mantén esta pantalla abierta. Te avisaremos aquí mismo si tu turno avanza.";
-        }
-
-        function dibujarBotonesFiltro() {
-            const cont = document.getElementById('botones-categorias'); cont.innerHTML = `<button class="btn-filtro ${categoriaFiltroActiva === 'Todas' ? 'activo' : ''}" onclick="filtrarCategoria('Todas')">Todas</button>`;
-            const categories = [...new Set(productos.map(p => p.category))];
-            categories.forEach(cat => { cont.innerHTML += `<button class="btn-filtro ${categoriaFiltroActiva === cat ? 'activo' : ''}" onclick="filtrarCategoria('${cat}')">${cat}</button>`; });
-        }
-        function filtrarCategoria(cat) { categoriaFiltroActiva = cat; dibujarBotonesFiltro(); aplicarFiltros(); }
-
-        function aplicarFiltros() {
-            const text = document.getElementById('buscar-menu').value.toLowerCase();
-            const filtered = productos.filter(p => { const passCat = (categoriaFiltroActiva === "Todas") || (p.category === categoriaFiltroActiva); const passText = p.nombre.toLowerCase().includes(text) || (p.descripcion || "").toLowerCase().includes(text); return passCat && passText; });
-            renderMenuFiltrado(filtered);
-        }
-        
-        function renderMenuFiltrado(listaProductos) {
-            const contenedorDinamico = document.getElementById('contenedor-menu-dinamico'); contenedorDinamico.innerHTML = "";
-            if(listaProductos.length === 0) { contenedorDinamico.innerHTML = `<p style="text-align:center; padding: 40px; color:#a4b0be; font-size:18px;">No encontramos platos con esa búsqueda. 😢</p>`; return; }
-            const categories = {}; listaProductos.forEach(p => { if(!categories[p.category]) categories[p.category] = []; categories[p.category].push(p); });
-            for (const cat in categories) {
-                contenedorDinamico.innerHTML += `<h2 class="categoria-titulo">${cat}</h2>`; let htmlGrid = `<div class="grid-productos">`;
-                categories[cat].forEach(p => { htmlGrid += `<div class="card-producto"><img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'"><div class="info-producto"><strong style="font-size:16px; display:block; height:22px; overflow:hidden; color:#0a3d62;">${p.nombre}</strong><p style="color:#747d8c; font-size:12px; height:38px; overflow:hidden; margin: 5px 0; line-height:1.3;">${p.descripcion || 'Especialidad costeña.'}</p><p style="color:#e15f41; font-weight:bold; margin-top:5px; font-size:16px;">$${p.precio.toFixed(2)}</p><button class="btn-agregar" onclick="addToCart(${p.id})">Añadir 🤤</button></div></div>`; });
-                htmlGrid += `</div>`; contenedorDinamico.innerHTML += htmlGrid;
-            }
-        }
-
-        function addToCart(id) { 
-            const p = productos.find(x => x.id === id); const exist = carrito.find(x => x.id === id); 
-            if(exist) { exist.cantidad++; } else { carrito.push({...p, cantidad:1}); } 
-            document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0); 
-            updateCartUI(); 
-        }
-        
-        function updateCartUI() { 
-            const cont = document.getElementById('carrito-contenedor'); cont.innerHTML = ""; let tot = 0; 
-            document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0); 
-            carrito.forEach(c => { tot += c.precio * c.cantidad; cont.innerHTML += `<div class="item-row"><span>${c.cantidad}x ${c.nombre}</span><span>$${(c.precio*c.cantidad).toFixed(2)}</span></div>`; }); 
-            document.getElementById('total-txt').innerText = `$${tot.toFixed(2)}`; 
-            guardarEstado(); 
-        }
-        
-        function abrirCarrito() { document.getElementById('modal-carrito').style.display = 'flex'; }
-        function cerrarCarrito() { document.getElementById('modal-carrito').style.display = 'none'; }
-
-        function finalizarReservaPedido() {
-            const name = document.getElementById('cliente-nombre').value.trim(); const pago = document.getElementById('cliente-pago').value;
-            if(!name || carrito.length === 0) return alert("Ingresa tu nombre y escoge platos.");
-            ultimoNombreCliente = name; miIdReserva = Math.floor(Math.random() * 9000) + 1000;
-            const pedido = { id: miIdReserva, cliente: name, item: carrito.map(c => `${c.cantidad}x ${c.nombre}`).join(', '), pago: pago, datosReserva: datosReservaConfirmada, productosComprados: [] };
-            
-            socket.emit('enviar-reserva-pedido', pedido); cerrarCarrito();
-            guardarEstado();
-            document.getElementById('txt-exito-detalle').innerText = "Mantén esta pantalla abierta. Te avisaremos aquí mismo si tu turno avanza.";
-        }
-
-        socket.on('confirmacion-turno-cliente', (data) => { 
-            turnoActual = data.turno;
-            document.getElementById('txt-turno').innerText = turnoActual; 
-            document.getElementById('modal-exito').style.display = 'flex'; 
-            pantallaActual = 'exito';
-            guardarEstado(); 
-        });
-        
-        function guardarEncuestaOpcional() { socket.emit('guardar-encuesta-opcional', { cliente: ultimoNombreCliente, alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", preferencias: document.getElementById('encuesta-gusto').value }); alert("🎁 ¡Guardado! Pide tus chifles extra en caja."); reiniciarKiosco(); }
-
-        function abrirChat() { document.getElementById('chat-container').style.display = 'flex'; document.getElementById('chat-bubble').style.display = 'none'; }
-        function cerrarChat() { document.getElementById('chat-container').style.display = 'none'; if(document.getElementById('pantalla-menu').style.display === 'block') { document.getElementById('chat-bubble').style.display = 'flex'; } }
-
-        function enviarMensajeBot() {
-            const inputField = document.getElementById('chat-input'); const textOrig = inputField.value.trim(); const textUser = textOrig.toLowerCase();
-            if(textUser === "") return;
-            const chatBox = document.getElementById('chat-mensajes'); chatBox.innerHTML += `<div class="msg-user">${textOrig}</div>`; inputField.value = ""; chatBox.scrollTop = chatBox.scrollHeight;
-            setTimeout(() => {
-                let resp = "Chuta, no te entendí bien, ñaño. 😅 Pregúntame sobre <strong>nuestros platos, horarios, locales, parqueo o reservas</strong>.";
-                if (["hola", "que mas", "buenas", "saludos"].some(w => textUser.includes(w))) { resp = "¡Qué más, ve! Bienvenido a La Costeñita 🌊. ¿En qué te puedo ayudar hoy?"; }
-                else if (["direccion", "ubicacion", "donde", "sucursal", "locales"].some(w => textUser.includes(w))) { resp = "📍 Tenemos 3 huecas en Guayaquil:<br>🦀 <strong>Urdesa:</strong> V.E. Estrada y Las Monjas<br>🍤 <strong>Samborondón:</strong> Km 2.5<br>🐟 <strong>Sur:</strong> Barrio del Centenario."; }
-                else if (["horario", "hora", "abren", "cierran"].some(w => textUser.includes(w))) { resp = "⏰ Abrimos todos los días:<br>- Lunes a Jueves: 08:00 AM - 10:00 PM<br>- Viernes a Domingo: 07:00 AM - 11:00 PM."; }
-                else if (["reserva", "mesa", "puesto"].some(w => textUser.includes(w))) { resp = "🗓 /> ¡Es facilito! Solo elige tu sucursal, la fecha y la hora al inicio de la página."; }
-                else if (["pago", "pagar", "tarjeta", "efectivo"].some(w => textUser.includes(w))) { resp = "💳 Aceptamos de todo: Puedes pagar con Tarjeta o Efectivo."; }
-                else if (["menu", "comida", "plato", "encebollado", "ceviche"].some(w => textUser.includes(w))) { resp = "🍲 ¡La mejor sazón! Nuestro plato estrella es el <strong>Encebollado Mixto</strong>."; }
-                else if (["parqueo", "carro", "vehiculo"].some(w => textUser.includes(w))) { resp = "🚗 Nuestras 3 sucursales cuentan con parqueo privado, sin costo y con guardia."; }
-                else if (["mascota", "perro", "pet friendly"].some(w => textUser.includes(w))) { resp = "🐶 ¡Claro que sí! Nuestros locales tienen terrazas Pet Friendly."; }
-                else if (["domicilio", "delivery", "llevar"].some(w => textUser.includes(w))) { resp = "🛵 Busca en UberEats o PedidosYa como 'La Costeñita'."; }
-                chatBox.innerHTML += `<div class="msg-bot">${resp}</div>`; chatBox.scrollTop = chatBox.scrollHeight;
-            }, 600);
-        }
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('App Registrada correctamente', reg.scope))
-                    .catch(err => console.log('Falló el registro de la App', err));
+                div.innerHTML = `
+                    <div style="position: relative;">
+                        ${badgeHTML}
+                        <img src="${producto.foto_url || 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'}" 
+                             style="width: 100%; height: 150px; object-fit: cover;">
+                    </div>
+                    <div style="padding: 15px;">
+                        <h4 style="margin: 0 0 5px 0;">${producto.nombre}</h4>
+                        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">${producto.descripcion || ''}</p>
+                        <p style="color: #e74c3c; font-weight: bold; font-size: 18px; margin-bottom: 10px;">$${Number(producto.precio).toFixed(2)}</p>
+                        <button onclick="agregarAlCarrito('${producto.id}', '${producto.nombre}', ${producto.precio})" 
+                                style="width: 100%; background: #005f73; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer;">
+                            + Añadir
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(div);
             });
+            seccion.appendChild(grid);
+            contenedor.appendChild(seccion);
+        });
+    }
+
+    // 3. LÓGICA DEL CARRITO
+    function agregarAlCarrito(id, nombre, precio) {
+        carrito.push({ id, nombre, precio: Number(precio) });
+        sessionStorage.setItem('carrito', JSON.stringify(carrito));
+        actualizarCarrito();
+    }
+
+    function actualizarCarrito() {
+        document.getElementById('contador-carrito').innerText = carrito.length;
+        const lista = document.getElementById('lista-carrito');
+        lista.innerHTML = '';
+        let total = 0;
+
+        carrito.forEach((item, index) => {
+            total += item.precio;
+            lista.innerHTML += `
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 5px 0;">
+                    <span>${item.nombre}</span>
+                    <span>$${item.precio.toFixed(2)} <button onclick="quitarDelCarrito(${index})" style="background:none; border:none; color:red; cursor:pointer;">✖</button></span>
+                </div>
+            `;
+        });
+        document.getElementById('total-carrito').innerText = total.toFixed(2);
+    }
+
+    function quitarDelCarrito(index) {
+        carrito.splice(index, 1);
+        sessionStorage.setItem('carrito', JSON.stringify(carrito));
+        actualizarCarrito();
+    }
+
+    function abrirCarrito() { document.getElementById('carrito-modal').style.display = 'block'; }
+    function cerrarCarrito() { document.getElementById('carrito-modal').style.display = 'none'; }
+
+    // 4. ENVÍO DEL PEDIDO
+    function enviarOrden() {
+        const nombre = document.getElementById('nombre-cliente').value;
+        if(!nombre) return alert("Por favor ingresa tu nombre.");
+
+        const pedidoCompleto = {
+            cliente: nombre,
+            reserva: reservaDatos,
+            items: carrito,
+            total: document.getElementById('total-carrito').innerText,
+            notas: document.getElementById('notas-pedido').value,
+            pago: document.getElementById('metodo-pago').value,
+            estado: "fantasma", // Pre-orden remota
+            horaRegistro: new Date().toLocaleTimeString('es-EC', { timeZone: 'America/Guayaquil' })
+        };
+
+        socket.emit('nuevo-pedido', pedidoCompleto);
+        
+        // Limpiar
+        sessionStorage.removeItem('carrito');
+        sessionStorage.removeItem('reservaDatos');
+        carrito = [];
+        actualizarCarrito();
+        cerrarCarrito();
+        
+        alert("¡Reserva y Pedido confirmados! Te esperamos en La Costeñita.");
+        window.location.reload();
+    }
+
+    // 5. CHATBOT INTELIGENTE
+    function toggleChat() {
+        const ventana = document.getElementById('chatbot-ventana');
+        const btn = document.getElementById('chatbot-btn');
+        if(ventana.style.display === 'none' || ventana.style.display === '') {
+            ventana.style.display = 'block';
+            btn.style.display = 'none';
+        } else {
+            ventana.style.display = 'none';
+            btn.style.display = 'flex';
         }
-    </script>
+    }
+
+    function mostrarMensajeBot(mensaje) {
+        const div = document.getElementById('chat-mensajes');
+        div.innerHTML += `<p><b>Bot:</b> ${mensaje}</p>`;
+        div.scrollTop = div.scrollHeight;
+    }
+
+    function enviarMensajeBot() {
+        const input = document.getElementById('chat-input-text');
+        const texto = input.value.toLowerCase();
+        if(!texto) return;
+
+        const div = document.getElementById('chat-mensajes');
+        div.innerHTML += `<p style="text-align: right; color: #005f73;"><b>Tú:</b> ${texto}</p>`;
+        input.value = "";
+
+        setTimeout(() => {
+            let respuesta = "Disculpa mi llave, no te entendí. ¿Me repites?";
+            if(texto.includes("hola") || texto.includes("buenos")) respuesta = "¡Hola! Bienvenido a La Costeñita. ¿Listo para un buen marisco?";
+            else if(texto.includes("horario") || texto.includes("hora")) respuesta = "Abrimos todos los días de 10:00 AM a 10:00 PM.";
+            else if(texto.includes("ubicacion") || texto.includes("direccion")) respuesta = "Estamos en Urdesa Central, Plaza Samborondón y Barrio del Centenario.";
+            else if(texto.includes("parqueo")) respuesta = "¡Claro! Nuestras tres sucursales cuentan con parqueo privado gratuito para clientes.";
+            
+            mostrarMensajeBot(respuesta);
+        }, 500);
+    }
+
+    // REGISTRO DEL SERVICE WORKER (PWA)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then(reg => {
+                console.log('Service Worker registrado con éxito', reg);
+            }).catch(err => {
+                console.warn('Error al registrar Service Worker', err);
+            });
+        });
+    }
+</script>
 </body>
 </html>
