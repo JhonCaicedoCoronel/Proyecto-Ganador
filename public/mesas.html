@@ -2,46 +2,43 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Monitor de Sala</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        // ESCUDO DE SEGURIDAD
-        if (!sessionStorage.getItem('usuarioLogueado')) {
-            window.top.location.href = '/login.html';
-        }
-    </script>
+    <title>Monitor de Mesas - J&J Foods</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1e222b; color: white; padding: 30px; margin: 0; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 25px; }
-        .box { background: #2f3542; padding: 20px; border-radius: 12px; text-align: center; border-top: 8px solid #2ed573; }
-        .box.disponible { border-top-color: #2ed573; }
-        .box.ocupada { border-top-color: #ff4757; }
-        .box.sucia { border-top-color: #ffa502; }
-        select { width: 100%; padding: 8px; background: #3d4452; color: white; border: none; border-radius: 4px; margin-top: 10px; font-weight: bold; }
+        body { font-family: Arial; background: #2c3e50; color: white; padding: 20px; }
+        .grid-mesas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+        .mesa { padding: 20px; border-radius: 10px; text-align: center; font-weight: bold; font-size: 18px; }
+        .disponible { background: #2ecc71; color: white; }
+        .reservada { background: #f1c40f; color: black; }
+        .ocupada { background: #e74c3c; color: white; }
     </style>
 </head>
 <body>
-    <h1 style="margin-bottom:25px; color:#e15f41;">🪑 Gestión Operativa de Sala</h1>
-    <div class="grid" id="mesas-box"></div>
+    <h1>🪑 Monitor de Salas (En Vivo)</h1>
+    <div id="contenedor-mesas" class="grid-mesas"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        socket.on('cargar-mesas-inicial', drawMesas); socket.on('mesas-actualizadas', drawMesas);
-        function drawMesas(mesas) {
-            const c = document.getElementById('mesas-box'); c.innerHTML = "";
+
+        window.onload = () => socket.emit('pedir-monitor-mesas');
+
+        // Escucha si alguien desde su celular reservó una mesa para actualizar la pantalla sola
+        socket.on('actualizar-monitor-mesas', () => socket.emit('pedir-monitor-mesas'));
+
+        socket.on('renderizar-mesas', (mesas) => {
+            const div = document.getElementById('contenedor-mesas');
+            div.innerHTML = '';
             mesas.forEach(m => {
-                c.innerHTML += `<div class="box ${m.estado}">
-                        <h3>Mesa ${m.numero}</h3>
-                        <p style="font-size:12px; color:#a4b0be; margin:5px 0;">📍 ${m.ubicacion}</p>
-                        <p style="font-size:12px; color:#ccc;">Capacidad: ${m.capacidad} pers.</p>
-                        <select onchange="updateMesa(${m.numero}, this.value)">
-                            <option value="disponible" ${m.estado==='disponible'?'selected':''}>🟢 Libre</option>
-                            <option value="ocupada" ${m.estado==='ocupada'?'selected':''}>🔴 Ocupada</option>
-                            <option value="sucia" ${m.estado==='sucia'?'selected':''}>🟡 Sucia</option>
-                        </select>
-                    </div>`;
+                let claseCSS = m.estado === 'Disponible' ? 'disponible' : (m.estado === 'Reservada' ? 'reservada' : 'ocupada');
+                div.innerHTML += `
+                    <div class="mesa ${claseCSS}">
+                        MESA ${m.numero}<br>
+                        <span style="font-size:12px;">Capacidad: ${m.capacidad} pax</span><br>
+                        <span style="font-size:14px; text-transform:uppercase;">${m.estado}</span>
+                    </div>
+                `;
             });
-        }
-        function updateMesa(n, est) { socket.emit('cambiar-estado-mesa', { numero: n, estado: est }); }
+        });
     </script>
 </body>
 </html>
