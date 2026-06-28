@@ -1,4 +1,3 @@
-// sockets/reservas.js
 const path = require('path');
 const supabase = require(path.join(__dirname, '../db'));
 
@@ -24,31 +23,19 @@ module.exports = (io, socket) => {
         }
     });
 
-    socket.on('marcar-salida-reserva', async (datos) => {
+    socket.on('verificar-disponibilidad', async (datos) => {
         try {
-            const { data: resSale } = await supabase.from('reservas').select('*').eq('id', datos.id).single();
-            if (!resSale) return;
-
-            const horaActual = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true });
-
-            await supabase.from('reservas').update({ estado: 'finalizada', hora_salida: horaActual }).eq('id', datos.id);
-            await supabase.from('mesas').update({ estado: 'sucia' }).eq('numero', datos.mesa_id);
-
-            const { data: reservasAfectadas } = await supabase.from('reservas').select('*')
-                .eq('sucursal', resSale.sucursal).eq('fecha', resSale.fecha).eq('hora', resSale.hora)
-                .eq('estado', 'activa').gt('turno_sala', resSale.turno_sala);
-
-            if (reservasAfectadas) {
-                for (const r of reservasAfectadas) {
-                    const nuevoTurno = r.turno_sala - 1;
-                    await supabase.from('reservas').update({ turno_sala: nuevoTurno }).eq('id', r.id);
-                    io.emit('notificacion-avance-turno', { idReserva: r.id, nuevoTurno: nuevoTurno });
-                }
+            const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
+            const { data: mesasDB } = await supabase.from('mesas').select('*');
+            const mesasLibres = (mesasDB || []).filter(m => !reservasDB.map(r => r.mesa_id).includes(m.numero) && m.capacidad >= parseInt(datos.personas));
+            
+            if (mesasLibres.length > 0) {
+                socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora, mesa: mesasLibres[0], sucursal: datos.sucursal });
+            } else {
+                socket.emit('resultado-disponibilidad', { disponible: false, alternativas: [] });
             }
-            const { data: nuevasMesas } = await supabase.from('mesas').select('*').order('numero', { ascending: true });
-            io.emit('mesas-actualizadas', nuevasMesas);
         } catch (err) {
-            console.error('Error al marcar salida:', err.message);
+            console.error('Error verificando disponibilidad:', err.message);
         }
     });
 };
