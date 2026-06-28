@@ -1,16 +1,17 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path'); // Importamos path para manejar rutas seguras
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { cors: { origin: "*" } });
 
-// Importación de módulos lógicos
-const manejarCocina = require('./sockets/cocina');
-const manejarReservas = require('./sockets/reservas');
-const supabase = require('../db');
+// Importación de módulos lógicos usando rutas absolutas para mayor seguridad
+const manejarCocina = require(path.join(__dirname, 'sockets/cocina'));
+const manejarReservas = require(path.join(__dirname, 'sockets/reservas'));
+const supabase = require(path.join(__dirname, 'db'));
 
 // Servir archivos estáticos
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Redirección raíz
 app.get('/', (req, res) => { res.redirect('/quiosco.html'); });
@@ -34,7 +35,7 @@ io.on('connection', async (socket) => {
     manejarCocina(io, socket);
     manejarReservas(io, socket);
 
-    // Eventos de sistema global (si los necesitas fuera de los módulos)
+    // Eventos globales remanentes
     socket.on('cambiar-estado-mesa', async (datos) => {
         try {
             await supabase.from('mesas').update({ estado: datos.estado }).eq('numero', datos.numero);

@@ -1,9 +1,8 @@
-// reservas.js
-const supabase = require('../db'); // El '../' es la clave: le dice "busca db.js en la carpeta de arriba"
+// sockets/reservas.js
+const path = require('path');
+const supabase = require(path.join(__dirname, '../db'));
 
 module.exports = (io, socket) => {
-    
-    // Consulta de disponibilidad con manejo de errores
     socket.on('consultar-horarios', async (datos) => {
         try {
             const personasRequeridas = parseInt(datos.personas) || 1;
@@ -11,8 +10,6 @@ module.exports = (io, socket) => {
                 .eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
             const { data: mesasDB } = await supabase.from('mesas').select('*');
             
-            // Lógica de cálculo de horarios (ya existente en tu sistema)
-            // Aquí se mantiene la integridad de tu cálculo original
             const horariosDisponibles = ["12:00", "13:00", "14:00", "15:00", "18:00", "19:00", "20:00", "21:00"];
             const horariosEstado = horariosDisponibles.map(hora => {
                 const reservasTurno = (reservasDB || []).filter(r => r.hora === hora);
@@ -27,7 +24,6 @@ module.exports = (io, socket) => {
         }
     });
 
-    // Gestión de salida de clientes (Avanzado: Automatiza el avance de turnos)
     socket.on('marcar-salida-reserva', async (datos) => {
         try {
             const { data: resSale } = await supabase.from('reservas').select('*').eq('id', datos.id).single();
@@ -38,7 +34,6 @@ module.exports = (io, socket) => {
             await supabase.from('reservas').update({ estado: 'finalizada', hora_salida: horaActual }).eq('id', datos.id);
             await supabase.from('mesas').update({ estado: 'sucia' }).eq('numero', datos.mesa_id);
 
-            // Notificar avance a siguientes turnos
             const { data: reservasAfectadas } = await supabase.from('reservas').select('*')
                 .eq('sucursal', resSale.sucursal).eq('fecha', resSale.fecha).eq('hora', resSale.hora)
                 .eq('estado', 'activa').gt('turno_sala', resSale.turno_sala);
@@ -50,11 +45,8 @@ module.exports = (io, socket) => {
                     io.emit('notificacion-avance-turno', { idReserva: r.id, nuevoTurno: nuevoTurno });
                 }
             }
-            
-            // Actualizar vista de mesas para administradores
             const { data: nuevasMesas } = await supabase.from('mesas').select('*').order('numero', { ascending: true });
             io.emit('mesas-actualizadas', nuevasMesas);
-            
         } catch (err) {
             console.error('Error al marcar salida:', err.message);
         }

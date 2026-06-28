@@ -1,8 +1,8 @@
-// cocina.js
-const supabase = require('../db'); // El '../' es la clave: le dice "busca db.js en la carpeta de arriba"
+// sockets/cocina.js
+const path = require('path');
+const supabase = require(path.join(__dirname, '../db'));
 
 module.exports = (io, socket) => {
-    // Escucha para obtener pedidos pendientes
     socket.on('obtener-pedidos-cocina', async () => {
         try {
             const { data: pedidosDB, error } = await supabase
@@ -24,14 +24,9 @@ module.exports = (io, socket) => {
         }
     });
 
-    // Escucha para despacho de platos
     socket.on('pedido-despachado-cocina', async (id) => {
         try {
-            const { error } = await supabase
-                .from('pedidos_cocina')
-                .update({ estado: 'entregado' })
-                .eq('id', id);
-            
+            const { error } = await supabase.from('pedidos_cocina').update({ estado: 'entregado' }).eq('id', id);
             if (error) throw error;
             io.emit('pedido-listo-retirar', id);
         } catch (err) {
