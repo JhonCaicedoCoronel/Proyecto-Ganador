@@ -3,38 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - La Costeñita</title>
+    <title>Panel de Control - La Costeñita</title>
+    <script>
+        // ESCUDO DE SEGURIDAD
+        if (!sessionStorage.getItem('usuarioLogueado') || sessionStorage.getItem('usuarioLogueado') !== 'admin') {
+            window.location.href = '/login.html';
+        }
+    </script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1e222b; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: white; }
-        .login-box { background: #2f3542; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-top: 5px solid #e15f41; width: 350px; }
-        input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 6px; border: none; font-size: 16px; text-align: center; background: #f4f6f8; }
-        button { background: #e15f41; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #c44527; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body, html { height: 100vh; overflow: hidden; background: #1e222b; }
+        
+        .admin-header { background: #2f3542; height: 70px; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10; position: relative; }
+        .logo-text { color: #e15f41; font-size: 22px; font-weight: bold; margin-right: 30px; letter-spacing: 1px; }
+        
+        .nav-links { display: flex; gap: 10px; }
+        .nav-btn { text-decoration: none; color: white; font-weight: bold; padding: 10px 18px; background: rgba(255,255,255,0.1); border-radius: 8px; transition: 0.2s; font-size: 14px; cursor: pointer; border: none; }
+        .nav-btn:hover { background: rgba(255,255,255,0.2); }
+        .nav-btn.activo { background: #e15f41; box-shadow: 0 2px 5px rgba(225,95,65,0.4); }
+        
+        .btn-quiosco { margin-left: auto; background: transparent; border: 2px solid #2ed573; color: #2ed573; }
+        .btn-quiosco:hover { background: #2ed573; color: #1e222b; }
+        
+        .btn-logout { background: #ff4757; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-left: 10px; transition: 0.2s;}
+        .btn-logout:hover { background: #c44527; }
+
+        #visor-central { width: 100%; height: calc(100vh - 70px); border: none; background: #f4f6f8; display: block; }
     </style>
 </head>
 <body>
-    <div class="login-box">
-        <h1 style="color: #e15f41; margin-bottom: 5px;">🌊 La Costeñita</h1>
-        <p style="color: #a4b0be; margin-bottom: 20px;">Acceso Seguro al Sistema</p>
-        <input type="password" id="pin" placeholder="Ingresa tu PIN" onkeypress="if(event.key === 'Enter') login()">
-        <button onclick="login()">Ingresar</button>
-        <p id="error-msg" style="color: #ff4757; font-size: 13px; margin-top: 15px; display: none;">PIN incorrecto. Intenta nuevamente.</p>
-    </div>
+    <header class="admin-header">
+        <div class="logo-text">🌊 ADMIN COSTEÑITA</div>
+        <nav class="nav-links">
+            <a href="/editor.html" target="visor-central" class="nav-btn activo" onclick="cambiarPestana(this)">🍔 Menú</a>
+            <a href="/mesas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">🪑 Mesas</a>
+            <a href="/cocina.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">👨‍🍳 Cocina</a>
+            <a href="/historial.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📈 Ventas</a>
+            <a href="/reservas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📅 Reservas</a>
+        </nav>
+        <a href="/quiosco.html" target="_blank" class="nav-btn btn-quiosco">👀 Simular Cliente ↗</a>
+        <button class="btn-logout" onclick="cerrarSesion()">Salir 🚪</button>
+    </header>
+
+    <iframe name="visor-central" id="visor-central" src="/editor.html"></iframe>
+
     <script>
-        function login() {
-            const pin = document.getElementById('pin').value;
-            // PIN de Admin/Cajero = admin123
-            if (pin === 'admin123') {
-                sessionStorage.setItem('usuarioLogueado', 'admin');
-                window.location.href = '/admin.html';
-            } 
-            // PIN del Cocinero = chef123
-            else if (pin === 'chef123') {
-                sessionStorage.setItem('usuarioLogueado', 'cocina');
-                window.location.href = '/cocina.html';
-            } else {
-                document.getElementById('error-msg').style.display = 'block';
-            }
+        function cambiarPestana(elementoClicado) {
+            let botones = document.querySelectorAll('.nav-btn:not(.btn-quiosco)');
+            botones.forEach(btn => btn.classList.remove('activo'));
+            elementoClicado.classList.add('activo');
+        }
+        function cerrarSesion() {
+            sessionStorage.removeItem('usuarioLogueado');
+            window.location.href = '/login.html';
         }
     </script>
 </body>
