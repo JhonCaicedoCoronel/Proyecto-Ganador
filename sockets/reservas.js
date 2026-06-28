@@ -1,5 +1,5 @@
 // reservas.js
-const supabase = require('./db');
+const supabase = require('../db'); // El '../' es la clave: le dice "busca db.js en la carpeta de arriba"
 
 module.exports = (io, socket) => {
     

@@ -5,9 +5,9 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http, { cors: { origin: "*" } });
 
 // Importación de módulos lógicos
-const manejarCocina = require('./cocina.js');
-const manejarReservas = require('./reservas.js');
-const supabase = require('./db');
+const manejarCocina = require('./sockets/cocina');
+const manejarReservas = require('./sockets/reservas');
+const supabase = require('../db');
 
 // Servir archivos estáticos
 app.use(express.static('public'));
