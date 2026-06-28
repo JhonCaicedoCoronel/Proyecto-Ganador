@@ -216,9 +216,7 @@
     </div>
 
     <script>
-        const socket = io(window.location.origin, {
-            transports: ['websocket', 'polling']
-        });
+        const socket = io();
         let productos = []; let carrito = [];
         let datosReservaConfirmada = {}; let ultimoNombreCliente = "";
         let miIdReserva = null; let categoriaFiltroActiva = "Todas";

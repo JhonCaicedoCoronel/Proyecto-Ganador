@@ -12,12 +12,23 @@ const manejarReservas = require(path.join(__dirname, 'sockets/reservas'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', async (socket) => {
+    console.log(`Cliente conectado: ${socket.id}`);
+
+    try {
+        // Carga forzada de tablas necesarias para la interfaz
+        const { data: menu } = await supabase.from('menu').select('*');
+        const { data: mesas } = await supabase.from('mesas').select('*');
+        
+        // Enviamos los datos específicamente al socket que acaba de entrar
+        socket.emit('cargar-menu-inicial', menu || []);
+        socket.emit('cargar-mesas-inicial', mesas || []);
+    } catch (err) {
+        console.error('❌ Error fatal en carga inicial:', err.message);
+    }
+
+    // Luego delegamos los sockets
     manejarCocina(io, socket);
     manejarReservas(io, socket);
-
-    // Carga inicial
-    const { data: mesas } = await supabase.from('mesas').select('*');
-    socket.emit('cargar-mesas-inicial', mesas || []);
 });
 
 const PORT = process.env.PORT || 3090;
