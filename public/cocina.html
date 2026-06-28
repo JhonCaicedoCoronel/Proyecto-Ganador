@@ -2,239 +2,65 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KDS Cocina | J&J Foods</title>
-    
+    <title>KDS - La Costeñita</title>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        if(sessionStorage.getItem('admin_auth') !== 'true') {
-            window.location.href = 'login.html';
+        // ESCUDO DE SEGURIDAD PARA CHEFS Y ADMINS
+        if (!sessionStorage.getItem('usuarioLogueado')) {
+            window.top.location.href = '/login.html';
         }
     </script>
-
-    <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #1e272e; color: #f1f2f6; padding: 20px; height: 100vh; overflow-y: auto; }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #ff4757;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-        .header h1 { font-size: 24px; color: #ffffff; }
-        .reloj { font-size: 24px; font-weight: bold; color: #55efc4; }
-
-        .grid-pedidos {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        /* Tarjeta de Pedido Normal */
-        .tarjeta {
-            background: #2f3542;
-            border: 2px solid #57606f;
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            position: relative;
-            transition: all 0.3s ease;
-        }
-
-        /* 👻 Tarjeta de Pedido Fantasma / Pre-orden */
-        .tarjeta.fantasma {
-            background: #3c0c4a;
-            border: 2px dashed #a55eea;
-            box-shadow: 0 0 15px rgba(165, 94, 234, 0.4);
-            animation: latido 2s infinite;
-        }
-        @keyframes latido {
-            0% { box-shadow: 0 0 10px rgba(165, 94, 234, 0.2); }
-            50% { box-shadow: 0 0 20px rgba(165, 94, 234, 0.8); }
-            100% { box-shadow: 0 0 10px rgba(165, 94, 234, 0.2); }
-        }
-
-        .tarjeta-header {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-        .cliente-info h2 { font-size: 18px; color: #ff4757; margin-bottom: 5px; text-transform: uppercase; }
-        .sucursal-badge {
-            background: #0984e3;
-            color: white;
-            font-size: 12px;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-weight: bold;
-        }
-        
-        .items-lista { flex: 1; list-style: none; margin-bottom: 15px; font-size: 16px; }
-        .items-lista li { padding: 5px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); }
-        .items-lista li:last-child { border-bottom: none; }
-
-        .alerta-fantasma {
-            background: #a55eea;
-            color: white;
-            text-align: center;
-            font-weight: bold;
-            padding: 5px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .btn-despachar {
-            background: #2ed573;
-            color: #2f3542;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            transition: 0.2s;
-        }
-        .btn-despachar:hover { background: #7bed9f; }
-        .btn-despachar:active { transform: scale(0.98); }
-
-        .nota-pago {
-            font-size: 13px;
-            text-align: center;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        .pago-efectivo { color: #ffa502; }
-        .pago-tarjeta { color: #2ed573; }
-        .solo-reserva { background: #747d8c; text-align: center; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-weight: bold; }
-
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1e222b; color: white; padding: 20px; margin: 0; }
+        .header-kds { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-historial { background: #57606f; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; border: none; cursor: pointer; }
+        .grid-kds { display: flex; flex-wrap: wrap; gap: 20px; }
+        .card-kds { background: #2f3542; padding: 15px; border-radius: 12px; width: 330px; border-left: 8px solid #a8a8ff; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; flex-direction: column; justify-content: space-between;}
+        .mesa-badge { background: #e15f41; color: white; padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 15px; }
+        .sucursal-txt { display: block; font-size: 11px; font-weight: normal; margin-top: 3px; color: #f1f2f6; text-transform: uppercase; }
+        .v-turno { background: #2ed573; color: #1e222b; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 16px; }
+        .btn-ready { background: #2ed573; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 15px; transition: 0.2s; }
+        .btn-ready:hover { background: #26af5f; }
     </style>
 </head>
 <body>
-
-    <div id="pantalla-bloqueo" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; display:flex; justify-content:center; align-items:center; cursor:pointer;" onclick="iniciarCocina()">
-        <h1 style="color:white; text-align:center;">👨‍🍳 Clic aquí para Iniciar Panel de Cocina<br><span style="font-size:16px; color:#a4b0be;">(Necesario para activar el sonido de alertas)</span></h1>
+    <div class="header-kds">
+        <h1 style="margin: 0; color: #e15f41;">👨‍🍳 KDS - Órdenes en Vivo</h1>
+        <a href="/historial.html" class="btn-historial">Ver Historial de Hoy 📊</a>
     </div>
-
-    <div class="header">
-        <h1>👨‍🍳 KDS - Monitor de Cocina</h1>
-        <div class="reloj" id="relojLocal">00:00:00</div>
-    </div>
-
-    <div class="grid-pedidos" id="contenedorPedidos">
-        </div>
+    <div class="grid-kds" id="kds-contenedor"></div>
 
     <script>
-        const socket = io();
-        const contenedor = document.getElementById('contenedorPedidos');
-        
-        // Sonido de campana para nuevos pedidos
-        const sonidoAlerta = new Audio('https://actions.google.com/sounds/v1/alarms/dinner_bell_triangle.ogg');
+        const socket = io(); const cont = document.getElementById('kds-contenedor');
+        function pedirDatosCocina() { socket.emit('obtener-pedidos-cocina'); }
+        socket.on('connect', pedirDatosCocina);
+        socket.on('cargar-pedidos-cocina', (pedidos) => { cont.innerHTML = ""; pedidos.forEach(p => renderizarTarjeta(p, false)); });
+        socket.on('notificar-cocina', (p) => { renderizarTarjeta(p, true); });
 
-        // Reloj en tiempo real
-        setInterval(() => {
-            document.getElementById('relojLocal').innerText = new Date().toLocaleTimeString('es-EC', { timeZone: 'America/Guayaquil' });
-        }, 1000);
-
-        function iniciarCocina() {
-            document.getElementById('pantalla-bloqueo').style.display = 'none';
-            // Al hacer clic, pedimos a Supabase a través del server que nos mande las órdenes pendientes
-            socket.emit('pedir-historial-pendientes');
-        }
-
-        // 📥 RECIBIR TODOS LOS PEDIDOS (Al reiniciar pantalla)
-        socket.on('cargar-pedidos-cocina', (pedidos) => {
-            contenedor.innerHTML = '';
-            pedidos.forEach(p => dibujarTarjeta(p));
-        });
-
-        // 📥 RECIBIR UN PEDIDO NUEVO EN TIEMPO REAL
-        socket.on('notificar-cocina', (pedido) => {
-            dibujarTarjeta(pedido);
-            sonidoAlerta.play().catch(e => console.log("Sonido bloqueado por el navegador"));
-        });
-
-        function dibujarTarjeta(pedido) {
-            // Validar que la tarjeta no exista ya en pantalla
-            if(document.getElementById(`pedido-${pedido.id}`)) return;
-
-            const div = document.createElement('div');
-            div.className = `tarjeta ${pedido.estado === 'fantasma' ? 'fantasma' : ''}`;
-            div.id = `pedido-${pedido.id}`;
-
-            // Etiqueta Fantasma
-            let etiquetaFantasma = '';
-            if(pedido.estado === 'fantasma') {
-                etiquetaFantasma = `<div class="alerta-fantasma">👻 PRE-ORDEN EN CAMINO</div>`;
-            }
-
-            // Etiqueta de Pago / Reserva
-            let etiquetaPago = '';
-            if(pedido.tipo_orden === 'solo_reserva') {
-                etiquetaPago = `<div class="solo-reserva">🪑 Solo Reserva de Mesa (Sin Comida)</div>`;
-            } else {
-                if(pedido.pago === 'efectivo') {
-                    etiquetaPago = `<div class="nota-pago pago-efectivo">💵 Pago Pendiente en Caja</div>`;
-                } else {
-                    etiquetaPago = `<div class="nota-pago pago-tarjeta">💳 Pagado con Tarjeta</div>`;
-                }
-            }
-
-            // Lista de Platos
-            let listaItems = '';
-            if(pedido.items && pedido.items.length > 0) {
-                pedido.items.forEach(item => {
-                    listaItems += `<li>• ${item.nombre}</li>`;
-                });
-            }
+        function renderizarTarjeta(p, esNuevo) {
+            if(document.getElementById(`kds-${p.id}`)) return;
+            const div = document.createElement('div'); div.id = `kds-${p.id}`; div.className = "card-kds";
+            const numMesa = p.datosReserva ? p.datosReserva.mesa.numero : "Barra";
+            const sucursal = p.datosReserva ? p.datosReserva.sucursal : "Local Principal";
 
             div.innerHTML = `
-                ${etiquetaFantasma}
-                <div class="tarjeta-header">
-                    <div class="cliente-info">
-                        <h2>${pedido.cliente || 'Cliente Anónimo'}</h2>
-                        <span class="sucursal-badge">📍 ${pedido.sucursal || 'General'}</span>
+                <div>
+                    <div class="mesa-badge">📍 MESA #${numMesa} <span class="sucursal-txt">🏢 SUCURSAL: ${sucursal}</span></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #4b5261; padding-bottom:8px;">
+                        <span class="v-turno">TURNO #${p.turnoFila}</span>
+                        <span style="font-size: 13px; color: #a4b0be;">🗓️ ${p.horaLlegadaEstimada}</span>
                     </div>
-                    <div style="text-align:right; font-size:12px; color:#a4b0be;">
-                        ${pedido.horaRegistro || 'Reciente'}
+                    <p style="margin:12px 0 5px 0; font-size: 16px;"><strong>Cliente:</strong> ${p.cliente}</p>
+                    <div style="font-size:12px; color:#cbd5e1;">${p.estadoCocinaTexto}</div>
+                    <div style="background:#1e222b; padding:15px; border-radius:8px; margin:15px 0; font-size:16px; font-weight:bold; color: #2ed573; border: 1px solid #4b5261;">
+                        📝 ORDEN:<br><span style="color:white; display:block; margin-top:8px;">${p.item}</span>
                     </div>
                 </div>
-                
-                <ul class="items-lista">
-                    ${listaItems}
-                </ul>
-
-                ${etiquetaPago}
-                
-                <button class="btn-despachar" onclick="despacharPedido('${pedido.id}', this)">
-                    ✓ Despachar
-                </button>
-            `;
-            
-            contenedor.appendChild(div);
+                <div><button class="btn-ready" onclick="despachar(${p.id})">✓ Plato Listo / Despachado</button></div>`;
+            if (esNuevo) new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(() => {});
+            esNuevo ? cont.prepend(div) : cont.appendChild(div);
         }
-
-        // 🚀 MARCAR COMO ENTREGADO
-        function despacharPedido(id, botonElement) {
-            // Efecto visual de desvanecimiento
-            const tarjeta = botonElement.closest('.tarjeta');
-            tarjeta.style.opacity = '0';
-            tarjeta.style.transform = 'scale(0.9)';
-            
-            setTimeout(() => {
-                tarjeta.remove();
-                // Enviar aviso al servidor para actualizar base de datos
-                socket.emit('pedido-entregado', id);
-            }, 300);
-        }
+        function despachar(id) { const el = document.getElementById(`kds-${id}`); if(el) { el.remove(); socket.emit('pedido-despachado-cocina', id); } }
     </script>
 </body>
 </html>

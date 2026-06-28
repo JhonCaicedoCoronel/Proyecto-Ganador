@@ -3,125 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Maestro | J&J Foods</title>
-    
+    <title>Panel de Control - La Costeñita</title>
     <script>
-        // Si el usuario no tiene el ticket del PIN, lo patea de vuelta al login
-        if(sessionStorage.getItem('admin_auth') !== 'true') {
-            window.location.href = 'login.html';
+        // ESCUDO DE SEGURIDAD
+        if (!sessionStorage.getItem('usuarioLogueado') || sessionStorage.getItem('usuarioLogueado') !== 'admin') {
+            window.location.href = '/login.html';
         }
     </script>
-
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        body {
-            background-color: #1e272e;
-            overflow: hidden; /* Evita doble scroll */
-        }
-        /* Barra de Navegación Superior */
-        .navbar {
-            background-color: #2f3542;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            height: 70px;
-        }
-        .brand {
-            font-size: 22px;
-            font-weight: bold;
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .brand span {
-            color: #ff4757;
-        }
-        .nav-links {
-            display: flex;
-            gap: 10px;
-        }
-        .nav-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        /* Pestaña Activa resaltada en rojo */
-        .nav-btn.active {
-            background: #ff4757;
-            box-shadow: 0 4px 10px rgba(255, 71, 87, 0.4);
-        }
-        .logout-btn {
-            background: transparent;
-            border: 2px solid #ff4757;
-            color: #ff4757;
-            margin-left: 15px;
-        }
-        .logout-btn:hover {
-            background: #ff4757;
-            color: white;
-        }
-        /* El Marco Central (Iframe) */
-        iframe {
-            width: 100%;
-            height: calc(100vh - 70px); /* Ocupa todo el alto menos la barra */
-            border: none;
-            background-color: #f1f2f6;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body, html { height: 100vh; overflow: hidden; background: #1e222b; }
+        
+        .admin-header { background: #2f3542; height: 70px; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10; position: relative; }
+        .logo-text { color: #e15f41; font-size: 22px; font-weight: bold; margin-right: 30px; letter-spacing: 1px; }
+        
+        .nav-links { display: flex; gap: 10px; }
+        .nav-btn { text-decoration: none; color: white; font-weight: bold; padding: 10px 18px; background: rgba(255,255,255,0.1); border-radius: 8px; transition: 0.2s; font-size: 14px; cursor: pointer; border: none; }
+        .nav-btn:hover { background: rgba(255,255,255,0.2); }
+        .nav-btn.activo { background: #e15f41; box-shadow: 0 2px 5px rgba(225,95,65,0.4); }
+        
+        .btn-quiosco { margin-left: auto; background: transparent; border: 2px solid #2ed573; color: #2ed573; }
+        .btn-quiosco:hover { background: #2ed573; color: #1e222b; }
+        
+        .btn-logout { background: #ff4757; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-left: 10px; transition: 0.2s;}
+        .btn-logout:hover { background: #c44527; }
+
+        #visor-central { width: 100%; height: calc(100vh - 70px); border: none; background: #f4f6f8; display: block; }
     </style>
 </head>
 <body>
+    <header class="admin-header">
+        <div class="logo-text">🌊 ADMIN COSTEÑITA</div>
+        <nav class="nav-links">
+            <a href="/editor.html" target="visor-central" class="nav-btn activo" onclick="cambiarPestana(this)">🍔 Menú</a>
+            <a href="/mesas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">🪑 Mesas</a>
+            <a href="/cocina.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">👨‍🍳 Cocina</a>
+            <a href="/historial.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📈 Ventas</a>
+            <a href="/reservas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📅 Reservas</a>
+        </nav>
+        <a href="/quiosco.html" target="_blank" class="nav-btn btn-quiosco">👀 Simular Cliente ↗</a>
+        <button class="btn-logout" onclick="cerrarSesion()">Salir 🚪</button>
+    </header>
 
-    <div class="navbar">
-        <div class="brand">👑 <span>J&J ADMIN</span></div>
-        <div class="nav-links">
-            <button class="nav-btn active" onclick="cargarVista('editor.html', this)">📝 Editor de Menú</button>
-            <button class="nav-btn" onclick="cargarVista('reservas.html', this)">📅 Libro de Reservas</button>
-            <button class="nav-btn" onclick="cargarVista('mesas.html', this)">🪑 Monitor de Mesas</button>
-            <button class="nav-btn" onclick="cargarVista('cocina.html', this)">👨‍🍳 Pantalla Cocina</button>
-            <button class="nav-btn" onclick="cargarVista('historial.html', this)">📈 Historial Ventas</button>
-            <button class="nav-btn logout-btn" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
-        </div>
-    </div>
-
-    <iframe id="visor" src="editor.html"></iframe>
+    <iframe name="visor-central" id="visor-central" src="/editor.html"></iframe>
 
     <script>
-        // Función para cambiar de pantalla dentro del marco y pintar el botón activo
-        function cargarVista(url, botonElement) {
-            // Cambia el enlace del iframe
-            document.getElementById('visor').src = url;
-            
-            // Quita el color rojo (active) de todos los botones
-            const botones = document.querySelectorAll('.nav-btn');
-            botones.forEach(btn => btn.classList.remove('active'));
-            
-            // Le pone el color rojo solo al botón que acabas de presionar
-            if(botonElement) {
-                botonElement.classList.add('active');
-            }
+        function cambiarPestana(elementoClicado) {
+            let botones = document.querySelectorAll('.nav-btn:not(.btn-quiosco)');
+            botones.forEach(btn => btn.classList.remove('activo'));
+            elementoClicado.classList.add('activo');
         }
-
-        // Función para destruir el ticket de seguridad y salir
         function cerrarSesion() {
-            sessionStorage.removeItem('admin_auth');
-            window.location.href = 'login.html';
+            sessionStorage.removeItem('usuarioLogueado');
+            window.location.href = '/login.html';
         }
     </script>
 </body>
