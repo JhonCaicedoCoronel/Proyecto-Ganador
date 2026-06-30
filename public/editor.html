@@ -68,20 +68,13 @@
                         <option value="Tongas">Tongas</option>
                     </select>
                 </div>
-                <div class="form-grupo">
-                    <label>Sucursal</label>
-                    <select id="prod-sucursal">
-                        <option value="Todas">Todas las sucursales</option>
-                        <option value="Urdesa">Urdesa</option>
-                        <option value="Samborondón">Samborondón</option>
-                        <option value="Sur">Sur</option>
-                    </select>
-                </div>
                 <div class="form-grupo"><label>URL de Imagen</label><input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg"></div>
+                <div class="form-grupo completo"><label>Descripción / Detalles del Plato</label><input type="text" id="prod-descripcion" placeholder="Ej. Con chicharrón, queso manaba y huevo frito..."></div>
+                
                 <div class="form-grupo completo">
                     <label>📍 Sucursales donde está disponible (Puedes elegir varias)</label>
                     <div id="prod-sucursales" style="display: flex; gap: 15px; background: #fcfcfc; padding: 12px; border: 1px solid #ced4da; border-radius: 6px;">
-                        <label style="cursor: pointer; font-weight: normal;"><input type="checkbox" value="Todas" onchange="toggleTodas(this)"> Todas</label>
+                        <label style="cursor: pointer; font-weight: normal;"><input type="checkbox" value="Todas" id="cb-todas" onchange="toggleTodas(this)"> Todas</label>
                         <label style="cursor: pointer; font-weight: normal;"><input type="checkbox" value="Urdesa" class="sucursal-cb"> Urdesa</label>
                         <label style="cursor: pointer; font-weight: normal;"><input type="checkbox" value="Samborondón" class="sucursal-cb"> Samborondón</label>
                         <label style="cursor: pointer; font-weight: normal;"><input type="checkbox" value="Sur" class="sucursal-cb"> Sur</label>
@@ -124,6 +117,33 @@
             });
         }
 
+        function toggleTodas(checkbox) {
+            if (checkbox.checked) {
+                document.querySelectorAll('.sucursal-cb').forEach(cb => cb.checked = false);
+            }
+        }
+
+        function obtenerSucursales() {
+            const cbTodas = document.getElementById('cb-todas');
+            if (cbTodas && cbTodas.checked) return 'Todas';
+            
+            const seleccionadas = Array.from(document.querySelectorAll('.sucursal-cb:checked')).map(cb => cb.value);
+            return seleccionadas.length > 0 ? seleccionadas.join(',') : 'Todas';
+        }
+
+        function setearSucursales(valor) {
+            document.querySelectorAll('#prod-sucursales input[type="checkbox"]').forEach(cb => cb.checked = false);
+            if (!valor || valor === 'Todas') {
+                document.getElementById('cb-todas').checked = true;
+            } else {
+                const valores = valor.split(',');
+                valores.forEach(v => {
+                    const cb = document.querySelector(`input[value="${v.trim()}"]`);
+                    if(cb) cb.checked = true;
+                });
+            }
+        }
+
         function cargarModoEdicion(id) {
             const producto = cacheProductos.find(x => x.id === id); if(!producto) return;
             idEdicion = producto.id; 
@@ -134,7 +154,6 @@
             document.getElementById('prod-img').value = producto.img;
             document.getElementById('prod-descripcion').value = producto.descripcion || '';
             
-            // 👇 NUEVO: Marcamos las casillas correctas al editar
             setearSucursales(producto.sucursal);
             
             document.getElementById('caja-formulario').classList.add('modo-edicion');
@@ -147,7 +166,6 @@
             document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-cat').value = 'Combos'; 
             document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = '';
             
-            // 👇 NUEVO: Reiniciamos a "Todas" por defecto
             setearSucursales('Todas');
             
             document.getElementById('caja-formulario').classList.remove('modo-edicion');
@@ -160,11 +178,8 @@
             const precio = parseFloat(document.getElementById('prod-precio').value);
             const category = document.getElementById('prod-cat').value; 
             const descripcion = document.getElementById('prod-descripcion').value.trim();
+            const sucursal = obtenerSucursales(); 
             let img = document.getElementById('prod-img').value.trim();
-            
-            // 👇 NUEVO: Obtenemos el texto de las casillas ("Urdesa,Sur")
-            const sucursal = obtenerSucursales();
-            console.log("Enviando al servidor -> Sucursales elegidas:", sucursal);
 
             if (img && !img.startsWith('http')) { alert("⚠️ La URL de la imagen debe empezar con http:// o https://"); return; }
             img = img || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
@@ -178,39 +193,7 @@
                 socket.emit('agregar-nuevo-producto', { nombre, precio, category, img, descripcion, sucursal }); 
                 document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; 
                 document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = ''; 
-                setearSucursales('Todas'); // Reiniciamos los checkboxes tras agregar
-            }
-        }
-
-        function eliminarProducto(id) { if(confirm("¿Seguro que deseas eliminar este producto?")) socket.emit('eliminar-producto', id); }
-
-        // Función para que si marcan "Todas", se desmarquen las individuales y viceversa
-        function toggleTodas(checkbox) {
-            if (checkbox.checked) {
-                document.querySelectorAll('.sucursal-cb').forEach(cb => cb.checked = false);
-            }
-        }
-
-        // Lee los checkboxes y los convierte en un texto: "Urdesa,Sur"
-        function obtenerSucursales() {
-            const cbTodas = document.querySelector('input[value="Todas"]');
-            if (cbTodas.checked) return 'Todas';
-            
-            const seleccionadas = Array.from(document.querySelectorAll('.sucursal-cb:checked')).map(cb => cb.value);
-            return seleccionadas.length > 0 ? seleccionadas.join(',') : 'Todas';
-        }
-
-        // Toma el texto "Urdesa,Sur" de la BD y marca los checkboxes correspondientes
-        function setearSucursales(valor) {
-            document.querySelectorAll('#prod-sucursales input[type="checkbox"]').forEach(cb => cb.checked = false);
-            if (!valor || valor === 'Todas') {
-                document.querySelector('input[value="Todas"]').checked = true;
-            } else {
-                const valores = valor.split(',');
-                valores.forEach(v => {
-                    const cb = document.querySelector(`input[value="${v.trim()}"]`);
-                    if(cb) cb.checked = true;
-                });
+                setearSucursales('Todas'); 
             }
         }
 

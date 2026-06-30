@@ -363,7 +363,12 @@
             productos = data; 
             if(pantallaActual === 'menu') { dibujarBotonesFiltro(); aplicarFiltros(); }
         });
-        
+
+        socket.on('menu-actualizado-completo', (data) => { 
+            productos = data; 
+            if(pantallaActual === 'menu') { dibujarBotonesFiltro(); aplicarFiltros(); }
+        });
+
         function verificarDisponibilidad() {
             const fecha = document.getElementById('res-fecha').value; const hora = document.getElementById('res-hora').value; const pax = document.getElementById('res-pax').value; const sucursal = document.getElementById('res-sucursal').value;
             if(!fecha || !hora) return alert("Selecciona una fecha y hora válidas."); socket.emit('verificar-disponibilidad', { fecha, hora, personas: pax, sucursal });
@@ -423,14 +428,10 @@
         }
 
         function dibujarBotonesFiltro() {
-            // 1. Obtenemos la sucursal de forma segura
             const sucursalElegida = (datosReservaConfirmada && datosReservaConfirmada.sucursal) ? datosReservaConfirmada.sucursal : "Todas";
             
-            // 2. Filtro a prueba de errores
             const productosPermitidos = productos.filter(p => {
-                // Si el plato es para todas, no tiene sucursal, o el cliente aún no elige sucursal -> Mostrar
                 if (!p.sucursal || p.sucursal === "Todas" || sucursalElegida === "Todas") return true;
-                // Si no, verificamos que el texto del plato incluya la sucursal elegida
                 return String(p.sucursal).includes(sucursalElegida);
             });
             
@@ -450,8 +451,6 @@
             const sucursalElegida = (datosReservaConfirmada && datosReservaConfirmada.sucursal) ? datosReservaConfirmada.sucursal : "Todas";
 
             const filtered = productos.filter(p => { 
-                
-                // Filtro 1: Sucursal (Blindado)
                 let passSucursal = false;
                 if (!p.sucursal || p.sucursal === "Todas" || sucursalElegida === "Todas") {
                     passSucursal = true;
@@ -459,10 +458,7 @@
                     passSucursal = String(p.sucursal).includes(sucursalElegida);
                 }
                 
-                // Filtro 2: Categoría
                 const passCat = (categoriaFiltroActiva === "Todas") || (p.category === categoriaFiltroActiva); 
-                
-                // Filtro 3: Texto de búsqueda
                 const passText = p.nombre.toLowerCase().includes(text) || (p.descripcion || "").toLowerCase().includes(text); 
                 
                 return passSucursal && passCat && passText; 
