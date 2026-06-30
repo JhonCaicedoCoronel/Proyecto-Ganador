@@ -68,6 +68,15 @@
                         <option value="Tongas">Tongas</option>
                     </select>
                 </div>
+                <div class="form-grupo">
+                    <label>Sucursal</label>
+                    <select id="prod-sucursal">
+                        <option value="Todas">Todas las sucursales</option>
+                        <option value="Urdesa">Urdesa</option>
+                        <option value="Samborondón">Samborondón</option>
+                        <option value="Sur">Sur</option>
+                    </select>
+                </div>
                 <div class="form-grupo"><label>URL de Imagen</label><input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg"></div>
                 <div class="form-grupo completo"><label>Descripción / Detalles del Plato</label><input type="text" id="prod-descripcion" placeholder="Ej. Con chicharrón, queso manaba y huevo frito..."></div>
             </div>
@@ -120,6 +129,7 @@
             document.getElementById('caja-formulario').classList.add('modo-edicion');
             const btnAccion = document.getElementById('btn-accion'); btnAccion.innerHTML = "💾 Guardar Cambios"; btnAccion.style.background = "#ffa502";
             document.getElementById('btn-cancelar').style.display = "block"; window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('prod-sucursal').value = producto.sucursal || 'Todas';
         }
 
         function cancelarEdicion() {
@@ -129,34 +139,29 @@
             document.getElementById('caja-formulario').classList.remove('modo-edicion');
             const btnAccion = document.getElementById('btn-accion'); btnAccion.innerHTML = "Guardar y Publicar 🚀"; btnAccion.style.background = "#0a3d62";
             document.getElementById('btn-cancelar').style.display = "none";
+            document.getElementById('prod-sucursal').value = 'Todas';
         }
 
         function guardarProducto() {
             const nombre = document.getElementById('prod-nombre').value.trim(); 
             const precio = parseFloat(document.getElementById('prod-precio').value);
             const category = document.getElementById('prod-cat').value; 
+            const sucursal = document.getElementById('prod-sucursal').value; // <-- NUEVO
             const descripcion = document.getElementById('prod-descripcion').value.trim();
             let img = document.getElementById('prod-img').value.trim();
 
-            // Nueva validación para asegurar rutas absolutas
-            if (img && !img.startsWith('http')) {
-                alert("⚠️ La URL de la imagen debe empezar con http:// o https://");
-                return;
-            }
-            
+            if (img && !img.startsWith('http')) { alert("⚠️ La URL de la imagen debe empezar con http:// o https://"); return; }
             img = img || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
             
             if (!nombre || isNaN(precio)) return alert("⚠️ Completa Nombre y Precio.");
             
             if (idEdicion !== null) { 
-                socket.emit('editar-producto', { id: idEdicion, nombre, precio, category, img, descripcion }); 
+                socket.emit('editar-producto', { id: idEdicion, nombre, precio, category, img, descripcion, sucursal }); 
                 cancelarEdicion(); 
             } else { 
-                socket.emit('agregar-nuevo-producto', { nombre, precio, category, img, descripcion }); 
-                document.getElementById('prod-nombre').value = ''; 
-                document.getElementById('prod-precio').value = ''; 
-                document.getElementById('prod-img').value = ''; 
-                document.getElementById('prod-descripcion').value = ''; 
+                socket.emit('agregar-nuevo-producto', { nombre, precio, category, img, descripcion, sucursal }); 
+                document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; 
+                document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = ''; 
             }
         }
 

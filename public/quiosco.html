@@ -423,15 +423,40 @@
         }
 
         function dibujarBotonesFiltro() {
-            const cont = document.getElementById('botones-categorias'); cont.innerHTML = `<button class="btn-filtro ${categoriaFiltroActiva === 'Todas' ? 'activo' : ''}" onclick="filtrarCategoria('Todas')">Todas</button>`;
-            const categories = [...new Set(productos.map(p => p.category))];
-            categories.forEach(cat => { cont.innerHTML += `<button class="btn-filtro ${categoriaFiltroActiva === cat ? 'activo' : ''}" onclick="filtrarCategoria('${cat}')">${cat}</button>`; });
+            // 1. Averiguamos qué sucursal eligió el cliente
+            const sucursalElegida = datosReservaConfirmada.sucursal || "Todas";
+            
+            // 2. Filtramos la base de datos para que solo considere platos de esa sucursal (o los compartidos)
+            const productosPermitidos = productos.filter(p => (!p.sucursal || p.sucursal === "Todas" || p.sucursal === sucursalElegida));
+            
+            const cont = document.getElementById('botones-categorias'); 
+            cont.innerHTML = `<button class="btn-filtro ${categoriaFiltroActiva === 'Todas' ? 'activo' : ''}" onclick="filtrarCategoria('Todas')">Todas</button>`;
+            
+            // 3. Generamos los botones SOLO de las categorías que existan en esta sucursal
+            const categories = [...new Set(productosPermitidos.map(p => p.category))];
+            categories.forEach(cat => { 
+                cont.innerHTML += `<button class="btn-filtro ${categoriaFiltroActiva === cat ? 'activo' : ''}" onclick="filtrarCategoria('${cat}')">${cat}</button>`; 
+            });
         }
+
         function filtrarCategoria(cat) { categoriaFiltroActiva = cat; dibujarBotonesFiltro(); aplicarFiltros(); }
 
         function aplicarFiltros() {
             const text = document.getElementById('buscar-menu').value.toLowerCase();
-            const filtered = productos.filter(p => { const passCat = (categoriaFiltroActiva === "Todas") || (p.category === categoriaFiltroActiva); const passText = p.nombre.toLowerCase().includes(text) || (p.descripcion || "").toLowerCase().includes(text); return passCat && passText; });
+            const sucursalElegida = datosReservaConfirmada.sucursal || "Todas";
+
+            const filtered = productos.filter(p => { 
+                // Filtro 1: ¿Pertenece a la sucursal elegida?
+                const passSucursal = (!p.sucursal || p.sucursal === "Todas" || p.sucursal === sucursalElegida);
+                
+                // Filtro 2: ¿Es de la categoría que el cliente está viendo?
+                const passCat = (categoriaFiltroActiva === "Todas") || (p.category === categoriaFiltroActiva); 
+                
+                // Filtro 3: ¿Coincide con lo que escribió en el buscador?
+                const passText = p.nombre.toLowerCase().includes(text) || (p.descripcion || "").toLowerCase().includes(text); 
+                
+                return passSucursal && passCat && passText; 
+            });
             renderMenuFiltrado(filtered);
         }
         

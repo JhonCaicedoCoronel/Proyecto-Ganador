@@ -156,8 +156,16 @@ io.on('connection', async (socket) => {
     socket.on('pedido-despachado-cocina', async (id) => { await supabase.from('pedidos_cocina').update({ estado: 'entregado' }).eq('id', id); io.emit('pedido-listo-retirar', id); });
     socket.on('cambiar-estado-mesa', async (datos) => { await supabase.from('mesas').update({ estado: datos.estado }).eq('numero', datos.numero); await emitirMesasActualizadas(); });
     
-    socket.on('agregar-nuevo-producto', async (p) => { await supabase.from('menu').insert([{ nombre: p.nombre, precio: p.precio, category: p.category, img: p.img, descripcion: p.descripcion }]); await emitirMenuActualizado(); });
-    socket.on('editar-producto', async (p) => { await supabase.from('menu').update({ nombre: p.nombre, precio: p.precio, category: p.category, img: p.img, descripcion: p.descripcion }).eq('id', p.id); await emitirMenuActualizado(); });
+    socket.on('agregar-nuevo-producto', async (p) => { 
+        await supabase.from('menu').insert([{ nombre: p.nombre, precio: p.precio, category: p.category, img: p.img, descripcion: p.descripcion, sucursal: p.sucursal }]); 
+        await emitirMenuActualizado(); 
+    });
+    
+    socket.on('editar-producto', async (p) => { 
+        await supabase.from('menu').update({ nombre: p.nombre, precio: p.precio, category: p.category, img: p.img, descripcion: p.descripcion, sucursal: p.sucursal }).eq('id', p.id); 
+        await emitirMenuActualizado(); 
+    });    
+    
     socket.on('eliminar-producto', async (id) => { await supabase.from('menu').delete().eq('id', id); await emitirMenuActualizado(); });
 });
 
