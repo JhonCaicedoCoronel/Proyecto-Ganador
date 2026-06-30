@@ -95,7 +95,7 @@
             productos.forEach(p => {
                 tbody.innerHTML += `
                     <tr>
-                        <td><img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'"></td>
+                        <td><img src="${p.img}" onerror="this.onerror=null; this.src='https://placehold.co/150x150?text=Sin+Foto'"></td>
                         <td><strong style="font-size:16px;">${p.nombre}</strong><br><span style="color:#747d8c; font-size:13px;">${p.descripcion || 'Sin descripción.'}</span></td>
                         <td><span class="badge-cat">${p.category}</span></td>
                         <td style="color:#2ed573; font-weight:bold;">$${p.precio.toFixed(2)}</td>
