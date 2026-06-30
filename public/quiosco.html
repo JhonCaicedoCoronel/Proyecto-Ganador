@@ -426,9 +426,9 @@
             // 1. Averiguamos qué sucursal eligió el cliente
             const sucursalElegida = datosReservaConfirmada.sucursal || "Todas";
             
-            // 2. Filtramos la base de datos para que solo considere platos de esa sucursal (o los compartidos)
-            const productosPermitidos = productos.filter(p => (!p.sucursal || p.sucursal === "Todas" || p.sucursal === sucursalElegida));
-            
+            // Filtramos asegurándonos de que busque dentro del texto separado por comas
+            const productosPermitidos = productos.filter(p => (!p.sucursal || p.sucursal === "Todas" || p.sucursal.includes(sucursalElegida)));
+
             const cont = document.getElementById('botones-categorias'); 
             cont.innerHTML = `<button class="btn-filtro ${categoriaFiltroActiva === 'Todas' ? 'activo' : ''}" onclick="filtrarCategoria('Todas')">Todas</button>`;
             
@@ -446,8 +446,8 @@
             const sucursalElegida = datosReservaConfirmada.sucursal || "Todas";
 
             const filtered = productos.filter(p => { 
-                // Filtro 1: ¿Pertenece a la sucursal elegida?
-                const passSucursal = (!p.sucursal || p.sucursal === "Todas" || p.sucursal === sucursalElegida);
+                // Filtramos asegurándonos de que busque dentro del texto separado por comas
+                const passSucursal = (!p.sucursal || p.sucursal === "Todas" || p.sucursal.includes(sucursalElegida));
                 
                 // Filtro 2: ¿Es de la categoría que el cliente está viendo?
                 const passCat = (categoriaFiltroActiva === "Todas") || (p.category === categoriaFiltroActiva); 

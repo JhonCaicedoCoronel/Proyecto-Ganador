@@ -78,7 +78,15 @@
                     </select>
                 </div>
                 <div class="form-grupo"><label>URL de Imagen</label><input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg"></div>
-                <div class="form-grupo completo"><label>Descripción / Detalles del Plato</label><input type="text" id="prod-descripcion" placeholder="Ej. Con chicharrón, queso manaba y huevo frito..."></div>
+                <div class="form-grupo completo">
+                    <label>📍 Sucursales donde está disponible (Puedes elegir varias)</label>
+                    <div id="prod-sucursales" style="display: flex; gap: 15px; background: #fcfcfc; padding: 12px; border: 1px solid #ced4da; border-radius: 6px;">
+                        <label style="cursor: pointer; font-weight: normal;"><input type="checkbox" value="Todas" onchange="toggleTodas(this)"> Todas</label>
+                        <label style="cursor: pointer; font-weight: normal;"><input type="checkbox" value="Urdesa" class="sucursal-cb"> Urdesa</label>
+                        <label style="cursor: pointer; font-weight: normal;"><input type="checkbox" value="Samborondón" class="sucursal-cb"> Samborondón</label>
+                        <label style="cursor: pointer; font-weight: normal;"><input type="checkbox" value="Sur" class="sucursal-cb"> Sur</label>
+                    </div>
+                </div>
             </div>
             <button id="btn-accion" class="btn-guardar" onclick="guardarProducto()">Guardar y Publicar 🚀</button>
             <button id="btn-cancelar" class="btn-cancelar" onclick="cancelarEdicion()">❌ Cancelar Edición</button>
@@ -126,29 +134,36 @@
             document.getElementById('prod-img').value = producto.img;
             document.getElementById('prod-descripcion').value = producto.descripcion || '';
             
+            // 👇 NUEVO: Marcamos las casillas correctas al editar
+            setearSucursales(producto.sucursal);
+            
             document.getElementById('caja-formulario').classList.add('modo-edicion');
             const btnAccion = document.getElementById('btn-accion'); btnAccion.innerHTML = "💾 Guardar Cambios"; btnAccion.style.background = "#ffa502";
             document.getElementById('btn-cancelar').style.display = "block"; window.scrollTo({ top: 0, behavior: 'smooth' });
-            document.getElementById('prod-sucursal').value = producto.sucursal || 'Todas';
         }
 
         function cancelarEdicion() {
             idEdicion = null; document.getElementById('titulo-form').innerHTML = "➕ Agregar Plato";
             document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-cat').value = 'Combos'; 
             document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = '';
+            
+            // 👇 NUEVO: Reiniciamos a "Todas" por defecto
+            setearSucursales('Todas');
+            
             document.getElementById('caja-formulario').classList.remove('modo-edicion');
             const btnAccion = document.getElementById('btn-accion'); btnAccion.innerHTML = "Guardar y Publicar 🚀"; btnAccion.style.background = "#0a3d62";
             document.getElementById('btn-cancelar').style.display = "none";
-            document.getElementById('prod-sucursal').value = 'Todas';
         }
 
         function guardarProducto() {
             const nombre = document.getElementById('prod-nombre').value.trim(); 
             const precio = parseFloat(document.getElementById('prod-precio').value);
             const category = document.getElementById('prod-cat').value; 
-            const sucursal = document.getElementById('prod-sucursal').value; // <-- NUEVO
             const descripcion = document.getElementById('prod-descripcion').value.trim();
             let img = document.getElementById('prod-img').value.trim();
+            
+            // 👇 NUEVO: Obtenemos el texto de las casillas ("Urdesa,Sur")
+            const sucursal = obtenerSucursales(); 
 
             if (img && !img.startsWith('http')) { alert("⚠️ La URL de la imagen debe empezar con http:// o https://"); return; }
             img = img || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
@@ -162,10 +177,42 @@
                 socket.emit('agregar-nuevo-producto', { nombre, precio, category, img, descripcion, sucursal }); 
                 document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; 
                 document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = ''; 
+                setearSucursales('Todas'); // Reiniciamos los checkboxes tras agregar
             }
         }
 
         function eliminarProducto(id) { if(confirm("¿Seguro que deseas eliminar este producto?")) socket.emit('eliminar-producto', id); }
+
+        // Función para que si marcan "Todas", se desmarquen las individuales y viceversa
+        function toggleTodas(checkbox) {
+            if (checkbox.checked) {
+                document.querySelectorAll('.sucursal-cb').forEach(cb => cb.checked = false);
+            }
+        }
+
+        // Lee los checkboxes y los convierte en un texto: "Urdesa,Sur"
+        function obtenerSucursales() {
+            const cbTodas = document.querySelector('input[value="Todas"]');
+            if (cbTodas.checked) return 'Todas';
+            
+            const seleccionadas = Array.from(document.querySelectorAll('.sucursal-cb:checked')).map(cb => cb.value);
+            return seleccionadas.length > 0 ? seleccionadas.join(',') : 'Todas';
+        }
+
+        // Toma el texto "Urdesa,Sur" de la BD y marca los checkboxes correspondientes
+        function setearSucursales(valor) {
+            document.querySelectorAll('#prod-sucursales input[type="checkbox"]').forEach(cb => cb.checked = false);
+            if (!valor || valor === 'Todas') {
+                document.querySelector('input[value="Todas"]').checked = true;
+            } else {
+                const valores = valor.split(',');
+                valores.forEach(v => {
+                    const cb = document.querySelector(`input[value="${v.trim()}"]`);
+                    if(cb) cb.checked = true;
+                });
+            }
+        }
+
     </script>
 </body>
 </html>
