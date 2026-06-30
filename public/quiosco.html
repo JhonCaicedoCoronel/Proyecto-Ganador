@@ -423,16 +423,20 @@
         }
 
         function dibujarBotonesFiltro() {
-            // 1. Averiguamos qué sucursal eligió el cliente
-            const sucursalElegida = datosReservaConfirmada.sucursal || "Todas";
+            // 1. Obtenemos la sucursal de forma segura
+            const sucursalElegida = (datosReservaConfirmada && datosReservaConfirmada.sucursal) ? datosReservaConfirmada.sucursal : "Todas";
             
-            // Filtramos asegurándonos de que busque dentro del texto separado por comas
-            const productosPermitidos = productos.filter(p => (!p.sucursal || p.sucursal === "Todas" || p.sucursal.includes(sucursalElegida)));
-
+            // 2. Filtro a prueba de errores
+            const productosPermitidos = productos.filter(p => {
+                // Si el plato es para todas, no tiene sucursal, o el cliente aún no elige sucursal -> Mostrar
+                if (!p.sucursal || p.sucursal === "Todas" || sucursalElegida === "Todas") return true;
+                // Si no, verificamos que el texto del plato incluya la sucursal elegida
+                return String(p.sucursal).includes(sucursalElegida);
+            });
+            
             const cont = document.getElementById('botones-categorias'); 
             cont.innerHTML = `<button class="btn-filtro ${categoriaFiltroActiva === 'Todas' ? 'activo' : ''}" onclick="filtrarCategoria('Todas')">Todas</button>`;
             
-            // 3. Generamos los botones SOLO de las categorías que existan en esta sucursal
             const categories = [...new Set(productosPermitidos.map(p => p.category))];
             categories.forEach(cat => { 
                 cont.innerHTML += `<button class="btn-filtro ${categoriaFiltroActiva === cat ? 'activo' : ''}" onclick="filtrarCategoria('${cat}')">${cat}</button>`; 
@@ -443,20 +447,27 @@
 
         function aplicarFiltros() {
             const text = document.getElementById('buscar-menu').value.toLowerCase();
-            const sucursalElegida = datosReservaConfirmada.sucursal || "Todas";
+            const sucursalElegida = (datosReservaConfirmada && datosReservaConfirmada.sucursal) ? datosReservaConfirmada.sucursal : "Todas";
 
             const filtered = productos.filter(p => { 
-                // Filtramos asegurándonos de que busque dentro del texto separado por comas
-                const passSucursal = (!p.sucursal || p.sucursal === "Todas" || p.sucursal.includes(sucursalElegida));
                 
-                // Filtro 2: ¿Es de la categoría que el cliente está viendo?
+                // Filtro 1: Sucursal (Blindado)
+                let passSucursal = false;
+                if (!p.sucursal || p.sucursal === "Todas" || sucursalElegida === "Todas") {
+                    passSucursal = true;
+                } else {
+                    passSucursal = String(p.sucursal).includes(sucursalElegida);
+                }
+                
+                // Filtro 2: Categoría
                 const passCat = (categoriaFiltroActiva === "Todas") || (p.category === categoriaFiltroActiva); 
                 
-                // Filtro 3: ¿Coincide con lo que escribió en el buscador?
+                // Filtro 3: Texto de búsqueda
                 const passText = p.nombre.toLowerCase().includes(text) || (p.descripcion || "").toLowerCase().includes(text); 
                 
                 return passSucursal && passCat && passText; 
             });
+            
             renderMenuFiltrado(filtered);
         }
         
