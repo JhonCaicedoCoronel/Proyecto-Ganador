@@ -161,5 +161,51 @@ io.on('connection', async (socket) => {
     socket.on('eliminar-producto', async (id) => { await supabase.from('menu').delete().eq('id', id); await emitirMenuActualizado(); });
 });
 
+// --- SISTEMA DE ALERTAS PRE-RESERVA (Se ejecuta cada minuto) ---
+setInterval(async () => {
+    // 1. Obtener fecha y hora actuales en Ecuador
+    const opcionesHora = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: false };
+    const ahoraEcuador = new Date().toLocaleTimeString('en-US', opcionesHora); // Formato "HH:MM" (24 hrs)
+    
+    // Obtener la fecha en formato YYYY-MM-DD
+    const fechaEcuadorFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Guayaquil' }).format(new Date());
+
+    // 2. Extraer horas y minutos para los cálculos
+    let [horaActual, minActual] = ahoraEcuador.split(':').map(Number);
+    let totalMinutosActuales = (horaActual * 60) + minActual;
+
+    // 3. Consultar las reservas "activas" de hoy
+    const { data: reservasHoy } = await supabase
+        .from('reservas')
+        .select('*')
+        .eq('fecha', fechaEcuadorFormat)
+        .eq('estado', 'activa');
+
+    if (reservasHoy && reservasHoy.length > 0) {
+        reservasHoy.forEach(reserva => {
+            // Convertir la hora de la reserva a formato 24h para facilitar el cálculo
+            // (Asumiendo que guardaste horas en formato "12:00", "13:00", etc. según tus horarios disponibles)
+            let [horaReserva, minReserva] = reserva.hora.split(':').map(Number);
+            let totalMinutosReserva = (horaReserva * 60) + minReserva;
+
+            // 4. Calcular la diferencia en minutos
+            let diferenciaMinutos = totalMinutosReserva - totalMinutosActuales;
+
+            // 5. Si faltan exactamente 15 minutos (o entre 10 y 15 para dar margen), disparamos la alerta
+            if (diferenciaMinutos === 15 || diferenciaMinutos === 14) {
+                // Emitimos un evento global, pero el cliente filtrará por su ID
+                io.emit('alerta-proxima-reserva', {
+                    idReserva: reserva.id,
+                    sucursal: reserva.sucursal,
+                    minutosRestantes: diferenciaMinutos
+                });
+                
+                console.log(`🔔 Alerta enviada para la reserva #${reserva.id} (Faltan ${diferenciaMinutos} min)`);
+            }
+        });
+    }
+}, 60000); // 60000 milisegundos = 1 minuto
+// -------------------------------------------------------------
+
 const PORT = process.env.PORT || 3090;
 http.listen(PORT, () => console.log(`🚀 Servidor Costeñito corriendo en puerto ${PORT}`));
