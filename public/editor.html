@@ -94,8 +94,28 @@
     </div>
 
     <script>
-        const socket = io(); let idEdicion = null; let cacheProductos = [];
+        const socket = io();
+        
+        // --- SEGURIDAD SAAS: CONECTAR SOLO A LA SALA DE ESTE LOCAL ---
+        const miTenant = sessionStorage.getItem('tenant_id');
 
+        socket.on('connect', () => {
+            if (miTenant) {
+                socket.emit('unirse-a-restaurante', miTenant);
+            } else {
+                console.error("No hay tenant activo, cerrando sesión...");
+                window.top.location.href = '/login.html';
+            }
+        });
+
+        socket.on('connect', () => {
+            if(miTenant) {
+                // Le decimos al servidor a qué restaurante pertenecemos
+                socket.emit('unirse-a-restaurante', miTenant);
+            } else {
+                console.log("No se detectó un local específico.");
+            }
+        });
         socket.on('cargar-menu-inicial', (data) => { cacheProductos = data; renderizarTabla(data); });
         socket.on('menu-actualizado-completo', (data) => { cacheProductos = data; renderizarTabla(data); });
 

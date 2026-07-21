@@ -23,17 +23,27 @@
     <script>
         function login() {
             const pin = document.getElementById('pin').value;
-            // PIN de Admin/Cajero = admin123
-            if (pin === 'admin123') {
+            
+            let tenantAsignado = null;
+            let nombreLocal = "";
+
+            // Simulamos la base de datos de tus clientes SaaS
+            if (pin === 'costeñita2024') {
+                tenantAsignado = 'tenant_costenita';
+                nombreLocal = 'La Costeñita';
+            } else if (pin === 'negroni2024') {
+                tenantAsignado = 'tenant_negroni';
+                nombreLocal = 'Negroni';
+            }
+
+            if (tenantAsignado) {
                 sessionStorage.setItem('usuarioLogueado', 'admin');
+                sessionStorage.setItem('tenant_id', tenantAsignado);
+                sessionStorage.setItem('nombre_local', nombreLocal);
                 window.location.href = '/admin.html';
-            } 
-            // PIN del Cocinero = chef123
-            else if (pin === 'chef123') {
-                sessionStorage.setItem('usuarioLogueado', 'cocina');
-                window.location.href = '/cocina.html';
             } else {
                 document.getElementById('error-msg').style.display = 'block';
+                document.getElementById('error-msg').innerText = 'PIN incorrecto o restaurante no encontrado.';
             }
         }
     </script>

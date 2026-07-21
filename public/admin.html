@@ -57,6 +57,22 @@
             sessionStorage.removeItem('usuarioLogueado');
             window.location.href = '/login.html';
         }
+        // --- LÓGICA SAAS: ADAPTAR EL PANEL A LA FRANQUICIA ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const miTenant = sessionStorage.getItem('tenant_id');
+            const nombreLocal = sessionStorage.getItem('nombre_local');
+            
+            // 1. Cambiar el nombre del header
+            if (nombreLocal) {
+                document.querySelector('.logo-text').innerText = `🏢 ADMIN ${nombreLocal.toUpperCase()}`;
+            }
+
+            // 2. Hacer que el botón "Simular Cliente" lleve al QR correcto de este local
+            const btnQuiosco = document.querySelector('.btn-quiosco');
+            if (btnQuiosco && miTenant) {
+                btnQuiosco.href = `/quiosco.html?local=${miTenant}`;
+            }
+        });
     </script>
 </body>
 </html>

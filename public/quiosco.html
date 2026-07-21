@@ -229,6 +229,27 @@
 
     <script>
         const socket = io();
+        // --- NUEVA LÓGICA SAAS: CAPTURAR LA IDENTIDAD DEL RESTAURANTE ---
+        const urlParams = new URLSearchParams(window.location.search);
+        let miTenant = urlParams.get('local'); 
+
+        // Si recarga la página, recuperamos el tenant de la sesión
+        if(!miTenant && sessionStorage.getItem('tenant_actual_cliente')) {
+            miTenant = sessionStorage.getItem('tenant_actual_cliente');
+        } else if (miTenant) {
+            sessionStorage.setItem('tenant_actual_cliente', miTenant);
+        }
+
+        socket.on('connect', () => {
+            if(miTenant) {
+                // Le decimos al servidor en qué restaurante estamos pidiendo
+                socket.emit('unirse-a-restaurante', miTenant);
+            } else {
+                console.error("⚠️ QR Inválido: No se detectó a qué local pertenece este quiosco.");
+            }
+        });
+        // ----------------------------------------------------------------
+
         let productos = []; let carrito = [];
         let datosReservaConfirmada = {}; let ultimoNombreCliente = "";
         let miIdReserva = null; let categoriaFiltroActiva = "Todas";
@@ -349,7 +370,12 @@
 
         function solicitarHorarios() {
             const fecha = document.getElementById('res-fecha').value; const pax = document.getElementById('res-pax').value; const sucursal = document.getElementById('res-sucursal').value;
-            if(fecha) { document.getElementById('res-hora').disabled = true; document.getElementById('res-hora').innerHTML = '<option value="">Buscando mesas...</option>'; socket.emit('consultar-horarios', { fecha, personas: pax, sucursal }); }
+            if(fecha) { 
+                document.getElementById('res-hora').disabled = true; 
+                document.getElementById('res-hora').innerHTML = '<option value="">Buscando mesas...</option>'; 
+                // Añadimos el tenant_id aquí 👇
+                socket.emit('consultar-horarios', { fecha, personas: pax, sucursal, tenant_id: miTenant }); 
+            }
         }
         document.getElementById('res-fecha').addEventListener('change', solicitarHorarios); document.getElementById('res-pax').addEventListener('change', solicitarHorarios);
         
@@ -371,7 +397,9 @@
 
         function verificarDisponibilidad() {
             const fecha = document.getElementById('res-fecha').value; const hora = document.getElementById('res-hora').value; const pax = document.getElementById('res-pax').value; const sucursal = document.getElementById('res-sucursal').value;
-            if(!fecha || !hora) return alert("Selecciona una fecha y hora válidas."); socket.emit('verificar-disponibilidad', { fecha, hora, personas: pax, sucursal });
+            if(!fecha || !hora) return alert("Selecciona una fecha y hora válidas."); 
+            // Añadimos el tenant_id aquí 👇
+            socket.emit('verificar-disponibilidad', { fecha, hora, personas: pax, sucursal, tenant_id: miTenant });
         }
         
         socket.on('resultado-disponibilidad', (res) => {
@@ -415,15 +443,16 @@
             guardarEstado();
         }
 
-        function finalizarSoloReserva() {
-            const nombre = document.getElementById('cliente-nombre-solo').value.trim(); if(!nombre) return alert("Por favor ingresa tu nombre.");
-            ultimoNombreCliente = nombre; miIdReserva = Math.floor(Math.random() * 9000) + 1000;
-            const pedido = { id: miIdReserva, cliente: nombre, item: "🔴 SOLO RESERVA DE MESA", pago: "Solo Reserva", datosReserva: datosReservaConfirmada, productosComprados: [] };
+        function finalizarReservaPedido() {
+            const name = document.getElementById('cliente-nombre').value.trim(); const pago = document.getElementById('cliente-pago').value;
+            if(!name || carrito.length === 0) return alert("Ingresa tu nombre y escoge platos.");
+            ultimoNombreCliente = name; miIdReserva = Math.floor(Math.random() * 9000) + 1000;
             
-            socket.emit('enviar-reserva-pedido', pedido); 
-            guardarEstado(); 
+            // Inyectamos el tenant_id al enviar los productos
+            const pedido = { id: miIdReserva, cliente: name, item: carrito.map(c => `${c.cantidad}x ${c.nombre}`).join(', '), pago: pago, datosReserva: datosReservaConfirmada, productosComprados: [], tenant_id: miTenant };
             
-            document.getElementById('modal-solo-reserva').style.display = 'none';
+            socket.emit('enviar-reserva-pedido', pedido); cerrarCarrito();
+            guardarEstado();
             document.getElementById('txt-exito-detalle').innerText = "Mantén esta pantalla abierta. Te avisaremos aquí mismo si tu turno avanza.";
         }
 
@@ -586,7 +615,16 @@
             guardarEstado(); 
         });
         
-        function guardarEncuestaOpcional() { socket.emit('guardar-encuesta-opcional', { cliente: ultimoNombreCliente, alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", preferencias: document.getElementById('encuesta-gusto').value }); alert("🎁 ¡Guardado! Pide tus chifles extra en caja."); reiniciarKiosco(); }
+        function guardarEncuestaOpcional() { 
+            socket.emit('guardar-encuesta-opcional', { 
+                cliente: ultimoNombreCliente, 
+                alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", 
+                preferencias: document.getElementById('encuesta-gusto').value,
+                tenant_id: miTenant // <- Clave para perfilar clientes B2B
+            }); 
+            alert("🎁 ¡Guardado! Pide tus chifles extra en caja."); 
+            reiniciarKiosco(); 
+        }
 
         function abrirChat() { document.getElementById('chat-container').style.display = 'flex'; document.getElementById('chat-bubble').style.display = 'none'; }
         function cerrarChat() { document.getElementById('chat-container').style.display = 'none'; if(document.getElementById('pantalla-menu').style.display === 'block') { document.getElementById('chat-bubble').style.display = 'flex'; } }
