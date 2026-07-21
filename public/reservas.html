@@ -43,24 +43,30 @@
 
     <script>
         const socket = io();
-        const miTenant = sessionStorage.getItem('tenant_id');
+        let miTenant = sessionStorage.getItem('tenant_id');
+        if (!miTenant || miTenant === "null" || miTenant === "undefined") {
+            miTenant = 'tenant_costenita';
+            sessionStorage.setItem('tenant_id', miTenant);
+        }
 
         socket.on('connect', () => {
-            if (miTenant) {
-                socket.emit('unirse-a-restaurante', miTenant);
-                socket.emit('obtener-historial-reservas', miTenant); // CORREGIDO: Se envía miTenant de manera correcta
-            } else {
-                window.top.location.href = '/login.html';
-            }
+            console.log("Conectado al servidor de reservas, sincronizando tenant:", miTenant);
+            socket.emit('unirse-a-restaurante', miTenant);
+            socket.emit('obtener-historial-reservas', miTenant);
         });
 
         socket.on('cargar-historial-reservas', (reservas) => {
-            const tbody = document.getElementById('tabla-reservas'); tbody.innerHTML = "";
-            if (reservas.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">No hay reservas registradas.</td></tr>`; return; }
+            const tbody = document.getElementById('tabla-reservas'); 
+            tbody.innerHTML = "";
+            
+            if (!reservas || reservas.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">No hay reservas registradas para este local.</td></tr>`; 
+                return; 
+            }
 
             reservas.forEach(r => {
-                let estadoHTML = (r.estado === 'activa' || !r.estado) ? `<span class="badge-activa">🟢 Fila: Turno #${r.turno_sala}</span>` : `<span class="badge-final">⚪ Finalizada</span>`;
-                let accionHTML = (r.estado === 'activa' || !r.estado) ? `<button class="btn-salida" onclick="marcarSalida(${r.id}, ${r.mesa_id})">🚪 Desocupó Mesa</button>` : `<span class="txt-salida">Salió a las: ${r.hora_salida}</span>`;
+                let estadoHTML = (r.estado === 'activa' || !r.estado) ? `<span class="badge-activa">🟢 Fila: Turno #${r.turno_sala || 1}</span>` : `<span class="badge-final">⚪ Finalizada</span>`;
+                let accionHTML = (r.estado === 'activa' || !r.estado) ? `<button class="btn-salida" onclick="marcarSalida(${r.id}, ${r.mesa_id})">🚪 Desocupó Mesa</button>` : `<span class="txt-salida">Salió a las: ${r.hora_salida || 'N/D'}</span>`;
                 let sucursalTxt = r.sucursal ? r.sucursal : "Urdesa";
 
                 tbody.innerHTML += `
@@ -76,7 +82,7 @@
 
         function marcarSalida(idReserva, idMesa) {
             if(confirm("¿El cliente ya desocupó la mesa? Los turnos avanzarán automáticamente.")) {
-                socket.emit('marcar-salida-reserva', { id: idReserva, mesa_id: idMesa });
+                socket.emit('marcar-salida-reserva', { id: idReserva, mesa_id: idMesa, tenant_id: miTenant });
             }
         }
     </script>

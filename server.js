@@ -265,5 +265,36 @@ io.on('connection', (socket) => {
     });
 });
 
+setInterval(async () => {
+    const opcionesHora = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: false };
+    const ahoraEcuador = new Date().toLocaleTimeString('en-US', opcionesHora); 
+    const fechaEcuadorFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Guayaquil' }).format(new Date());
+
+    let [horaActual, minActual] = ahoraEcuador.split(':').map(Number);
+    let totalMinutosActuales = (horaActual * 60) + minActual;
+
+    const { data: reservasHoy } = await supabase
+        .from('reservas')
+        .select('*')
+        .eq('fecha', fechaEcuadorFormat)
+        .eq('estado', 'activa');
+
+    if (reservasHoy && reservasHoy.length > 0) {
+        reservasHoy.forEach(reserva => {
+            let [horaReserva, minReserva] = reserva.hora.split(':').map(Number);
+            let totalMinutosReserva = (horaReserva * 60) + minReserva;
+            let diferenciaMinutos = totalMinutosReserva - totalMinutosActuales;
+
+            if (diferenciaMinutos === 15 || diferenciaMinutos === 14) {
+                io.to(reserva.tenant_id).emit('alerta-proxima-reserva', {
+                    idReserva: reserva.id,
+                    sucursal: reserva.sucursal,
+                    minutosRestantes: diferenciaMinutos
+                });
+            }
+        });
+    }
+}, 60000); 
+
 const PORT = process.env.PORT || 3090;
 http.listen(PORT, () => console.log(`🚀 Servidor Book&Bite SaaS corriendo en puerto ${PORT}`));

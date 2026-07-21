@@ -39,20 +39,26 @@
 
     <script>
         const socket = io();
-        const miTenant = sessionStorage.getItem('tenant_id');
+        let miTenant = sessionStorage.getItem('tenant_id');
+        if (!miTenant || miTenant === "null" || miTenant === "undefined") {
+            miTenant = 'tenant_costenita';
+            sessionStorage.setItem('tenant_id', miTenant);
+        }
 
         socket.on('connect', () => {
-            if (miTenant) {
-                socket.emit('unirse-a-restaurante', miTenant);
-                socket.emit('obtener-historial-dia', miTenant); // CORREGIDO: Se envía miTenant de manera correcta
-            } else {
-                window.top.location.href = '/login.html';
-            }
+            console.log("Conectado al servidor de historial, sincronizando tenant:", miTenant);
+            socket.emit('unirse-a-restaurante', miTenant);
+            socket.emit('obtener-historial-dia', miTenant);
         });
 
         socket.on('cargar-historial', (pedidos) => {
-            const tbody = document.getElementById('tabla-historial'); tbody.innerHTML = "";
-            if (pedidos.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">Aún no se han despachado pedidos.</td></tr>`; return; }
+            const tbody = document.getElementById('tabla-historial'); 
+            tbody.innerHTML = "";
+            
+            if (!pedidos || pedidos.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">Aún no se han despachado pedidos en este local.</td></tr>`; 
+                return; 
+            }
 
             pedidos.forEach(p => {
                 tbody.innerHTML += `
