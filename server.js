@@ -16,7 +16,6 @@ const io = new Server(server, { cors: { origin: "*" } });
 // Servir archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname)));
-
 app.get('/', (req, res) => { 
     res.sendFile(path.join(__dirname, 'public', 'index.html')); 
 });
