@@ -168,11 +168,13 @@ io.on('connection', (socket) => {
         pedido.horaLlegadaEstimada = `${pedido.datosReserva.fecha} a las ${pedido.datosReserva.hora}`;
         pedido.estadoCocinaTexto = (pedido.pago === 'Solo Reserva') ? "Reservó Mesa (Pedirá en Local) 🪑" : ((pedido.pago === 'Tarjeta') ? "Pre-orden Pagada Web ✅" : "Pre-orden Pendiente 💵");
 
+        // CORRECCIÓN CLAVE: Aseguramos que el estado inicial en Supabase sea explícitamente 'pendiente'
         await supabase.from('pedidos_cocina').insert([{
             id: pedido.id, cliente: pedido.cliente, item: pedido.item, pago: pedido.pago, tipo: "Reserva en Local",
             turno_fila: pedido.turnoFila, es_fantasma: pedido.esFantasma, hora_registro: pedido.horaRegistro,
             hora_llegada_estimada: pedido.horaLlegadaEstimada, estado_cocina_texto: pedido.estadoCocinaTexto, 
             datos_reserva: pedido.datosReserva,
+            estado: 'pendiente',
             tenant_id: tenantConsulta 
         }]);
 
