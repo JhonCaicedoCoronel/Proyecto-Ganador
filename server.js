@@ -10,6 +10,15 @@ const io = new Server(server);
 // Servir archivos estáticos desde la raíz del proyecto
 app.use(express.static(path.join(__dirname)));
 
+// Rutas explícitas para evitar el error Cannot GET en Render o entorno local
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/quiosco.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'quiosco.html'));
+});
+
 // Base de datos simulada de menús por Franquicia / Tenant
 const menusPorTenant = {
     'tenant_costenita': [
@@ -20,7 +29,7 @@ const menusPorTenant = {
     'tenant_negroni': [
         { id: 101, nombre: 'Negroni Clásico', category: 'Cocktails', precio: 9.00, sucursal: 'Todas', img: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300', descripcion: 'Gin, Campari y Vermouth Rosso.' },
         { id: 102, nombre: 'Pasta Carbonara', category: 'Kitchen', precio: 14.50, sucursal: 'Todas', img: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=300', descripcion: 'Pasta italiana con guanciale y pecorino.' },
-        { id: 103, nombre: 'Carpaccio de Lomo', category: 'Entradas', precio: 12.00, sucursal: 'Todas', img: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300', descripcion: 'Finas finas láminas de lomo con alcaparras.' }
+        { id: 103, nombre: 'Carpaccio de Lomo', category: 'Entradas', precio: 12.00, sucursal: 'Todas', img: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300', descripcion: 'Finas láminas de lomo con alcaparras.' }
     ]
 };
 
@@ -44,8 +53,6 @@ io.on('connection', (socket) => {
 
     // Consultar horarios y disponibilidad en tiempo real
     socket.on('consultar-horarios', (data) => {
-        const tenant = data.tenant_id || tenantActual;
-        // Generador simulado de horarios de disponibilidad
         const horariosBase = [
             { hora: '12:00 PM', disponibles: 4, lleno: false },
             { hora: '01:00 PM', disponibles: 1, lleno: false },
@@ -57,8 +64,6 @@ io.on('connection', (socket) => {
 
     // Verificar disponibilidad exacta para una mesa
     socket.on('verificar-disponibilidad', (data) => {
-        const tenant = data.tenant_id || tenantActual;
-        // Simulamos disponibilidad exitosa
         socket.emit('resultado-disponibilidad', {
             disponible: true,
             horaExacta: data.hora,
