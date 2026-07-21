@@ -148,15 +148,23 @@ io.on('connection', (socket) => {
         pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
         pedido.tenant_id = tenantConsulta; 
         
-        const { data: reservasMismoTurno } = await supabase
+        // CORRECCIÓN: Cálculo robusto del turno basado en las reservas existentes del mismo tenant, sucursal, fecha y hora[cite: 1]
+        const { data: reservasMismoTurno, error: errorConteo } = await supabase
             .from('reservas').select('id')
             .eq('tenant_id', tenantConsulta)
-            .eq('sucursal', pedido.datosReserva.sucursal).eq('fecha', pedido.datosReserva.fecha).eq('hora', pedido.datosReserva.hora).eq('estado', 'activa');
+            .eq('sucursal', pedido.datosReserva.sucursal)
+            .eq('fecha', pedido.datosReserva.fecha)
+            .eq('hora', pedido.datosReserva.hora)
+            .eq('estado', 'activa');
+
+        if (errorConteo) {
+            console.error("❌ Error al calcular el turno de reserva:", errorConteo.message);
+        }
 
         let turnoAsignado = (reservasMismoTurno ? reservasMismoTurno.length : 0) + 1;
         pedido.turnoFila = turnoAsignado; 
 
-        await supabase.from('reservas').insert([{ 
+        const { error: errorReserva } = await supabase.from('reservas').insert([{ 
             id: pedido.id, cliente: pedido.cliente, fecha: pedido.datosReserva.fecha, 
             hora: pedido.datosReserva.hora, personas: pedido.datosReserva.personas, 
             mesa_id: pedido.datosReserva.mesa.numero, estado: 'activa', sucursal: pedido.datosReserva.sucursal,
@@ -164,12 +172,15 @@ io.on('connection', (socket) => {
             tenant_id: tenantConsulta 
         }]);
 
+        if (errorReserva) {
+            console.error("❌ Error al insertar reserva en Supabase:", errorReserva.message);
+        }
+
         pedido.esFantasma = true; 
         pedido.horaLlegadaEstimada = `${pedido.datosReserva.fecha} a las ${pedido.datosReserva.hora}`;
         pedido.estadoCocinaTexto = (pedido.pago === 'Solo Reserva') ? "Reservó Mesa (Pedirá en Local) 🪑" : ((pedido.pago === 'Tarjeta') ? "Pre-orden Pagada Web ✅" : "Pre-orden Pendiente 💵");
 
-        // CORRECCIÓN CLAVE: Aseguramos que el estado inicial en Supabase sea explícitamente 'pendiente'
-        await supabase.from('pedidos_cocina').insert([{
+        const { error: errorCocina } = await supabase.from('pedidos_cocina').insert([{
             id: pedido.id, cliente: pedido.cliente, item: pedido.item, pago: pedido.pago, tipo: "Reserva en Local",
             turno_fila: pedido.turnoFila, es_fantasma: pedido.esFantasma, hora_registro: pedido.horaRegistro,
             hora_llegada_estimada: pedido.horaLlegadaEstimada, estado_cocina_texto: pedido.estadoCocinaTexto, 
@@ -177,6 +188,10 @@ io.on('connection', (socket) => {
             estado: 'pendiente',
             tenant_id: tenantConsulta 
         }]);
+
+        if (errorCocina) {
+            console.error("❌ Error al insertar pedido de cocina en Supabase:", errorCocina.message);
+        }
 
         socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
         
