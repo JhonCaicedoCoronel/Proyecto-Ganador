@@ -12,463 +12,540 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081075.png">
 
     <script src="/socket.io/socket.io.js"></script>
+    
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #f8f9fa; min-height: 100vh; color: #333; overflow-x: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         
-        #pantalla-reserva { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(rgba(10, 61, 98, 0.8), rgba(10, 61, 98, 0.8)), url('https://images.unsplash.com/photo-1559742811-822873691fc8?w=1600') center/cover; padding: 20px; }
-        .reserva-box { background: white; padding: 35px 40px; border-radius: 16px; width: 480px; max-width: 100%; box-shadow: 0 15px 35px rgba(0,0,0,0.5); text-align: center; }
-        .reserva-box h1 { color: #e15f41; margin-bottom: 5px; font-size: 34px; font-weight: 800; }
-        .reserva-box p.slogan { color: #57606f; margin-bottom: 25px; font-size: 15px; font-weight: 600; }
-        
-        .form-grid-main { text-align: left; }
-        .form-grupo { margin-bottom: 18px; text-align: left; }
-        .form-grupo label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #2f3542; }
-        .form-grupo input, .form-grupo select { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 15px; background: #fcfcfc; }
-        .form-grupo select:disabled { background: #eee; cursor: not-allowed; }
-        
-        .btn-verificar { background: #e15f41; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 5px; }
-        .btn-verificar:hover { background: #c44527; transform: scale(1.02); }
-        .btn-secundario { background: #0a3d62; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-        .btn-secundario:hover { background: #082d4a; transform: scale(1.02); }
+        :root {
+            --primary: #0a3d62;
+            --secondary: #e15f41;
+            --success: #2ed573;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #2f3542;
+            --text-muted: #a4b0be;
+        }
 
-        .alerta-horarios { background: #fff2cc; border: 1px dashed #ffa502; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; text-align: left; }
-        .horario-btn { background: #0a3d62; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin: 5px 5px 0 0; font-weight: bold; transition: 0.2s; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: var(--text-main); overflow-x: hidden; min-height: 100vh; }
+        
+        /* PANTALLA RESERVA */
+        #pantalla-reserva { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            min-height: 100vh; background: linear-gradient(rgba(10, 61, 98, 0.8), rgba(10, 61, 98, 0.8)), url('https://images.unsplash.com/photo-1559742811-822873691fc8?w=1600') center/cover; 
+            padding: 20px; color: white; text-align: center;
+        }
+        .reserva-card {
+            background: white; color: var(--text-main); padding: 30px; border-radius: 16px; 
+            width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .reserva-card h2 { color: var(--primary); margin-bottom: 20px; font-weight: 800; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--text-muted); }
+        .input-group select, .input-group input { 
+            width: 100%; padding: 12px; border: 1px solid #dfe4ea; border-radius: 8px; font-size: 15px; outline: none; background: var(--bg);
+        }
+        .btn-main {
+            background: var(--secondary); color: white; width: 100%; padding: 14px; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px;
+        }
+        .btn-main:active { transform: scale(0.98); }
 
-        #pantalla-menu { display: none; width: 100%; padding: 30px 8%; position: relative; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e15f41; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        .btn-ver-carrito { background: #e15f41; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(225, 95, 65, 0.3); }
-        .btn-ver-carrito:hover { transform: scale(1.05); }
+        /* PANTALLA MENU */
+        #pantalla-menu { display: none; padding-bottom: 100px; }
+        .header-menu { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+        .header-menu h1 { font-size: 20px; color: var(--primary); font-weight: 800; }
         
-        .filtros-container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; border: 1px solid #eee; }
-        .input-buscar { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ced4da; font-size: 15px; margin-bottom: 15px; }
-        .botones-filtro { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
-        .btn-filtro { background: #f1f2f6; border: none; padding: 8px 16px; border-radius: 20px; font-weight: bold; color: #57606f; cursor: pointer; white-space: nowrap; transition: 0.2s; }
-        .btn-filtro:hover { background: #dfe4ea; }
-        .btn-filtro.activo { background: #0a3d62; color: white; }
+        .filtros-container { padding: 15px 20px; display: flex; gap: 10px; overflow-x: auto; white-space: nowrap; }
+        .filtros-container::-webkit-scrollbar { display: none; }
+        .btn-filtro { background: white; border: 1px solid #dfe4ea; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--text-muted); flex-shrink: 0; }
+        .btn-filtro.activo { background: var(--primary); color: white; border-color: var(--primary); }
 
-        .categoria-titulo { color: #0a3d62; margin: 25px 0 15px 0; border-bottom: 2px solid #e15f41; padding-bottom: 8px; display: inline-block; font-size: 22px; text-transform: uppercase; }
-        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-bottom: 10px; }
-        .card-producto { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.2s; }
-        .card-producto:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
-        .card-producto img { width: 100%; height: 140px; object-fit: cover; border-bottom: 3px solid #e15f41;}
-        .info-producto { padding: 15px; }
-        .btn-agregar { background: #0a3d62; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s;}
-        .btn-agregar:hover { background: #e15f41; }
+        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; padding: 0 20px; margin-top: 10px;}
+        .card-producto { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+        .card-producto img { width: 100%; height: 120px; object-fit: cover; }
+        .info-producto { padding: 12px; display: flex; flex-direction: column; flex-grow: 1; }
+        .info-producto strong { font-size: 15px; color: var(--text-main); margin-bottom: 5px; line-height: 1.2; }
+        .info-producto p { color: var(--secondary); font-weight: 800; font-size: 16px; margin-bottom: 10px; }
+        .btn-agregar { background: var(--bg); border: 1px solid #dfe4ea; padding: 8px; border-radius: 6px; font-weight: 600; color: var(--primary); cursor: pointer; transition: 0.2s; margin-top: auto; }
+        .btn-agregar:active { background: var(--primary); color: white; }
 
-        .chatbot-bubble { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: #0a3d62; color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 999; transition: 0.3s; }
-        .chatbot-bubble:hover { transform: scale(1.1); background: #e15f41; }
-        
-        .chatbot-container { position: fixed; bottom: 25px; right: 25px; width: 340px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); overflow: hidden; border: 1px solid #e1e8ed; z-index: 1000; display: none; flex-direction: column; animation: despliegueUp 0.3s ease; }
-        @keyframes despliegueUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        
-        .chatbot-header { background: #0a3d62; color: white; padding: 15px 20px; font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-cerrar-chat { background: transparent; border: none; color: white; font-size: 22px; cursor: pointer; font-weight: bold; transition: 0.2s; padding: 0 5px; }
-        .btn-cerrar-chat:hover { color: #e15f41; transform: scale(1.2); }
-        
-        .chatbot-messages { height: 320px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
-        .msg-bot { background: #eaf2f8; border: 1px solid #a3c2e9; padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%; line-height: 1.4; }
-        .msg-user { background: #e15f41; color: white; padding: 12px; border-radius: 12px 12px 0 12px; align-self: flex-end; max-width: 85%; }
-        
-        .chatbot-input { display: flex; border-top: 1px solid #ddd; background: white; }
-        .chatbot-input input { flex-grow: 1; border: none; padding: 15px; outline: none; font-size: 14px; }
-        .chatbot-input button { background: #0a3d62; color: white; border: none; padding: 0 18px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .chatbot-input button:hover { background: #e15f41; }
+        /* BOTON FLOTANTE DE CARRITO */
+        .floating-cart {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: white; padding: 15px 30px; border-radius: 30px;
+            font-weight: bold; font-size: 16px; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 10px 25px rgba(10, 61, 98, 0.4); cursor: pointer; z-index: 100;
+        }
+        .cart-badge { background: var(--secondary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 14px; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none; }
-        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 500px; max-width: 95%; max-height: 90vh; overflow-y: auto; position: relative; }
-        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 26px; cursor: pointer; background: none; border: none; color: #a4b0be; }
+        /* MODALES ESTRUCTURALES */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: flex-end; z-index: 1000;
+        }
+        .modal-content {
+            background: white; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0;
+            padding: 25px; animation: slideUp 0.3s ease-out; max-height: 85vh; overflow-y: auto;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .modal-close { float: right; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); }
+        .cart-item { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #f1f2f6; align-items: center; }
+        .cart-item-info { font-size: 15px; font-weight: 600; }
+        .cart-item-price { color: var(--success); font-weight: bold; }
+        .cart-total { display: flex; justify-content: space-between; font-size: 20px; font-weight: 800; margin: 20px 0; color: var(--primary); }
 
-        .lista-items { margin: 15px 0; background: #f1f2f6; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; }
-        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ced4da; font-size: 14px; }
-        .btn-confirmar { background: #2ed573; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-top: 15px; cursor: pointer; }
-        
-        .encuesta-card { background: #eaf2f8; border: 1px solid #a3c2e9; padding: 18px; border-radius: 10px; margin-top: 25px; text-align: left; }
-        .btn-saltar { background: none; border: none; color: #57606f; text-decoration: underline; width: 100%; margin-top: 15px; cursor: pointer; font-size: 14px; }
-        
-        .controles-cantidad { display: flex; align-items: center; background: #fff; border: 1px solid #ced4da; border-radius: 6px; overflow: hidden; }
-        .btn-cant { background: #f8f9fa; border: none; padding: 5px 12px; cursor: pointer; transition: 0.2s; font-size: 14px; }
-        .btn-cant:hover { background: #e2e6ea; }
-        .btn-eliminar-item { background: #ff4757; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
-        .btn-eliminar-item:hover { background: #c44527; }
+        /* PANTALLA DE ÉXITO (KDS Y TURNOS) */
+        #modal-exito { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: var(--primary); color: white; text-align: center; padding: 20px; }
+        .circle-success { width: 100px; height: 100px; background: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 50px; margin-bottom: 20px; box-shadow: 0 0 30px rgba(46, 213, 115, 0.4); }
+        .turno-display { font-size: 70px; font-weight: 900; color: white; margin: 10px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.3); }
+
+        /* CHATBOT BUBBLE */
+        .chat-bubble {
+            position: fixed; bottom: 85px; right: 20px; width: 55px; height: 55px; background: var(--secondary);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 25px;
+            color: white; box-shadow: 0 5px 15px rgba(225, 95, 65, 0.4); cursor: pointer; z-index: 99;
+        }
     </style>
 </head>
 <body>
 
     <div id="pantalla-reserva">
-        <div class="reserva-box">
-            <h1 id="brand-title">🌊 La Costeñita</h1>
-            <p class="slogan" id="brand-slogan">El auténtico sabor de nuestra costa ecuatoriana.</p>
-            
-            <div class="form-grid-main">
-                <div class="form-grupo">
-                    <label>📍 Sucursal de preferencia</label>
-                    <select id="res-sucursal" onchange="solicitarHorarios()">
-                        <option value="Urdesa">Urdesa (Principal)</option>
-                        <option value="Samborondón">Samborondón</option>
-                        <option value="Sur">Sur</option>
-                    </select>
-                </div>
-                <div class="form-grupo"><label>Fecha de tu visita</label><input type="date" id="res-fecha" required></div>
-                <div class="form-grupo"><label>Número de Personas</label><input type="number" id="res-pax" min="1" max="10" value="2"></div>
-                <div class="form-grupo">
-                    <label>Hora deseada (Disponibilidad en vivo)</label>
-                    <select id="res-hora" disabled><option value="">Selecciona una fecha primero...</option></select>
-                </div>
+        <h1 id="brand-title" style="margin-bottom: 10px; font-size: 32px;">🌊 La Costeñita</h1>
+        <p id="brand-slogan" style="margin-bottom: 30px; font-size: 16px; opacity: 0.9;">El auténtico sabor de nuestra costa.</p>
+        
+        <div class="reserva-card">
+            <h2>Reserva tu Mesa</h2>
+            <div class="input-group">
+                <label>Sucursal a visitar</label>
+                <select id="res-sucursal">
+                    <option value="Principal">Local Principal</option>
+                    <option value="Norte">Sucursal Norte</option>
+                </select>
             </div>
-            <button class="btn-verificar" onclick="verificarDisponibilidad()">Verificar Mesa 🔍</button>
-            
-            <div class="alerta-horarios" id="alerta-lleno">
-                <strong style="color:#d35400;">⚠️ Lo sentimos, este horario está lleno en la sucursal elegida.</strong><br>
-                <span style="font-size: 13px;">Intenta con una alternativa:</span>
-                <div id="opciones-alternativas" style="margin-top: 10px;"></div>
+            <div class="input-group">
+                <label>Fecha de visita</label>
+                <input type="date" id="res-fecha" required>
             </div>
+            <div class="input-group">
+                <label>Acompañantes</label>
+                <select id="res-pax">
+                    <option value="1">1 Persona</option>
+                    <option value="2" selected>2 Personas</option>
+                    <option value="3">3 Personas</option>
+                    <option value="4">4 Personas</option>
+                    <option value="5">5+ Personas</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Hora</label>
+                <select id="res-hora" disabled>
+                    <option value="">Selecciona fecha primero...</option>
+                </select>
+            </div>
+            <button class="btn-main" onclick="verificarDisponibilidad()">Verificar Disponibilidad ➔</button>
         </div>
     </div>
 
-    <div class="modal-overlay" id="modal-eleccion">
-        <div class="modal-content" style="text-align: center;">
-            <h2 style="color:#0a3d62; margin-bottom: 10px;">🎉 ¡Mesa Disponible!</h2>
-            <p style="color:#57606f; margin-bottom: 25px;">Tenemos una mesa lista para tu grupo en <strong id="lbl-franquicia-modal"></strong> (<span id="lbl-sucursal"></span>).</p>
-            <p style="font-weight: bold; font-size: 18px; margin-bottom: 15px;">¿Qué deseas hacer ahora?</p>
+    <div id="modal-eleccion" class="modal-overlay">
+        <div class="modal-content" style="text-align: center; border-radius: 20px; padding: 40px 25px;">
+            <div style="font-size: 50px; margin-bottom: 15px;">✅</div>
+            <h2 style="color: var(--primary); margin-bottom: 10px;">¡Mesa Disponible!</h2>
+            <p style="color: var(--text-muted); margin-bottom: 25px;">Hemos separado tu mesa temporalmente. ¿Deseas preordenar tu comida para no esperar, o solo asegurar la mesa?</p>
             
-            <button class="btn-verificar" onclick="irAlMenu()">Ver Menú y Pre-ordenar 🤤</button>
-            <p style="font-size: 12px; color: #747d8c; margin-bottom: 15px;">(Tu comida estará lista al llegar)</p>
-            
-            <button class="btn-secundario" onclick="abrirSoloReserva()">Solo Reservar Mesa 🪑</button>
-            <p style="font-size: 12px; color: #747d8c;">(Pedirás la comida al mesero en el local)</p>
-            
-            <button class="btn-saltar" onclick="cerrarModalEleccion()">⬅️ Me equivoqué, quiero cambiar fecha/hora</button>
+            <button class="btn-main" onclick="irAlMenu()" style="margin-bottom: 15px;">🍔 Pre-ordenar Menú (Recomendado)</button>
+            <button class="btn-main" onclick="abrirSoloReserva()" style="background: var(--bg); color: var(--primary); border: 1px solid var(--primary);">Solo reservar mesa</button>
         </div>
     </div>
 
-    <div class="modal-overlay" id="modal-solo-reserva">
+    <div id="modal-solo-reserva" class="modal-overlay">
         <div class="modal-content">
-            <button class="close-modal" onclick="cerrarSoloReserva()">✕</button>
-            <h2 style="margin-bottom:15px; color:#0a3d62;">📝 Confirmar Reserva de Mesa</h2>
-            <p style="margin-bottom: 20px; font-size: 14px; color: #57606f;">Se asegurará tu mesa. Recuerda llegar puntual al local.</p>
-            <div class="form-grupo"><label>A nombre de:</label><input type="text" id="cliente-nombre-solo" placeholder="Ej. Carlos Mendoza"></div>
-            <button class="btn-secundario" onclick="finalizarSoloReserva()">Confirmar Reserva 🚀</button>
+            <button class="modal-close" onclick="cerrarSoloReserva()">×</button>
+            <h2 style="color: var(--primary); margin-bottom: 20px;">Confirmar Reserva</h2>
+            <div class="input-group">
+                <label>Nombre de quien reserva:</label>
+                <input type="text" id="cliente-nombre-solo" placeholder="Ej. Juan Pérez">
+            </div>
+            <button class="btn-main" onclick="finalizarSoloReserva()">Confirmar Asistencia</button>
         </div>
     </div>
 
     <div id="pantalla-menu">
-        <div class="header">
-            <div>
-                <h1 id="brand-title-menu" style="color:#e15f41;">🌊 La Costeñita</h1>
-                <p style="color:#666; font-size:14px;">
-                    <span id="txt-resumen-reserva">Armando tu pre-orden...</span>
-                    <a href="#" onclick="volverAReserva()" style="color:#e15f41; font-weight:bold; margin-left:10px; text-decoration:underline;">✏️ Cambiar</a>
-                </p>
-            </div>
-            <button class="btn-ver-carrito" onclick="abrirCarrito()">🛒 Ver Orden (<span id="cart-count">0</span>)</button>
+        <div class="header-menu">
+            <h1 id="brand-title-menu">Menú Digital</h1>
+            <span style="font-size: 12px; color: var(--success); font-weight: bold; background: #e8fcf0; padding: 4px 10px; border-radius: 10px;">Mesa Asegurada</span>
         </div>
         
-        <div class="filtros-container">
-            <input type="text" id="buscar-menu" class="input-buscar" placeholder="🔍 Buscar plato por nombre o ingrediente..." onkeyup="aplicarFiltros()">
-            <div class="botones-filtro" id="botones-categorias"></div>
+        <div class="filtros-container" id="botones-categorias">
+            </div>
+
+        <div id="contenedor-menu-dinamico">
+            <p style="text-align:center; padding: 40px; color:#a4b0be; font-size:16px;">Sincronizando platos desde la nube...</p>
         </div>
 
-        <div id="contenedor-menu-dinamico"></div>
+        <div class="floating-cart" onclick="abrirCarrito()">
+            🛒 Ver Mi Pedido <span class="cart-badge" id="cart-count">0</span>
+        </div>
+        
+        <div class="chat-bubble" id="chat-bubble" onclick="alert('Asistente Virtual: ¡Hola! En futuras actualizaciones estaré completamente integrado aquí.')">💬</div>
     </div>
 
-    <div class="modal-overlay" id="modal-carrito">
+    <div id="modal-carrito" class="modal-overlay">
         <div class="modal-content">
-            <button class="close-modal" onclick="cerrarCarrito()">✕</button>
-            <h2 style="margin-bottom:15px; color:#0a3d62;">🛒 Confirmar Pre-orden</h2>
-            <div class="lista-items" id="carrito-contenedor"></div>
-            <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                <span>Total a pagar:</span><span id="total-txt" style="color:#e15f41;">$0.00</span>
+            <button class="modal-close" onclick="cerrarCarrito()">×</button>
+            <h2 style="color: var(--primary); margin-bottom: 20px;">Confirma tu Orden</h2>
+            
+            <div class="input-group">
+                <label>Nombre del Cliente (Para llamarte al despacho):</label>
+                <input type="text" id="cliente-nombre" placeholder="Ej. Juan Pérez">
             </div>
-            <div class="form-grupo"><label>A nombre de:</label><input type="text" id="cliente-nombre" placeholder="Ej. Carlos Mendoza"></div>
-            <div class="form-grupo">
-                <label>Forma de Pago</label>
+
+            <div id="carrito-contenedor" style="margin-bottom: 15px;">
+                </div>
+            
+            <div class="cart-total">
+                <span>Total a Pagar:</span>
+                <span id="total-txt">$0.00</span>
+            </div>
+
+            <div class="input-group">
+                <label>Método de Pago en Local</label>
                 <select id="cliente-pago">
-                    <option value="Tarjeta">💳 Tarjeta (Pago Inmediato Seguro)</option>
-                    <option value="Efectivo">💵 Efectivo (Pagar en el local)</option>
+                    <option value="Efectivo">💵 Efectivo (Al retirar o en caja)</option>
+                    <option value="Tarjeta">💳 Tarjeta / Transferencia</option>
                 </select>
             </div>
-            <button class="btn-confirmar" onclick="finalizarReservaPedido()">Confirmar y Enviar 🚀</button>
+
+            <button class="btn-main" onclick="finalizarReservaPedido()">Confirmar Pedido a Cocina 🚀</button>
         </div>
     </div>
 
-    <div class="modal-overlay" id="modal-exito">
-        <div class="modal-content" style="text-align: center;">
-            <h2 style="color:#2ed573;">🎉 ¡Todo Listo, ñaño!</h2>
-            <p style="color:#57606f; margin-top:10px;" id="txt-exito-detalle">Tu mesa y tu pedido están asegurados para tu llegada.</p>
-            <p style="margin-top:20px; font-weight:bold;">TU NÚMERO DE FILA:</p>
-            <div style="font-size: 48px; font-weight: bold; color: #e15f41; background: #fff1f2; padding: 15px; border-radius: 12px; border: 2px dashed #e15f41; margin: 15px 0;">#<span id="txt-turno">00</span></div>
-            
-            <div class="encuesta-card">
-                <strong style="color:#0a3d62; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Gana una cortesía del chef</strong>
-                <div class="form-grupo"><label>¿Padeces alguna alergia? (Opcional)</label><input type="text" id="encuesta-alergia" placeholder="Ej. Mariscos, Maní"></div>
-                <div class="form-grupo">
-                    <label>¿Qué te pareció el sistema Book&Bite?</label>
-                    <select id="encuesta-gusto">
-                        <option value="Excelente">Excelente y Rápido 🌟</option>
-                        <option value="Bueno">Muy Práctico 👍</option>
-                    </select>
-                </div>
-                <button class="btn-confirmar" style="margin-top: 5px;" onclick="guardarEncuestaOpcional()">Enviar y Reclamar 🎁</button>
-            </div>
-            <button class="btn-saltar" onclick="reiniciarKiosco()">Terminar y Volver al inicio</button>
+    <div id="modal-exito">
+        <div class="circle-success">✓</div>
+        <h2>¡Orden Exitosa!</h2>
+        <p style="margin-top: 10px; color: #dff9fb;">Tu pedido ya se está preparando en la cocina.</p>
+        
+        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 16px; margin: 30px 0; width: 100%; max-width: 300px;">
+            <p style="font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;">Tu turno de fila es el</p>
+            <div class="turno-display" id="txt-turno">00</div>
+            <p style="font-size: 13px; color: #dff9fb;" id="txt-exito-detalle">Mantén esta pantalla abierta. Te avisaremos aquí si tu fila avanza o si tu orden está lista.</p>
         </div>
-    </div>
 
-    <div class="chatbot-bubble" id="chat-bubble" onclick="abrirChat()">💬</div>
-    <div class="chatbot-container" id="chat-container">
-        <div class="chatbot-header"><span id="chat-header-title">💬 Asistente Virtual</span><button type="button" class="btn-cerrar-chat" onclick="cerrarChat()">✕</button></div>
-        <div class="chatbot-messages" id="chat-mensajes"><div class="msg-bot" id="chat-welcome-msg">¡Hola! Soy tu asistente virtual. ¿En qué te puedo ayudar hoy con tu reserva o menú?</div></div>
-        <div class="chatbot-input"><input type="text" id="chat-input" placeholder="Pregunta lo que sea..." onkeypress="if(event.key === 'Enter') enviarMensajeBot()"><button onclick="enviarMensajeBot()">Enviar</button></div>
+        <button class="btn-main" style="background: white; color: var(--primary); max-width: 300px;" onclick="reiniciarKiosco()">Ir al inicio</button>
     </div>
 
     <script>
         const socket = io();
-
-        // 1. IDENTIFICACIÓN MULTI-TENANT (Detectar de qué local viene el QR)
+        
+        // Detección de Multi-Tenant B2B (Lee la franquicia desde la URL del QR)
         const urlParams = new URLSearchParams(window.location.search);
-        let miTenant = urlParams.get('local') || sessionStorage.getItem('tenant_id') || 'tenant_costenita';
+        let miTenant = urlParams.get('local') || sessionStorage.getItem('tenant_id') || 'tenant_costenita'; 
         sessionStorage.setItem('tenant_id', miTenant);
 
-        // Pre-llenar la fecha de hoy por defecto para mayor comodidad del cliente
-        document.getElementById('fecha').valueAsDate = new Date();
+        // Branding dinámico Multi-SaaS
+        const configFranquicia = {
+            'tenant_costenita': { nombre: 'La Costeñita', slogan: 'El auténtico sabor de nuestra costa ecuatoriana.', icono: '🌊' },
+            'tenant_negroni': { nombre: 'Negroni', slogan: 'Cocktails & Italian Kitchen.', icono: '🍸' }
+        };
+        const infoActual = configFranquicia[miTenant] || configFranquicia['tenant_costenita'];
 
-        // Variables Globales
-        let carrito = [];
-        let nombreFranquicia = miTenant.includes('negroni') ? 'Negroni' : 'La Costeñita';
+        document.getElementById('page-title').innerText = `${infoActual.nombre} - Book&Bite`;
+        document.getElementById('brand-title').innerText = `${infoActual.icono} ${infoActual.nombre}`;
+        document.getElementById('brand-slogan').innerText = infoActual.slogan;
+        document.getElementById('brand-title-menu').innerText = `${infoActual.icono} Menú`;
 
-        // 2. CONECTARSE AL LOCAL CORRECTO EN EL SERVIDOR
+        // Restricción de calendario (No reservas en el pasado)
+        document.getElementById('res-fecha').min = new Date().toISOString().split('T')[0];
+
+        // Autenticación en la Sala Socket
         socket.on('connect', () => {
-            console.log("📱 PWA Conectada exitosamente a la franquicia:", miTenant);
-            document.getElementById('nombre-local-header').innerText = `Bienvenidos a ${nombreFranquicia}`;
-            
-            // Reclamar los datos específicos de esta franquicia
-            socket.emit('unirse-a-restaurante', miTenant);
+            if(miTenant) { socket.emit('unirse-a-restaurante', miTenant); }
         });
 
-        // 3. RECIBIR EL MENÚ DEL SERVIDOR Y DIBUJARLO
-        socket.on('cargar-menu-inicial', (productos) => {
-            const contenedor = document.getElementById('contenedor-menu');
-            contenedor.innerHTML = '';
-            
-            if (!productos || productos.length === 0) {
-                contenedor.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #a4b0be; padding: 20px;">El menú no se encuentra disponible por el momento.</p>';
-                return;
-            }
+        // Memoria de la App
+        let productos = []; 
+        let carrito = []; 
+        let datosReservaConfirmada = {};
+        let miIdReserva = null; 
+        let pantallaActual = 'reserva'; 
+        let turnoActual = "00";
+        let categoriaFiltroActiva = "Todas";
 
-            productos.forEach(prod => {
-                const div = document.createElement('div');
-                div.className = 'menu-item';
-                // Si la imagen falla o está vacía, pone un logo por defecto
-                const imgValida = prod.img && prod.img.trim() !== '' ? prod.img : 'https://cdn-icons-png.flaticon.com/512/3734/3734697.png';
-                
-                div.innerHTML = `
-                    <div>
-                        <img src="${imgValida}" alt="${prod.nombre}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3734/3734697.png'">
-                        <h3>${prod.nombre}</h3>
-                    </div>
-                    <div>
-                        <p>$${parseFloat(prod.precio).toFixed(2)}</p>
-                        <button onclick="agregarAlCarrito('${prod.id}', '${prod.nombre}', ${prod.precio})">+ Añadir a la Orden</button>
-                    </div>
-                `;
-                contenedor.appendChild(div);
-            });
-        });
-
-        // 4. FUNCIONES DEL CARRITO DE COMPRAS
-        function agregarAlCarrito(id, nombre, precio) {
-            const existente = carrito.find(item => item.id === id);
-            if (existente) {
-                existente.cantidad += 1;
-            } else {
-                carrito.push({ id, nombre, precio: parseFloat(precio), cantidad: 1 });
-            }
-            actualizarCarrito();
+        // Persistencia para "Fricción Cero" (Si el cliente minimiza o recarga la página)
+        function guardarEstado() {
+            sessionStorage.setItem('bookbiteEstado', JSON.stringify({ pantallaActual, datosReservaConfirmada, carrito, miIdReserva, turnoActual }));
         }
 
-        function actualizarCarrito() {
-            const lista = document.getElementById('lista-carrito');
-            const totalEtiq = document.getElementById('total-carrito');
-            
-            if (carrito.length === 0) {
-                lista.innerHTML = '<p style="color:#a4b0be; font-size:14px; text-align:center; padding: 10px 0;">No has agregado platos.<br>Puedes confirmar para solo apartar tu mesa.</p>';
-                totalEtiq.innerText = "0.00";
-                return;
-            }
+        function recuperarEstado() {
+            const guardado = sessionStorage.getItem('bookbiteEstado');
+            if (guardado) {
+                const est = JSON.parse(guardado);
+                pantallaActual = est.pantallaActual;
+                datosReservaConfirmada = est.datosReservaConfirmada || {};
+                carrito = est.carrito || [];
+                miIdReserva = est.miIdReserva;
+                turnoActual = est.turnoActual || "00";
 
-            lista.innerHTML = '';
-            let total = 0;
-            carrito.forEach((item, index) => {
-                total += item.precio * item.cantidad;
-                lista.innerHTML += `
-                    <div class="cart-item">
-                        <span style="font-weight:600; color:#0a3d62;">${item.cantidad}x ${item.nombre}</span>
-                        <span>$${(item.precio * item.cantidad).toFixed(2)} <b style="color:#ff4757; cursor:pointer; margin-left:15px;" onclick="quitarDelCarrito(${index})">✖</b></span>
-                    </div>
-                `;
-            });
-            totalEtiq.innerText = total.toFixed(2);
-        }
-
-        function quitarDelCarrito(index) {
-            carrito.splice(index, 1);
-            actualizarCarrito();
-        }
-
-        // 5. INICIAR EL FLUJO DE CHECKOUT Y VERIFICAR MESAS
-        function confirmarPedido() {
-            const cliente = document.getElementById('cliente').value; 
-            const sucursal = document.getElementById('sucursal').value;
-            const fecha = document.getElementById('fecha').value; 
-            const hora = document.getElementById('hora').value; 
-            const personas = document.getElementById('personas').value; 
-
-            // Validaciones básicas UX
-            if (!cliente || cliente.trim() === '') {
-                alert("⚠️ Por favor, ingresa tu nombre completo antes de continuar.");
-                document.getElementById('cliente').focus();
-                return;
-            }
-            if (!fecha || !hora || !personas) {
-                alert("⚠️ Por favor, completa la fecha, hora y cantidad de personas para buscarte una mesa.");
-                return;
-            }
-
-            // Evitar doble clic
-            const btn = document.getElementById('btn-confirmar');
-            const btnTextAnterior = btn.innerHTML;
-            btn.innerHTML = "⏳ Calculando disponibilidad de mesas...";
-            btn.disabled = true;
-
-            // Pedir al servidor que calcule si hay espacio
-            socket.emit('verificar-disponibilidad', { 
-                fecha: fecha, 
-                hora: hora, 
-                personas: personas, 
-                sucursal: sucursal, 
-                tenant_id: miTenant 
-            });
-
-            // Seguro por si el internet falla
-            setTimeout(() => {
-                if(btn.disabled) {
-                    btn.innerHTML = btnTextAnterior;
-                    btn.disabled = false;
+                if (pantallaActual === 'menu') {
+                    document.getElementById('pantalla-reserva').style.display = 'none';
+                    document.getElementById('pantalla-menu').style.display = 'block';
+                    updateCartUI();
+                } else if (pantallaActual === 'exito') {
+                    document.getElementById('pantalla-reserva').style.display = 'none';
+                    document.getElementById('pantalla-menu').style.display = 'none';
+                    document.getElementById('txt-turno').innerText = turnoActual;
+                    document.getElementById('modal-exito').style.display = 'flex';
                 }
-            }, 5000);
+            }
+        }
+        recuperarEstado();
+
+        // Utilidad: Alertas Visuales Pop-Up Flotantes
+        function mostrarAlertaFila(msg, destacado) {
+            const al = document.createElement('div');
+            al.style.position = 'fixed'; al.style.top = '25px'; al.style.left = '50%'; al.style.transform = 'translateX(-50%)'; 
+            al.style.zIndex = '10000'; al.style.padding = '15px 30px'; al.style.borderRadius = '10px'; al.style.color = 'white';
+            al.style.fontWeight = 'bold'; al.style.background = destacado ? 'var(--success)' : 'var(--primary)';
+            al.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)'; al.style.textAlign = 'center';
+            al.innerHTML = msg; document.body.appendChild(al);
+            
+            new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(()=>{});
+            setTimeout(() => al.remove(), destacado ? 15000 : 6000);
         }
 
-        // 6. RESPUESTA DEL SERVIDOR Y ARMADO DEL PAQUETE FINAL PARA SUPABASE
+        // ================== LISTENERS TIEMPO REAL CON SUPABASE ==================
+        
+        socket.on('reserva-confirmada-turno', (data) => {
+            if (miIdReserva === data.idReserva) {
+                turnoActual = data.turno;
+                document.getElementById('txt-turno').innerText = turnoActual;
+                guardarEstado();
+            }
+        });
+
+        socket.on('pedido-listo', (data) => {
+            if (miIdReserva === data.idReserva) {
+                mostrarAlertaFila("🎉 ¡TU PEDIDO ESTÁ LISTO! <br>Por favor, acércate a la barra o retíralo con tu mesero.", true);
+            }
+        });
+
+        socket.on('notificacion-avance-turno', (data) => {
+            if (miIdReserva === data.idReserva) {
+                turnoActual = data.nuevoTurno;
+                document.getElementById('txt-turno').innerText = turnoActual;
+                guardarEstado();
+                
+                if (data.nuevoTurno === 1) {
+                    mostrarAlertaFila(`🎉 ¡ERES EL SIGUIENTE EN LA FILA! <br>Prepara tu mesa, estamos por despacharte.`, true);
+                } else {
+                    mostrarAlertaFila(`🔔 ¡La fila avanzó! Ahora estás en el puesto #${data.nuevoTurno}`, false);
+                }
+            }
+        });
+
+        // ================== DISPONIBILIDAD Y MESAS ==================
+        function solicitarHorarios() {
+            const fecha = document.getElementById('res-fecha').value; 
+            const pax = document.getElementById('res-pax').value; 
+            const sucursal = document.getElementById('res-sucursal').value;
+            if(fecha) { 
+                document.getElementById('res-hora').disabled = true; 
+                document.getElementById('res-hora').innerHTML = '<option value="">Buscando mesas...</option>'; 
+                socket.emit('consultar-horarios', { fecha, personas: pax, sucursal, tenant_id: miTenant }); 
+            }
+        }
+        
+        document.getElementById('res-fecha').addEventListener('change', solicitarHorarios); 
+        document.getElementById('res-pax').addEventListener('change', solicitarHorarios);
+        
+        socket.on('horarios-para-fecha', (horarios) => {
+            const selectHora = document.getElementById('res-hora'); 
+            selectHora.innerHTML = ""; let hayOpciones = false;
+            horarios.forEach(h => { 
+                if(h.lleno) {
+                    selectHora.innerHTML += `<option value="${h.hora}" disabled>❌ ${h.hora} (Sin Disponibilidad)</option>`; 
+                } else { 
+                    selectHora.innerHTML += `<option value="${h.hora}">✅ ${h.hora} (Mesas Libres)</option>`; 
+                    hayOpciones = true; 
+                } 
+            });
+            if(!hayOpciones) selectHora.innerHTML = `<option value="" disabled>Agotado por hoy</option>`; 
+            selectHora.disabled = false;
+        });
+
+        function verificarDisponibilidad() {
+            const fecha = document.getElementById('res-fecha').value;
+            const hora = document.getElementById('res-hora').value;
+            if(!fecha || !hora) return alert("Completa los campos de fecha y hora.");
+            socket.emit('verificar-disponibilidad', { fecha, hora, sucursal: document.getElementById('res-sucursal').value, tenant_id: miTenant });
+        }
+
         socket.on('resultado-disponibilidad', (res) => {
-            const btn = document.getElementById('btn-confirmar');
-            btn.innerHTML = "✅ Confirmar Reserva y Pagar";
-            btn.disabled = false;
-
-            if (res.disponible) {
-                // Generar un ID transaccional único
-                const idPedido = Math.floor(Math.random() * 900000) + 100000; 
-
-                // Resumir el carrito a texto
-                let resumenCarrito = "Solo Reserva de Mesa (Pedirá en Local)";
-                if (carrito.length > 0) {
-                    resumenCarrito = carrito.map(p => `${p.cantidad}x ${p.nombre}`).join(', ');
-                }
-                    
-                const metodoPago = document.getElementById('metodo_pago').value;
-                const cliente = document.getElementById('cliente').value; 
-
-                // 🔥 ESTRUCTURA BLINDADA OBLIGATORIA (Si falta un dato, Supabase la rechaza)
-                const paqueteFinal = {
-                    id: idPedido,
-                    cliente: cliente,
-                    item: resumenCarrito,
-                    pago: metodoPago,
-                    tenant_id: miTenant,
-                    datosReserva: {
-                        fecha: document.getElementById('fecha').value,
-                        hora: res.horaExacta,
-                        personas: document.getElementById('personas').value,
-                        sucursal: res.sucursal,
-                        mesa: res.mesa // El servidor ya hizo la matemática y asignó esta mesa
-                    }
-                };
-
-                // Enviar la orden estructurada al servidor
-                socket.emit('enviar-reserva-pedido', paqueteFinal);
-                
-                // Transición fluida a pantalla de éxito (SPA)
-                document.getElementById('pantalla-reserva').style.display = 'none';
-                document.getElementById('pantalla-exito').style.display = 'block';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                
-                // Limpiar memoria
-                carrito = []; 
-                actualizarCarrito();
-
-            } else {
-                // Si la matemática de mesas falló
-                let mensajeAlt = res.alternativas && res.alternativas.length > 0 
-                                 ? res.alternativas.join(', ') 
-                                 : "No tenemos disponibilidad para esa cantidad de personas cerca de esa hora.";
-                alert(`❌ Lo sentimos mucho.\n\nNo tenemos mesas libres con capacidad para ${document.getElementById('personas').value} personas a las ${document.getElementById('hora').value}.\n\nTe sugerimos cambiar a estos horarios libres:\n👉 ${mensajeAlt}`);
+            if(res.disponible) {
+                datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: res.horaExacta, personas: document.getElementById('res-pax').value, mesa: res.mesa, sucursal: res.sucursal };
+                document.getElementById('modal-eleccion').style.display = 'flex';
             }
         });
 
-        // 7. RECIBIR EL TURNO FINAL DE LA FILA VIRTUAL
-        socket.on('confirmacion-turno-cliente', (datos) => {
-            const textoTurno = document.getElementById('numero-turno-pantalla');
-            if (textoTurno) textoTurno.innerText = `#${datos.turno}`;
+        // Navegación Básica UI
+        function irAlMenu() {
+            document.getElementById('modal-eleccion').style.display = 'none'; 
+            document.getElementById('pantalla-reserva').style.display = 'none';
+            document.getElementById('pantalla-menu').style.display = 'block';
+            pantallaActual = 'menu'; guardarEstado(); 
+            dibujarBotonesFiltro(); dibujarProductos();
+        }
+
+        function abrirSoloReserva() { 
+            document.getElementById('modal-eleccion').style.display = 'none'; 
+            document.getElementById('modal-solo-reserva').style.display = 'flex'; 
+        }
+        
+        function cerrarSoloReserva() { 
+            document.getElementById('modal-solo-reserva').style.display = 'none'; 
+            document.getElementById('modal-eleccion').style.display = 'flex'; 
+        }
+
+        // ================== CHECKOUT DE ORDENES HACIA LA BASE DE DATOS ==================
+        function finalizarSoloReserva() {
+            const name = document.getElementById('cliente-nombre-solo').value.trim();
+            if(!name) return alert("Por favor ingresa tu nombre.");
+
+            miIdReserva = Math.floor(Math.random() * 89999) + 10000;
+            const paquete = { id: miIdReserva, cliente: name, item: "Solo Reserva (No pre-ordenó menú)", pago: "N/A", datosReserva: datosReservaConfirmada, tenant_id: miTenant };
+            
+            socket.emit('enviar-reserva-pedido', paquete);
+            document.getElementById('modal-solo-reserva').style.display = 'none';
+            mostrarPantallaExito();
+        }
+
+        function finalizarReservaPedido() {
+            const name = document.getElementById('cliente-nombre').value.trim();
+            if(!name || carrito.length === 0) return alert("Falta tu nombre o platos en el carrito.");
+            
+            miIdReserva = Math.floor(Math.random() * 89999) + 10000;
+            const paquete = { 
+                id: miIdReserva, 
+                cliente: name, 
+                item: carrito.map(c => `${c.cantidad}x ${c.nombre}`).join(' • '), 
+                pago: document.getElementById('cliente-pago').value, 
+                datosReserva: datosReservaConfirmada, 
+                tenant_id: miTenant 
+            };
+            
+            socket.emit('enviar-reserva-pedido', paquete);
+            document.getElementById('modal-carrito').style.display = 'none';
+            mostrarPantallaExito();
+        }
+
+        function mostrarPantallaExito() {
+            document.getElementById('pantalla-reserva').style.display = 'none';
+            document.getElementById('pantalla-menu').style.display = 'none';
+            document.getElementById('modal-exito').style.display = 'flex';
+            pantallaActual = 'exito'; guardarEstado();
+        }
+
+        // ================== DIBUJADO DE MENÚ DESDE SUPABASE ==================
+        socket.on('cargar-menu-inicial', (data) => { 
+            productos = data; 
+            if(pantallaActual === 'menu') { dibujarBotonesFiltro(); dibujarProductos(); }
         });
 
-        // =================================================================
-        // 🤖 LÓGICA DEL CHATBOT DE ASISTENCIA RÁPIDA
-        // =================================================================
-        function toggleChat() {
-            const chat = document.getElementById('chatbot-widget');
-            chat.style.display = (chat.style.display === 'flex') ? 'none' : 'flex';
+        function dibujarBotonesFiltro() {
+            const sucursalElegida = (datosReservaConfirmada && datosReservaConfirmada.sucursal) ? datosReservaConfirmada.sucursal : "Todas";
+            const productosPermitidos = productos.filter(p => (!p.sucursal || p.sucursal === "Todas" || String(p.sucursal).includes(sucursalElegida)));
+            
+            const cont = document.getElementById('botones-categorias'); 
+            cont.innerHTML = `<button class="btn-filtro ${categoriaFiltroActiva === 'Todas' ? 'activo' : ''}" onclick="filtrarCategoria('Todas')">Todas</button>`;
+            
+            const categories = [...new Set(productosPermitidos.map(p => p.category))];
+            categories.forEach(cat => { 
+                cont.innerHTML += `<button class="btn-filtro ${categoriaFiltroActiva === cat ? 'activo' : ''}" onclick="filtrarCategoria('${cat}')">${cat}</button>`; 
+            });
         }
 
-        function enviarMensajeChat() {
-            const inputField = document.getElementById('chat-texto');
-            const chatBox = document.getElementById('chat-mensajes');
-            const textOrig = inputField.value;
-            const textUser = textOrig.toLowerCase();
+        function filtrarCategoria(cat) { categoriaFiltroActiva = cat; dibujarBotonesFiltro(); dibujarProductos(); }
 
-            if (textUser.trim() === '') return;
+        function dibujarProductos() {
+            const container = document.getElementById('contenedor-menu-dinamico'); 
+            container.innerHTML = "";
+            
+            const sucursalElegida = (datosReservaConfirmada && datosReservaConfirmada.sucursal) ? datosReservaConfirmada.sucursal : "Todas";
+            const filtrados = productos.filter(p => {
+                let passSucursal = (!p.sucursal || p.sucursal === "Todas" || String(p.sucursal).includes(sucursalElegida));
+                let passCat = (categoriaFiltroActiva === "Todas") || (p.category === categoriaFiltroActiva);
+                return passSucursal && passCat;
+            });
 
-            // Imprimir mensaje del usuario
-            chatBox.innerHTML += `<div class="msg-user">${textOrig}</div>`;
-            inputField.value = "";
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            // Simular respuesta del servidor cognitivo
-            setTimeout(() => {
-                let resp = "Entiendo. ¿Te puedo ayudar orientándote sobre cómo hacer reservas, nuestros horarios de atención o el menú? 🤔";
-                
-                if (["hola", "que mas", "buenas", "saludos"].some(w => textUser.includes(w))) { 
-                    resp = `¡Hola! Bienvenido al canal inteligente de ${nombreFranquicia}. ¿En qué te puedo asesorar hoy?`; 
-                }
-                else if (["direccion", "ubicacion", "donde", "sucursal", "locales"].some(w => textUser.includes(w))) { 
-                    resp = `📍 Contamos con sucursales habilitadas en Urdesa, Samborondón y Centro. Selecciona la de tu preferencia en el formulario de arriba.`; 
-                }
-                else if (["horario", "hora", "abren", "cierran"].some(w => textUser.includes(w))) { 
-                    resp = "⏰ Atendemos todos los días de la semana, principalmente desde las 12:00 PM hasta las 10:00 PM."; 
-                }
-                else if (["reserva", "mesa", "puesto", "como", "apartar"].some(w => textUser.includes(w))) { 
-                    resp = "🗓️ ¡Nuestra tecnología es Fricción Cero! Solo ingresa tu nombre, elige fecha, hora y personas en la parte superior y presiona 'Confirmar Reserva'. ¡Nada de llamadas!"; 
-                }
-                else if (["pago", "pagar", "tarjeta", "efectivo"].some(w => textUser.includes(w))) { 
-                    resp = "💳 El pago es súper flexible. Puedes pagar la comida de tu carrito ahora mismo con Tarjeta, o elegir Efectivo y pagar cuando vengas al local."; 
-                }
-                else if (["menu", "comida", "plato", "hambre", "precios"].some(w => textUser.includes(w))) { 
-                    resp = "🍔 ¡Tienes todo nuestro menú en la pantalla principal! Puedes presionar '+ Añadir a la orden' en los platos que desees para pre-ordenarlos y ahorrarte todo el tiempo de espera."; 
-                }
-
-                chatBox.innerHTML += `<div class="msg-bot">${resp}</div>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }, 800);
+            if(filtrados.length === 0) {
+                return container.innerHTML = "<p style='text-align:center; padding:40px; color:var(--text-muted);'>No hay platos para esta categoría o local.</p>";
+            }
+            
+            let html = `<div class="grid-productos">`;
+            filtrados.forEach(p => {
+                html += `
+                <div class="card-producto">
+                    <img src="${p.img}" onerror="this.onerror=null; this.src='https://placehold.co/220x140?text=Sin+Foto'">
+                    <div class="info-producto">
+                        <strong>${p.nombre}</strong>
+                        <p>$${parseFloat(p.precio).toFixed(2)}</p>
+                        <button class="btn-agregar" onclick="addToCart(${p.id})">Añadir 🛒</button>
+                    </div>
+                </div>`;
+            });
+            html += `</div>`; container.innerHTML = html;
         }
+
+        // ================== CONTROL DEL CARRITO DE COMPRAS ==================
+        function addToCart(id) {
+            const prod = productos.find(x => x.id === id);
+            const exist = carrito.find(x => x.id === id);
+            if(exist) exist.cantidad++; else carrito.push({...prod, cantidad: 1});
+            updateCartUI();
+        }
+
+        function modificarCantidad(id, cambio) { 
+            const index = carrito.findIndex(x => x.id === id); 
+            if (index !== -1) { 
+                carrito[index].cantidad += cambio; 
+                if (carrito[index].cantidad <= 0) carrito.splice(index, 1); 
+                updateCartUI(); 
+            } 
+        }
+
+        function updateCartUI() {
+            document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0);
+            const cont = document.getElementById('carrito-contenedor'); 
+            cont.innerHTML = "";
+            let total = 0;
+            
+            if(carrito.length === 0) {
+                cont.innerHTML = "<p style='text-align:center; color:var(--text-muted); padding: 10px;'>Tu carrito está vacío 🥺</p>";
+            } else {
+                carrito.forEach(c => {
+                    total += c.precio * c.cantidad;
+                    cont.innerHTML += `
+                        <div class="cart-item">
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <span class="cart-item-info">${c.nombre}</span>
+                                <div style="display:flex; align-items:center; gap: 10px;">
+                                    <button style="border:none; background:#f1f2f6; width:25px; height:25px; border-radius:5px; font-weight:bold; cursor:pointer;" onclick="modificarCantidad(${c.id}, -1)">-</button>
+                                    <span style="font-weight:600;">${c.cantidad}</span>
+                                    <button style="border:none; background:#f1f2f6; width:25px; height:25px; border-radius:5px; font-weight:bold; cursor:pointer;" onclick="modificarCantidad(${c.id}, 1)">+</button>
+                                </div>
+                            </div>
+                            <span class="cart-item-price">$${(c.precio*c.cantidad).toFixed(2)}</span>
+                        </div>`;
+                });
+            }
+            document.getElementById('total-txt').innerText = `$${total.toFixed(2)}`;
+            guardarEstado();
+        }
+
+        function abrirCarrito() { document.getElementById('modal-carrito').style.display = 'flex'; }
+        function cerrarCarrito() { document.getElementById('modal-carrito').style.display = 'none'; }
+        function reiniciarKiosco() { sessionStorage.clear(); window.location.href = window.location.pathname + "?local=" + miTenant; }
     </script>
 </body>
 </html>
