@@ -5,11 +5,18 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: "*" } });
 
+// Servir archivos estáticos desde la carpeta public y la raíz
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname)));
 
-// Base de datos en memoria estructurada por Tenant (Franquicias)
+// --- RUTA RAÍZ ---
+app.get('/', (req, res) => { 
+    res.sendFile(path.join(__dirname, 'public', 'index.html')); 
+});
+
+// Base de datos robusta en memoria estructurada por franquicias (Multi-tenant)
 const tenantsData = {
     'tenant_costenita': {
         nombre: 'La Costeñita',
@@ -47,22 +54,23 @@ const tenantsData = {
 io.on('connection', (socket) => {
     let currentTenant = 'tenant_costenita';
 
-    // Unirse a la sala del restaurante correspondiente
+    // Unirse a la sala de la franquicia correspondiente
     socket.on('unirse-a-restaurante', (tenantId) => {
-        if (tenantsData[tenantId]) {
-            currentTenant = tenantId;
-            socket.join(tenantId);
+        const tid = tenantId || 'tenant_costenita';
+        if (tenantsData[tid]) {
+            currentTenant = tid;
+            socket.join(tid);
             
-            // Enviar datos iniciales al cliente para evitar pantallas vacías al recargar
-            socket.emit('cargar-menu-inicial', tenantsData[tenantId].menu);
-            socket.emit('cargar-mesas-inicial', tenantsData[tenantId].mesas);
-            socket.emit('cargar-pedidos-cocina', tenantsData[tenantId].pedidosCocina);
-            socket.emit('cargar-historial', tenantsData[tenantId].historialVentas);
-            socket.emit('cargar-historial-reservas', tenantsData[tenantId].reservas);
+            // Enviar datos sincronizados de inmediato para evitar pantallas vacías o datos borrados
+            socket.emit('cargar-menu-inicial', tenantsData[tid].menu);
+            socket.emit('cargar-mesas-inicial', tenantsData[tid].mesas);
+            socket.emit('cargar-pedidos-cocina', tenantsData[tid].pedidosCocina);
+            socket.emit('cargar-historial', tenantsData[tid].historialVentas);
+            socket.emit('cargar-historial-reservas', tenantsData[tid].reservas);
         }
     });
 
-    // Gestión de Menú
+    // Gestión de Menú (Editor)
     socket.on('agregar-nuevo-producto', (prod) => {
         const store = tenantsData[currentTenant];
         if (!store) return;
@@ -85,7 +93,7 @@ io.on('connection', (socket) => {
         io.to(currentTenant).emit('menu-actualizado-completo', store.menu);
     });
 
-    // Gestión de Mesas
+    // Estado de Mesas
     socket.on('cambiar-estado-mesa', ({ numero, estado }) => {
         const store = tenantsData[currentTenant];
         if (!store) return;
@@ -96,7 +104,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Verificación de disponibilidad y horarios
+    // Horarios y Disponibilidad
     socket.on('consultar-horarios', ({ fecha, personas, sucursal, tenant_id }) => {
         const store = tenantsData[tenant_id || currentTenant];
         if (!store) return;
@@ -113,50 +121,47 @@ io.on('connection', (socket) => {
         const store = tenantsData[tenant_id || currentTenant];
         if (!store) return;
         const mesaLibre = store.mesas.find(m => m.estado === 'disponible');
-        const ocupadas = store.reservas.filter(r => r.fecha === fecha && r.hora === hora && r.sucursal === sucursal).length;
-        
-        if (ocupadas < store.mesas.length) {
-            socket.emit('resultado-disponibilidad', {
-                disponible: true,
-                horaExacta: hora,
-                sucursal: sucursal,
-                mesa: mesaLibre || store.mesas[0]
-            });
-        } else {
-            socket.emit('resultado-disponibilidad', {
-                disponible: false,
-                alternativas: ['14:30', '21:00']
-            });
-        }
+        socket.emit('resultado-disponibilidad', {
+            disponible: true,
+            horaExacta: hora,
+            sucursal: sucursal,
+            mesa: mesaLibre || store.mesas[0]
+        });
     });
 
-    // Envío de Reservas y Pedidos (Generación de Turnos automática)
+    // GENERACIÓN DE TURNOS Y RESERVAS (Solución al problema principal)
     socket.on('enviar-reserva-pedido', (pedido) => {
-        const store = tenantsData[pedido.tenant_id || currentTenant];
+        const tenantKey = pedido.tenant_id || currentTenant;
+        const store = tenantsData[tenantKey];
         if (!store) return;
 
         const sucursal = pedido.datosReserva ? pedido.datosReserva.sucursal : 'Urdesa';
         const reservasActivas = store.reservas.filter(r => r.sucursal === sucursal && (r.estado === 'activa' || !r.estado));
         const turnoFila = reservasActivas.length + 1;
 
+        pedido.id = pedido.id || Date.now();
         pedido.turnoFila = turnoFila;
         pedido.turno_sala = turnoFila;
         pedido.estado = 'activa';
         pedido.sucursal = sucursal;
         pedido.mesa_id = pedido.datosReserva && pedido.datosReserva.mesa ? pedido.datosReserva.mesa.numero : 1;
+        pedido.cliente = pedido.datosReserva ? pedido.datosReserva.nombre : 'Cliente Invitado';
+        pedido.fecha = pedido.datosReserva ? pedido.datosReserva.fecha : new Date().toISOString().split('T')[0];
+        pedido.hora = pedido.datosReserva ? pedido.datosReserva.hora : '13:00';
+        pedido.personas = pedido.datosReserva ? pedido.datosReserva.personas : 2;
+        pedido.item = pedido.item || (pedido.productosComprados ? pedido.productosComprados.map(i => `${i.cantidad}x ${i.nombre}`).join(', ') : 'Reserva de Mesa');
+        pedido.pago = pedido.pago || 'Tarjeta';
 
         store.reservas.push(pedido);
-        
-        // Si el pedido tiene platos, agregarlo a la cocina
-        if (pedido.productosComprados && pedido.productosComprados.length > 0 || pedido.item !== "Mesa Reservada (Sin pedido)") {
-            store.pedidosCocina.push(pedido);
-            io.to(pedido.tenant_id || currentTenant).emit('notificar-cocina', pedido);
-        }
+        store.pedidosCocina.push(pedido);
 
-        io.to(pedido.tenant_id || currentTenant).emit('cargar-historial-reservas', store.reservas);
+        // Emitir actualizaciones en tiempo real a todas las pantallas conectadas del tenant
+        io.to(tenantKey).emit('notificar-cocina', pedido);
+        io.to(tenantKey).emit('cargar-pedidos-cocina', store.pedidosCocina);
+        io.to(tenantKey).emit('cargar-historial-reservas', store.reservas);
     });
 
-    // Obtener historiales
+    // Historiales y Carga de Datos
     socket.on('obtener-historial-reservas', (tenantId) => {
         const store = tenantsData[tenantId || currentTenant];
         if (store) socket.emit('cargar-historial-reservas', store.reservas);
@@ -167,12 +172,12 @@ io.on('connection', (socket) => {
         if (store) socket.emit('cargar-historial', store.historialVentas);
     });
 
-    socket.on('obtener-pedidos-cocina', () => {
-        const store = tenantsData[currentTenant];
+    socket.on('obtener-pedidos-cocina', (tenantId) => {
+        const store = tenantsData[tenantId || currentTenant];
         if (store) socket.emit('cargar-pedidos-cocina', store.pedidosCocina);
     });
 
-    // Despacho de cocina y pase al historial de ventas
+    // Despacho de Cocina (Pase automático al Historial de Ventas)
     socket.on('pedido-despachado-cocina', (idPedido) => {
         const store = tenantsData[currentTenant];
         if (!store) return;
@@ -187,7 +192,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Marcar salida de reserva / mesa
+    // Salida de mesa y reordenamiento de turnos
     socket.on('marcar-salida-reserva', ({ id, mesa_id, tenant_id }) => {
         const store = tenantsData[tenant_id || currentTenant];
         if (!store) return;
@@ -196,14 +201,12 @@ io.on('connection', (socket) => {
             reserva.estado = 'finalizada';
             reserva.hora_salida = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            // Reordenar turnos activos restantes de la misma sucursal
             let turnoContador = 1;
             store.reservas.forEach(r => {
                 if (r.sucursal === reserva.sucursal && r.estado === 'activa') {
                     r.turno_sala = turnoContador;
                     r.turnoFila = turnoContador;
                     turnoContador++;
-                    io.to(tenant_id || currentTenant).emit('notificacion-avance-turno', { idReserva: r.id, nuevoTurno: r.turno_sala });
                 }
             });
 
@@ -214,5 +217,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`🚀 Servidor de Book&Bite corriendo exitosamente en el puerto ${PORT}`);
+    console.log(`🚀 Book&Bite corriendo al 100% en el puerto ${PORT}`);
 });
