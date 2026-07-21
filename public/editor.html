@@ -98,7 +98,12 @@
         
         // --- SEGURIDAD SAAS: CONECTAR SOLO A LA SALA DE ESTE LOCAL ---
         const miTenant = sessionStorage.getItem('tenant_id');
+        
+        // CORRECCIÓN: Declaración de las variables globales necesarias
+        let cacheProductos = [];
+        let idEdicion = null;
 
+        // CORRECCIÓN: Evento de conexión unificado
         socket.on('connect', () => {
             if (miTenant) {
                 socket.emit('unirse-a-restaurante', miTenant);
@@ -108,14 +113,6 @@
             }
         });
 
-        socket.on('connect', () => {
-            if(miTenant) {
-                // Le decimos al servidor a qué restaurante pertenecemos
-                socket.emit('unirse-a-restaurante', miTenant);
-            } else {
-                console.log("No se detectó un local específico.");
-            }
-        });
         socket.on('cargar-menu-inicial', (data) => { cacheProductos = data; renderizarTabla(data); });
         socket.on('menu-actualizado-completo', (data) => { cacheProductos = data; renderizarTabla(data); });
 
@@ -214,6 +211,13 @@
                 document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; 
                 document.getElementById('prod-img').value = ''; document.getElementById('prod-descripcion').value = ''; 
                 setearSucursales('Todas'); 
+            }
+        }
+        
+        // CORRECCIÓN: Función para eliminar productos agregada
+        function eliminarProducto(id) {
+            if (confirm("¿Estás seguro de que deseas eliminar este plato del menú?")) {
+                socket.emit('eliminar-producto', id);
             }
         }
 

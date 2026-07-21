@@ -45,7 +45,8 @@
         <button class="btn-logout" onclick="cerrarSesion()">Salir 🚪</button>
     </header>
 
-    <iframe name="visor-central" id="visor-central" src="/editor.html"></iframe>
+    <!-- Eliminamos el src estático para cargarlo dinámicamente con el Tenant ID -->
+    <iframe name="visor-central" id="visor-central" src=""></iframe>
 
     <script>
         function cambiarPestana(elementoClicado) {
@@ -53,10 +54,15 @@
             botones.forEach(btn => btn.classList.remove('activo'));
             elementoClicado.classList.add('activo');
         }
+        
         function cerrarSesion() {
+            // Limpieza profunda de sesión para evitar cruce de datos entre sucursales
             sessionStorage.removeItem('usuarioLogueado');
+            sessionStorage.removeItem('tenant_id');
+            sessionStorage.removeItem('nombre_local');
             window.location.href = '/login.html';
         }
+
         // --- LÓGICA SAAS: ADAPTAR EL PANEL A LA FRANQUICIA ---
         document.addEventListener('DOMContentLoaded', () => {
             const miTenant = sessionStorage.getItem('tenant_id');
@@ -67,10 +73,26 @@
                 document.querySelector('.logo-text').innerText = `🏢 ADMIN ${nombreLocal.toUpperCase()}`;
             }
 
-            // 2. Hacer que el botón "Simular Cliente" lleve al QR correcto de este local
-            const btnQuiosco = document.querySelector('.btn-quiosco');
-            if (btnQuiosco && miTenant) {
-                btnQuiosco.href = `/quiosco.html?local=${miTenant}`;
+            // Si detectamos que hay un inquilino válido activo
+            if (miTenant) {
+                // 2. Hacer que el botón "Simular Cliente" lleve al QR correcto de este local
+                const btnQuiosco = document.querySelector('.btn-quiosco');
+                if (btnQuiosco) {
+                    btnQuiosco.href = `/quiosco.html?local=${miTenant}`;
+                }
+
+                // 3. INYECCIÓN DINÁMICA: Pegarle el Tenant ID a todos los botones del menú
+                const enlaces = document.querySelectorAll('.nav-links a:not(.btn-quiosco)');
+                enlaces.forEach(enlace => {
+                    const urlBase = enlace.getAttribute('href');
+                    enlace.setAttribute('href', `${urlBase}?local=${miTenant}`);
+                });
+
+                // 4. Cargar la página inicial (Menú) pasándole el parámetro correcto
+                document.getElementById('visor-central').src = `/editor.html?local=${miTenant}`;
+            } else {
+                // Si alguien logró entrar pero no tiene tenant asignado, lo expulsamos por seguridad
+                cerrarSesion();
             }
         });
     </script>

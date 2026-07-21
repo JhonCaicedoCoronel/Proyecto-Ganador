@@ -28,6 +28,8 @@
         <h1 style="margin: 0; color: #e15f41;">👨‍🍳 KDS - Órdenes en Vivo</h1>
         <a href="/historial.html" class="btn-historial">Ver Historial de Hoy 📊</a>
     </div>
+    
+    <!-- Este es el contenedor clave -->
     <div class="grid-kds" id="kds-contenedor"></div>
 
     <script>
@@ -35,32 +37,41 @@
         
         // --- SEGURIDAD SAAS: CONECTAR SOLO A LA SALA DE ESTE LOCAL ---
         const miTenant = sessionStorage.getItem('tenant_id');
+        
+        // CORRECCIÓN: Capturamos el contenedor del DOM antes de usarlo
+        const cont = document.getElementById('kds-contenedor');
 
+        // CORRECCIÓN: Unificamos el evento de conexión en uno solo
         socket.on('connect', () => {
             if (miTenant) {
                 socket.emit('unirse-a-restaurante', miTenant);
+                pedirDatosCocina();
             } else {
                 console.error("No hay tenant activo, cerrando sesión...");
                 window.top.location.href = '/login.html';
             }
         });
 
-        socket.on('connect', () => {
-            if(miTenant) {
-                // Le decimos al servidor a qué restaurante pertenecemos
-                socket.emit('unirse-a-restaurante', miTenant);
-            } else {
-                console.log("No se detectó un local específico.");
-            }
+        function pedirDatosCocina() { 
+            socket.emit('obtener-pedidos-cocina'); 
+        }
+        
+        socket.on('cargar-pedidos-cocina', (pedidos) => { 
+            cont.innerHTML = ""; 
+            pedidos.forEach(p => renderizarTarjeta(p, false)); 
         });
-        function pedirDatosCocina() { socket.emit('obtener-pedidos-cocina'); }
-        socket.on('connect', pedirDatosCocina);
-        socket.on('cargar-pedidos-cocina', (pedidos) => { cont.innerHTML = ""; pedidos.forEach(p => renderizarTarjeta(p, false)); });
-        socket.on('notificar-cocina', (p) => { renderizarTarjeta(p, true); });
+        
+        socket.on('notificar-cocina', (p) => { 
+            renderizarTarjeta(p, true); 
+        });
 
         function renderizarTarjeta(p, esNuevo) {
             if(document.getElementById(`kds-${p.id}`)) return;
-            const div = document.createElement('div'); div.id = `kds-${p.id}`; div.className = "card-kds";
+            
+            const div = document.createElement('div'); 
+            div.id = `kds-${p.id}`; 
+            div.className = "card-kds";
+            
             const numMesa = p.datosReserva ? p.datosReserva.mesa.numero : "Barra";
             const sucursal = p.datosReserva ? p.datosReserva.sucursal : "Local Principal";
 
@@ -78,10 +89,19 @@
                     </div>
                 </div>
                 <div><button class="btn-ready" onclick="despachar(${p.id})">✓ Plato Listo / Despachado</button></div>`;
+            
             if (esNuevo) new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(() => {});
+            
             esNuevo ? cont.prepend(div) : cont.appendChild(div);
         }
-        function despachar(id) { const el = document.getElementById(`kds-${id}`); if(el) { el.remove(); socket.emit('pedido-despachado-cocina', id); } }
+        
+        function despachar(id) { 
+            const el = document.getElementById(`kds-${id}`); 
+            if(el) { 
+                el.remove(); 
+                socket.emit('pedido-despachado-cocina', id); 
+            } 
+        }
     </script>
 </body>
 </html>

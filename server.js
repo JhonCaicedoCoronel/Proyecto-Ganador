@@ -12,7 +12,7 @@ app.get('/', (req, res) => { res.redirect('/quiosco.html'); });
 
 const horariosDisponibles = ["12:00", "13:00", "14:00", "15:00", "18:00", "19:00", "20:00", "21:00"];
 
-// --- FUNCIONES DE APOYO ADAPTADAS PARA SAAS (Asegúrate de cambiar tus declaraciones globales arriba) ---
+// --- FUNCIONES DE APOYO ADAPTADAS PARA SAAS ---
 async function emitirMenuActualizado(tenant_id) {
     const { data: menuProductos } = await supabase.from('menu').select('*').eq('tenant_id', tenant_id).order('id', { ascending: true });
     io.to(tenant_id).emit('menu-actualizado-completo', menuProductos || []);
@@ -26,16 +26,13 @@ async function emitirMesasActualizadas(tenant_id) {
 // --- BLOQUE PRINCIPAL TRANSFORMADO A MULTI-TENANT ---
 io.on('connection', (socket) => {
     
-    // Guardamos una variable local al socket para saber a qué inquilino pertenece esta conexión
     let miTenantId = null;
 
-    // 1. EL DISPOSITIVO (CLIENTE O PANEL) INFORMA A QUÉ RESTAURANTE PERTENECE
     socket.on('unirse-a-restaurante', async (tenant_id) => {
         miTenantId = tenant_id;
-        socket.join(tenant_id); // Lo aislamos en la sala privada de la marca/franquicia
+        socket.join(tenant_id); 
         console.log(`📡 Dispositivo conectado exitosamente al entorno SaaS del local: ${tenant_id}`);
         
-        // Enviamos los datos iniciales filtrados exclusivamente para este restaurante
         const { data: estadoMesas } = await supabase.from('mesas').select('*').eq('tenant_id', tenant_id).order('numero', { ascending: true });
         const { data: menuProductos } = await supabase.from('menu').select('*').eq('tenant_id', tenant_id).order('id', { ascending: true });
         
@@ -43,7 +40,6 @@ io.on('connection', (socket) => {
         socket.emit('cargar-mesas-inicial', estadoMesas || []);
     });
 
-    // 2. FILTRAR HISTORIAL DE RESERVAS POR RESTAURANTE
     socket.on('obtener-historial-reservas', async () => {
         if (!miTenantId) return;
         const { data: reservasDB } = await supabase.from('reservas')
@@ -54,20 +50,17 @@ io.on('connection', (socket) => {
         socket.emit('cargar-historial-reservas', reservasDB || []);
     });
 
-    // 3. MARCAR SALIDA Y REORGANIZAR COLA INTERNA DEL RESTAURANTE
     socket.on('marcar-salida-reserva', async (datos) => {
         if (!miTenantId) return;
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         const horaActual = new Date().toLocaleTimeString('en-US', opciones);
 
-        // Validamos la reserva dentro del contexto del restaurante
         const { data: resSale } = await supabase.from('reservas').select('*').eq('id', datos.id).eq('tenant_id', miTenantId).single();
 
         if (resSale) {
             await supabase.from('reservas').update({ estado: 'finalizada', hora_salida: horaActual }).eq('id', datos.id).eq('tenant_id', miTenantId);
             await supabase.from('mesas').update({ estado: 'sucia' }).eq('numero', datos.mesa_id).eq('tenant_id', miTenantId);
 
-            // Afecta solo a las filas del mismo local
             const { data: reservasAfectadas } = await supabase
                 .from('reservas').select('*')
                 .eq('tenant_id', miTenantId)
@@ -78,8 +71,6 @@ io.on('connection', (socket) => {
                 for (const r of reservasAfectadas) {
                     const nuevoTurno = r.turno_sala - 1;
                     await supabase.from('reservas').update({ turno_sala: nuevoTurno }).eq('id', r.id).eq('tenant_id', miTenantId);
-                    
-                    // Notificamos el avance de turno SOLO a la sala privada de este restaurante
                     io.to(miTenantId).emit('notificacion-avance-turno', { idReserva: r.id, nuevoTurno: nuevoTurno });
                 }
             }
@@ -90,9 +81,7 @@ io.on('connection', (socket) => {
         io.to(miTenantId).emit('cargar-historial-reservas', reservasDB || []);
     });
 
-    // 4. CONSULTAR HORARIOS EN EL MAPA DE MESAS DEL LOCAL
     socket.on('consultar-horarios', async (datos) => {
-        // En el flujo B2C (cliente escaneando QR), los datos deben incluir a qué local pertenecen
         const tenantConsulta = miTenantId || datos.tenant_id; 
         if (!tenantConsulta) return;
 
@@ -113,7 +102,6 @@ io.on('connection', (socket) => {
         socket.emit('horarios-para-fecha', horariosEstado);
     });
 
-    // 5. VERIFICAR DISPONIBILIDAD FILTRANDO POR TIENDA
     socket.on('verificar-disponibilidad', async (datos) => {
         const tenantConsulta = miTenantId || datos.tenant_id;
         if (!tenantConsulta) return;
@@ -144,14 +132,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 6. CREAR PEDIDO / RESERVA CON INYECCIÓN DE TENANT_ID
     socket.on('enviar-reserva-pedido', async (pedido) => {
         const tenantConsulta = miTenantId || pedido.tenant_id;
         if (!tenantConsulta) return;
 
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
         pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
-        pedido.tenant_id = tenantConsulta; // Forzamos el amarre al inquilino correspondiente
+        pedido.tenant_id = tenantConsulta; 
         
         const { data: reservasMismoTurno } = await supabase
             .from('reservas').select('id')
@@ -166,7 +153,7 @@ io.on('connection', (socket) => {
             hora: pedido.datosReserva.hora, personas: pedido.datosReserva.personas, 
             mesa_id: pedido.datosReserva.mesa.numero, estado: 'activa', sucursal: pedido.datosReserva.sucursal,
             turno_sala: turnoAsignado,
-            tenant_id: tenantConsulta // Guardado en DB
+            tenant_id: tenantConsulta 
         }]);
 
         pedido.esFantasma = true; 
@@ -178,17 +165,15 @@ io.on('connection', (socket) => {
             turno_fila: pedido.turnoFila, es_fantasma: pedido.esFantasma, hora_registro: pedido.horaRegistro,
             hora_llegada_estimada: pedido.horaLlegadaEstimada, estado_cocina_texto: pedido.estadoCocinaTexto, 
             datos_reserva: pedido.datosReserva,
-            tenant_id: tenantConsulta // Guardado en DB
+            tenant_id: tenantConsulta 
         }]);
 
         socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
         
-        // El canal de distribución en tiempo real ahora se segmenta por canal privado
         io.to(tenantConsulta).emit('notificar-cocina', pedido);
         io.to(tenantConsulta).emit('reserva-confirmada-actualizar', pedido.datosReserva.fecha);
     });
 
-    // 7. OBTENER SOLICITUDES DE LA COCINA DE ESTE LOCAL
     socket.on('obtener-pedidos-cocina', async () => {
         if (!miTenantId) return;
         const { data: pedidosDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'pendiente').eq('tenant_id', miTenantId).order('id', { ascending: true });
@@ -200,14 +185,12 @@ io.on('connection', (socket) => {
         socket.emit('cargar-pedidos-cocina', pedidosPendientes);
     });
 
-    // 8. HISTORIAL DE VENTAS EXCLUSIVO DE ESTE CLIENTE B2B
     socket.on('obtener-historial-dia', async () => {
         if (!miTenantId) return;
         const { data: historialDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'entregado').eq('tenant_id', miTenantId).order('id', { ascending: false }).limit(100);
         socket.emit('cargar-historial', historialDB || []);
     });
 
-    // 9. EVENTOS ADICIONALES Y CONTROL CRUD AISLADO
     socket.on('guardar-encuesta-opcional', async (datos) => { 
         const tenantConsulta = miTenantId || datos.tenant_id;
         await supabase.from('clientes_perfil').insert([{ cliente: datos.cliente, allergies: datos.alergias, preferencias: datos.preferencias, tenant_id: tenantConsulta }]); 
@@ -225,15 +208,13 @@ io.on('connection', (socket) => {
         await emitirMesasActualizadas(miTenantId); 
     });
     
-    // 10. CRUD DEL MENÚ TOTALMENTE ENCAPSULADO POR MARCA
     socket.on('agregar-nuevo-producto', async (p) => { 
         if (!miTenantId) return;
         const { error } = await supabase.from('menu').insert([{ 
             nombre: p.nombre, precio: p.precio, category: p.category, 
             img: p.img, descripcion: p.descripcion, sucursal: p.sucursal,
-            tenant_id: miTenantId // Vinculación SaaS
+            tenant_id: miTenantId 
         }]); 
-        
         if (error) console.error("❌ Error de Supabase al AGREGAR:", error.message);
         else await emitirMenuActualizado(miTenantId); 
     });
@@ -244,7 +225,6 @@ io.on('connection', (socket) => {
             nombre: p.nombre, precio: p.precio, category: p.category, 
             img: p.img, descripcion: p.descripcion, sucursal: p.sucursal 
         }).eq('id', p.id).eq('tenant_id', miTenantId); 
-        
         if (error) console.error("❌ Error de Supabase al EDITAR:", error.message);
         else await emitirMenuActualizado(miTenantId); 
     });    
@@ -256,20 +236,16 @@ io.on('connection', (socket) => {
     });
 });
 
-// --- SISTEMA DE ALERTAS PRE-RESERVA (Se ejecuta cada minuto) ---
+// --- SISTEMA DE ALERTAS PRE-RESERVA CORREGIDO ---
 setInterval(async () => {
-    // 1. Obtener fecha y hora actuales en Ecuador
     const opcionesHora = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: false };
-    const ahoraEcuador = new Date().toLocaleTimeString('en-US', opcionesHora); // Formato "HH:MM" (24 hrs)
+    const ahoraEcuador = new Date().toLocaleTimeString('en-US', opcionesHora); 
     
-    // Obtener la fecha en formato YYYY-MM-DD
     const fechaEcuadorFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Guayaquil' }).format(new Date());
 
-    // 2. Extraer horas y minutos para los cálculos
     let [horaActual, minActual] = ahoraEcuador.split(':').map(Number);
     let totalMinutosActuales = (horaActual * 60) + minActual;
 
-    // 3. Consultar las reservas "activas" de hoy
     const { data: reservasHoy } = await supabase
         .from('reservas')
         .select('*')
@@ -278,29 +254,23 @@ setInterval(async () => {
 
     if (reservasHoy && reservasHoy.length > 0) {
         reservasHoy.forEach(reserva => {
-            // Convertir la hora de la reserva a formato 24h para facilitar el cálculo
-            // (Asumiendo que guardaste horas en formato "12:00", "13:00", etc. según tus horarios disponibles)
             let [horaReserva, minReserva] = reserva.hora.split(':').map(Number);
             let totalMinutosReserva = (horaReserva * 60) + minReserva;
-
-            // 4. Calcular la diferencia en minutos
             let diferenciaMinutos = totalMinutosReserva - totalMinutosActuales;
 
-            // 5. Si faltan exactamente 15 minutos (o entre 10 y 15 para dar margen), disparamos la alerta
             if (diferenciaMinutos === 15 || diferenciaMinutos === 14) {
-                // Emitimos un evento global, pero el cliente filtrará por su ID
-                io.emit('alerta-proxima-reserva', {
+                // CORRECCIÓN: Ahora se emite únicamente a la sala del tenant_id correspondiente
+                io.to(reserva.tenant_id).emit('alerta-proxima-reserva', {
                     idReserva: reserva.id,
                     sucursal: reserva.sucursal,
                     minutosRestantes: diferenciaMinutos
                 });
                 
-                console.log(`🔔 Alerta enviada para la reserva #${reserva.id} (Faltan ${diferenciaMinutos} min)`);
+                console.log(`🔔 Alerta enviada para la reserva #${reserva.id} del local ${reserva.tenant_id} (Faltan ${diferenciaMinutos} min)`);
             }
         });
     }
-}, 60000); // 60000 milisegundos = 1 minuto
-// -------------------------------------------------------------
+}, 60000); 
 
 const PORT = process.env.PORT || 3090;
 http.listen(PORT, () => console.log(`🚀 Servidor Costeñito corriendo en puerto ${PORT}`));

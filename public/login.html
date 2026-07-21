@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - La Costeñita</title>
+    <script>
+        // ESCUDO PRO: Si el administrador ya está logueado, lo mandamos directo a su panel
+        if (sessionStorage.getItem('usuarioLogueado') === 'admin' && sessionStorage.getItem('tenant_id')) {
+            window.location.href = '/admin.html';
+        }
+    </script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #1e222b; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: white; }
         .login-box { background: #2f3542; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-top: 5px solid #e15f41; width: 350px; }
@@ -20,9 +26,15 @@
         <button onclick="login()">Ingresar</button>
         <p id="error-msg" style="color: #ff4757; font-size: 13px; margin-top: 15px; display: none;">PIN incorrecto. Intenta nuevamente.</p>
     </div>
+    
     <script>
         function login() {
             const pin = document.getElementById('pin').value;
+            
+            // Limpieza preventiva: Evita que se crucen sesiones si alguien más usó el dispositivo
+            sessionStorage.removeItem('usuarioLogueado');
+            sessionStorage.removeItem('tenant_id');
+            sessionStorage.removeItem('nombre_local');
             
             let tenantAsignado = null;
             let nombreLocal = "";

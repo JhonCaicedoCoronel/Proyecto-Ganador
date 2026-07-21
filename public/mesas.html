@@ -29,6 +29,7 @@
         // --- SEGURIDAD SAAS: CONECTAR SOLO A LA SALA DE ESTE LOCAL ---
         const miTenant = sessionStorage.getItem('tenant_id');
 
+        // CORRECCIÓN: Unificamos el evento de conexión en uno solo
         socket.on('connect', () => {
             if (miTenant) {
                 socket.emit('unirse-a-restaurante', miTenant);
@@ -38,17 +39,13 @@
             }
         });
 
-        socket.on('connect', () => {
-            if(miTenant) {
-                // Le decimos al servidor a qué restaurante pertenecemos
-                socket.emit('unirse-a-restaurante', miTenant);
-            } else {
-                console.log("No se detectó un local específico.");
-            }
-        });
-        socket.on('cargar-mesas-inicial', drawMesas); socket.on('mesas-actualizadas', drawMesas);
+        socket.on('cargar-mesas-inicial', drawMesas); 
+        socket.on('mesas-actualizadas', drawMesas);
+        
         function drawMesas(mesas) {
-            const c = document.getElementById('mesas-box'); c.innerHTML = "";
+            const c = document.getElementById('mesas-box'); 
+            c.innerHTML = "";
+            
             mesas.forEach(m => {
                 c.innerHTML += `<div class="box ${m.estado}">
                         <h3>Mesa ${m.numero}</h3>
@@ -62,7 +59,10 @@
                     </div>`;
             });
         }
-        function updateMesa(n, est) { socket.emit('cambiar-estado-mesa', { numero: n, estado: est }); }
+        
+        function updateMesa(n, est) { 
+            socket.emit('cambiar-estado-mesa', { numero: n, estado: est }); 
+        }
     </script>
 </body>
 </html>
