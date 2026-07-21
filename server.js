@@ -4,14 +4,21 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { cors: { origin: "*" } });
 const { createClient } = require('@supabase/supabase-js');
+const path = require('path');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-app.use(express.static('public'));
+// Servir archivos estáticos desde la carpeta public
+app.use(express.static(path.join(__dirname, 'public')));
 
-// --- RUTA RAÍZ: AHORA MUESTRA EL SELECTOR DE SUCURSALES ---
+// --- RUTA RAÍZ: SELECTOR MULTI-FRANQUICIA DE SUCURSALES ---
 app.get('/', (req, res) => { 
-    res.sendFile(__dirname + '/public/index.html'); 
+    res.sendFile(path.join(__dirname, 'public', 'index.html')); 
+});
+
+// --- RUTA EXPLÍCITA PARA EL QUIOSCO DINÁMICO ---
+app.get('/quiosco.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'quiosco.html'));
 });
 
 const horariosDisponibles = ["12:00", "13:00", "14:00", "15:00", "18:00", "19:00", "20:00", "21:00"];
@@ -32,7 +39,7 @@ io.on('connection', (socket) => {
     socket.on('unirse-a-restaurante', async (tenant_id) => {
         miTenantId = tenant_id;
         socket.join(tenant_id); 
-        console.log(`📡 Dispositivo conectado exitosamente al entorno SaaS del local: ${tenant_id}`);
+        console.log(`📡 Dispositivo conectado exitosamente al entorno SaaS de la franquicia/local: ${tenant_id}`);
         
         const { data: estadoMesas } = await supabase.from('mesas').select('*').eq('tenant_id', tenant_id).order('numero', { ascending: true });
         const { data: menuProductos } = await supabase.from('menu').select('*').eq('tenant_id', tenant_id).order('id', { ascending: true });
@@ -269,4 +276,4 @@ setInterval(async () => {
 }, 60000); 
 
 const PORT = process.env.PORT || 3090;
-http.listen(PORT, () => console.log(`🚀 Servidor Costeñito corriendo en puerto ${PORT}`));
+http.listen(PORT, () => console.log(`🚀 Servidor Book&Bite SaaS corriendo en puerto ${PORT}`));
