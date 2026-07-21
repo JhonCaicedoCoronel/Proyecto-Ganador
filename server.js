@@ -114,48 +114,60 @@ io.on('connection', (socket) => {
 
     // ================= 📱 QUIOSCO CON ASIGNACIÓN AUTOMÁTICA DE TURNOS =================
     socket.on('enviar-reserva-pedido', async (pedido) => {
-        const tenantId = pedido.tenant_id;
-        
-        // Consultamos cuántos pedidos activos hay en la fila para calcular el siguiente turno automáticamente
-        const { data: activos } = await supabase
-            .from('pedidos')
-            .select('id')
-            .eq('tenant_id', tenantId)
-            .eq('estado', 'activa');
+        try {
+            console.log("📥 Recibiendo orden del Quiosco de:", pedido.cliente);
+            const tenantId = pedido.tenant_id;
             
-        const turnoAutomatico = (activos ? activos.length : 0) + 1;
+            // Consultamos la base de datos para ver el turno
+            const { data: activos, error: errConsulta } = await supabase
+                .from('pedidos')
+                .select('id')
+                .eq('tenant_id', tenantId)
+                .eq('estado', 'activa');
+                
+            if (errConsulta) console.error("⚠️ Error consultando turnos:", errConsulta);
+                
+            const turnoAutomatico = (activos ? activos.length : 0) + 1;
 
-        // Estructuramos el registro exacto para Supabase
-        const nuevoPedidoDB = {
-            id: pedido.id,
-            tenant_id: tenantId,
-            cliente: pedido.cliente,
-            sucursal: pedido.datosReserva?.sucursal || 'Principal',
-            mesa_id: parseInt(pedido.datosReserva?.mesa) || 1,
-            fecha: pedido.datosReserva?.fecha || new Date().toLocaleDateString(),
-            hora: pedido.datosReserva?.hora || new Date().toLocaleTimeString(),
-            personas: parseInt(pedido.datosReserva?.personas) || 1,
-            item: pedido.item,
-            pago: pedido.pago,
-            estado: 'activa',
-            turno_sala: turnoAutomatico
-        };
+            const nuevoPedidoDB = {
+                id: pedido.id,
+                tenant_id: tenantId,
+                cliente: pedido.cliente,
+                sucursal: pedido.datosReserva?.sucursal || 'Principal',
+                mesa_id: parseInt(pedido.datosReserva?.mesa) || 1,
+                fecha: pedido.datosReserva?.fecha || new Date().toLocaleDateString(),
+                hora: pedido.datosReserva?.hora || new Date().toLocaleTimeString(),
+                personas: parseInt(pedido.datosReserva?.personas) || 1,
+                item: pedido.item,
+                pago: pedido.pago,
+                estado: 'activa',
+                turno_sala: turnoAutomatico
+            };
 
-        // Guardamos de forma permanente en Supabase
-        await supabase.from('pedidos').insert([nuevoPedidoDB]);
+            // Guardamos en Supabase
+            const { error: errInsert } = await supabase.from('pedidos').insert([nuevoPedidoDB]);
+            
+            if (errInsert) {
+                console.error("❌ ERROR CRÍTICO AL GUARDAR EN SUPABASE:", errInsert);
+                return; // Detenemos la ejecución si falla
+            } else {
+                console.log("✅ Pedido guardado en Supabase con éxito. Turno:", turnoAutomatico);
+            }
 
-        // Devolvemos el número de turno al cliente emisor
-        socket.emit('reserva-confirmada-turno', { turno: turnoAutomatico, idReserva: pedido.id });
+            // Si todo salió bien, emitimos a las pantallas
+            socket.emit('reserva-confirmada-turno', { turno: turnoAutomatico, idReserva: pedido.id });
+            io.to(tenantId).emit('notificar-cocina', nuevoPedidoDB);
+            
+            const { data: todasLasReservas } = await supabase
+                .from('pedidos')
+                .select('*')
+                .eq('tenant_id', tenantId)
+                .order('id', { ascending: false });
+            io.to(tenantId).emit('cargar-historial-reservas', todasLasReservas || []);
 
-        // Emitimos en tiempo real el nuevo pedido al KDS de la Cocina y a la vista de Reservas
-        io.to(tenantId).emit('notificar-cocina', nuevoPedidoDB);
-        
-        const { data: todasLasReservas } = await supabase
-            .from('pedidos')
-            .select('*')
-            .eq('tenant_id', tenantId)
-            .order('id', { ascending: false });
-        io.to(tenantId).emit('cargar-historial-reservas', todasLasReservas || []);
+        } catch (errorGeneral) {
+            console.error("🔥 ERROR EN EL SERVIDOR:", errorGeneral);
+        }
     });
 
     // ================= 📈 PANELES ADMINISTRATIVOS (HISTORIAL Y RESERVAS) =================
