@@ -92,7 +92,6 @@
         .btn-cant:hover { background: #e2e6ea; }
         .btn-eliminar-item { background: #ff4757; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
         .btn-eliminar-item:hover { background: #c44527; }
-
     </style>
 </head>
 <body>
@@ -230,28 +229,19 @@
         const socket = io();
         
         const urlParams = new URLSearchParams(window.location.search);
-        let miTenant = urlParams.get('local'); 
-
-        if(!miTenant && sessionStorage.getItem('tenant_actual_cliente')) {
-            miTenant = sessionStorage.getItem('tenant_actual_cliente');
-        } else if (miTenant) {
-            sessionStorage.setItem('tenant_actual_cliente', miTenant);
-        }
+        let miTenant = urlParams.get('local') || sessionStorage.getItem('tenant_id') || 'tenant_costenita'; 
+        sessionStorage.setItem('tenant_id', miTenant);
 
         socket.on('connect', () => {
             if(miTenant) {
                 socket.emit('unirse-a-restaurante', miTenant);
-            } else {
-                console.error("⚠️ QR Inválido: No se detectó a qué local pertenece este quiosco.");
             }
         });
 
         let productos = []; let carrito = [];
         let datosReservaConfirmada = {}; let ultimoNombreCliente = "";
         let miIdReserva = null; let categoriaFiltroActiva = "Todas";
-        
-        let pantallaActual = 'reserva'; 
-        let turnoActual = "00";
+        let pantallaActual = 'reserva'; let turnoActual = "00";
 
         document.getElementById('res-fecha').min = new Date().toISOString().split('T')[0];
 
@@ -290,7 +280,7 @@
 
         function reiniciarKiosco() {
             sessionStorage.removeItem('costenitaEstado');
-            location.reload();
+            window.location.href = '/';
         }
 
         function mostrarNotificacionFila(mensaje, esTurnoUno) {
@@ -385,7 +375,6 @@
         function cerrarModalEleccion() { document.getElementById('modal-eleccion').style.display = 'none'; }
         function volverAReserva() { document.getElementById('pantalla-menu').style.display = 'none'; document.getElementById('pantalla-reserva').style.display = 'flex'; document.getElementById('chat-bubble').style.display = 'none'; pantallaActual = 'reserva'; guardarEstado(); }
 
-        // ✅ NUEVA FUNCIÓN AGREGADA PARA "SOLO RESERVA"
         function finalizarSoloReserva() {
             const name = document.getElementById('cliente-nombre-solo').value.trim();
             if(!name) return alert("Por favor, ingresa tu nombre para asegurar la reserva.");
@@ -394,19 +383,13 @@
             miIdReserva = Math.floor(Math.random() * 9000) + 1000;
 
             const pedido = {
-                id: miIdReserva,
-                cliente: name,
-                item: "Mesa Reservada (Sin pedido)",
-                pago: "Solo Reserva",
-                datosReserva: datosReservaConfirmada,
-                productosComprados: [],
-                tenant_id: miTenant 
+                id: miIdReserva, cliente: name, item: "Mesa Reservada (Sin pedido)", pago: "Solo Reserva",
+                datosReserva: datosReservaConfirmada, productosComprados: [], tenant_id: miTenant 
             };
 
             socket.emit('enviar-reserva-pedido', pedido);
             cerrarSoloReserva();
             guardarEstado();
-            
             document.getElementById('txt-exito-detalle').innerText = "Tu mesa está asegurada. Mantén esta pantalla abierta, te avisaremos cuando sea tu turno.";
         }
 
@@ -424,7 +407,6 @@
 
         function dibujarBotonesFiltro() {
             const sucursalElegida = (datosReservaConfirmada && datosReservaConfirmada.sucursal) ? datosReservaConfirmada.sucursal : "Todas";
-            
             const productosPermitidos = productos.filter(p => {
                 if (!p.sucursal || p.sucursal === "Todas" || sucursalElegida === "Todas") return true;
                 return String(p.sucursal).includes(sucursalElegida);
@@ -446,19 +428,11 @@
             const sucursalElegida = (datosReservaConfirmada && datosReservaConfirmada.sucursal) ? datosReservaConfirmada.sucursal : "Todas";
 
             const filtered = productos.filter(p => { 
-                let passSucursal = false;
-                if (!p.sucursal || p.sucursal === "Todas" || sucursalElegida === "Todas") {
-                    passSucursal = true;
-                } else {
-                    passSucursal = String(p.sucursal).includes(sucursalElegida);
-                }
-                
+                let passSucursal = (!p.sucursal || p.sucursal === "Todas" || sucursalElegida === "Todas") ? true : String(p.sucursal).includes(sucursalElegida);
                 const passCat = (categoriaFiltroActiva === "Todas") || (p.category === categoriaFiltroActiva); 
                 const passText = p.nombre.toLowerCase().includes(text) || (p.descripcion || "").toLowerCase().includes(text); 
-                
                 return passSucursal && passCat && passText; 
             });
-            
             renderMenuFiltrado(filtered);
         }
         
@@ -493,7 +467,6 @@
                             </div>
                         </div>`; 
                 });
-                
                 htmlGrid += `</div>`; 
                 contenedorDinamico.innerHTML += htmlGrid;
             }
@@ -502,7 +475,6 @@
         function addToCart(id) { 
             const p = productos.find(x => x.id === id); const exist = carrito.find(x => x.id === id); 
             if(exist) { exist.cantidad++; } else { carrito.push({...p, cantidad:1}); } 
-            document.getElementById('cart-count').innerText = carrito.reduce((acc, x) => acc + x.cantidad, 0); 
             updateCartUI(); 
         }
         
@@ -535,7 +507,6 @@
                         </div>`; 
                 }); 
             }
-            
             document.getElementById('total-txt').innerText = `$${tot.toFixed(2)}`; 
             guardarEstado(); 
         }
@@ -557,25 +528,6 @@
         function abrirCarrito() { document.getElementById('modal-carrito').style.display = 'flex'; }
         function cerrarCarrito() { document.getElementById('modal-carrito').style.display = 'none'; }
 
-        socket.on('confirmacion-turno-cliente', (data) => { 
-            turnoActual = data.turno;
-            document.getElementById('txt-turno').innerText = turnoActual; 
-            document.getElementById('modal-exito').style.display = 'flex'; 
-            pantallaActual = 'exito';
-            guardarEstado(); 
-        });
-        
-        function guardarEncuestaOpcional() { 
-            socket.emit('guardar-encuesta-opcional', { 
-                cliente: ultimoNombreCliente, 
-                alergias: document.getElementById('encuesta-alergia').value.trim() || "Ninguna", 
-                preferencias: document.getElementById('encuesta-gusto').value,
-                tenant_id: miTenant
-            }); 
-            alert("🎁 ¡Guardado! Pide tus chifles extra en caja."); 
-            reiniciarKiosco(); 
-        }
-
         function abrirChat() { document.getElementById('chat-container').style.display = 'flex'; document.getElementById('chat-bubble').style.display = 'none'; }
         function cerrarChat() { document.getElementById('chat-container').style.display = 'none'; if(document.getElementById('pantalla-menu').style.display === 'block') { document.getElementById('chat-bubble').style.display = 'flex'; } }
 
@@ -588,7 +540,7 @@
                 if (["hola", "que mas", "buenas", "saludos"].some(w => textUser.includes(w))) { resp = "¡Qué más, ve! Bienvenido a La Costeñita 🌊. ¿En qué te puedo ayudar hoy?"; }
                 else if (["direccion", "ubicacion", "donde", "sucursal", "locales"].some(w => textUser.includes(w))) { resp = "📍 Tenemos 3 huecas en Guayaquil:<br>🦀 <strong>Urdesa:</strong> V.E. Estrada y Las Monjas<br>🍤 <strong>Samborondón:</strong> Km 2.5<br>🐟 <strong>Sur:</strong> Barrio del Centenario."; }
                 else if (["horario", "hora", "abren", "cierran"].some(w => textUser.includes(w))) { resp = "⏰ Abrimos todos los días:<br>- Lunes a Jueves: 08:00 AM - 10:00 PM<br>- Viernes a Domingo: 07:00 AM - 11:00 PM."; }
-                else if (["reserva", "mesa", "puesto"].some(w => textUser.includes(w))) { resp = "🗓 /> ¡Es facilito! Solo elige tu sucursal, la fecha y la hora al inicio de la página."; }
+                else if (["reserva", "mesa", "puesto"].some(w => textUser.includes(w))) { resp = "🗓️ ¡Es facilito! Solo elige tu sucursal, la fecha y la hora al inicio de la página."; }
                 else if (["pago", "pagar", "tarjeta", "efectivo"].some(w => textUser.includes(w))) { resp = "💳 Aceptamos de todo: Puedes pagar con Tarjeta o Efectivo."; }
                 else if (["menu", "comida", "plato", "encebollado", "ceviche"].some(w => textUser.includes(w))) { resp = "🍲 ¡La mejor sazón! Nuestro plato estrella es el <strong>Encebollado Mixto</strong>."; }
                 else if (["parqueo", "carro", "vehiculo"].some(w => textUser.includes(w))) { resp = "🚗 Nuestras 3 sucursales cuentan con parqueo privado, sin costo y con guardia."; }
@@ -601,9 +553,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('App Registrada correctamente', reg.scope))
-                    .catch(err => console.log('Falló el registro de la App', err));
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('Falló SW', err));
             });
         }
     </script>

@@ -8,11 +8,14 @@ const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 app.use(express.static('public'));
-app.get('/', (req, res) => { res.redirect('/quiosco.html'); });
+
+// --- RUTA RAÍZ: AHORA MUESTRA EL SELECTOR DE SUCURSALES ---
+app.get('/', (req, res) => { 
+    res.sendFile(__dirname + '/public/index.html'); 
+});
 
 const horariosDisponibles = ["12:00", "13:00", "14:00", "15:00", "18:00", "19:00", "20:00", "21:00"];
 
-// --- FUNCIONES DE APOYO ADAPTADAS PARA SAAS ---
 async function emitirMenuActualizado(tenant_id) {
     const { data: menuProductos } = await supabase.from('menu').select('*').eq('tenant_id', tenant_id).order('id', { ascending: true });
     io.to(tenant_id).emit('menu-actualizado-completo', menuProductos || []);
@@ -23,9 +26,7 @@ async function emitirMesasActualizadas(tenant_id) {
     io.to(tenant_id).emit('mesas-actualizadas', estadoMesas || []);
 }
 
-// --- BLOQUE PRINCIPAL TRANSFORMADO A MULTI-TENANT ---
 io.on('connection', (socket) => {
-    
     let miTenantId = null;
 
     socket.on('unirse-a-restaurante', async (tenant_id) => {
@@ -236,11 +237,9 @@ io.on('connection', (socket) => {
     });
 });
 
-// --- SISTEMA DE ALERTAS PRE-RESERVA CORREGIDO ---
 setInterval(async () => {
     const opcionesHora = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: false };
     const ahoraEcuador = new Date().toLocaleTimeString('en-US', opcionesHora); 
-    
     const fechaEcuadorFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Guayaquil' }).format(new Date());
 
     let [horaActual, minActual] = ahoraEcuador.split(':').map(Number);
@@ -259,14 +258,11 @@ setInterval(async () => {
             let diferenciaMinutos = totalMinutosReserva - totalMinutosActuales;
 
             if (diferenciaMinutos === 15 || diferenciaMinutos === 14) {
-                // CORRECCIÓN: Ahora se emite únicamente a la sala del tenant_id correspondiente
                 io.to(reserva.tenant_id).emit('alerta-proxima-reserva', {
                     idReserva: reserva.id,
                     sucursal: reserva.sucursal,
                     minutosRestantes: diferenciaMinutos
                 });
-                
-                console.log(`🔔 Alerta enviada para la reserva #${reserva.id} del local ${reserva.tenant_id} (Faltan ${diferenciaMinutos} min)`);
             }
         });
     }

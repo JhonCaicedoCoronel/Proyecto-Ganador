@@ -5,7 +5,6 @@
     <title>Historial de Ventas</title>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // ESCUDO DE SEGURIDAD
         if (!sessionStorage.getItem('usuarioLogueado')) {
             window.top.location.href = '/login.html';
         }
@@ -40,31 +39,20 @@
 
     <script>
         const socket = io();
-        
-        // --- SEGURIDAD SAAS: CONECTAR SOLO A LA SALA DE ESTE LOCAL ---
         const miTenant = sessionStorage.getItem('tenant_id');
 
-        // CORRECCIÓN: Un solo bloque de conexión ordenado
         socket.on('connect', () => {
             if (miTenant) {
-                // 1. Nos unimos al entorno aislado de la franquicia
                 socket.emit('unirse-a-restaurante', miTenant);
-                // 2. UNA VEZ DENTRO, pedimos el historial exclusivo de este local
                 socket.emit('obtener-historial-dia');
             } else {
-                console.error("No hay tenant activo, cerrando sesión...");
                 window.top.location.href = '/login.html';
             }
         });
 
         socket.on('cargar-historial', (pedidos) => {
-            const tbody = document.getElementById('tabla-historial'); 
-            tbody.innerHTML = "";
-            
-            if (pedidos.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">Aún no se han despachado pedidos.</td></tr>`; 
-                return; 
-            }
+            const tbody = document.getElementById('tabla-historial'); tbody.innerHTML = "";
+            if (pedidos.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">Aún no se han despachado pedidos.</td></tr>`; return; }
 
             pedidos.forEach(p => {
                 tbody.innerHTML += `

@@ -2,7 +2,7 @@
   "name": "La Costeñita - Menú y Reservas",
   "short_name": "La Costeñita",
   "description": "El auténtico sabor de nuestra costa ecuatoriana.",
-  "start_url": "/quiosco.html",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f8f9fa",

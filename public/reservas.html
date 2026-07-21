@@ -5,7 +5,6 @@
     <title>Libro de Reservas</title>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // ESCUDO DE SEGURIDAD
         if (!sessionStorage.getItem('usuarioLogueado')) {
             window.top.location.href = '/login.html';
         }
@@ -44,31 +43,20 @@
 
     <script>
         const socket = io();
-        
-        // --- SEGURIDAD SAAS: CONECTAR SOLO A LA SALA DE ESTE LOCAL ---
         const miTenant = sessionStorage.getItem('tenant_id');
 
-        // CORRECCIÓN: Unificamos el evento de conexión en uno solo
         socket.on('connect', () => {
             if (miTenant) {
-                // 1. Nos unimos a la sala del restaurante
                 socket.emit('unirse-a-restaurante', miTenant);
-                // 2. Solicitamos el historial de reservas de este local
                 socket.emit('obtener-historial-reservas');
             } else {
-                console.error("No hay tenant activo, cerrando sesión...");
                 window.top.location.href = '/login.html';
             }
         });
 
         socket.on('cargar-historial-reservas', (reservas) => {
-            const tbody = document.getElementById('tabla-reservas'); 
-            tbody.innerHTML = "";
-            
-            if (reservas.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">No hay reservas registradas.</td></tr>`; 
-                return; 
-            }
+            const tbody = document.getElementById('tabla-reservas'); tbody.innerHTML = "";
+            if (reservas.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">No hay reservas registradas.</td></tr>`; return; }
 
             reservas.forEach(r => {
                 let estadoHTML = (r.estado === 'activa' || !r.estado) ? `<span class="badge-activa">🟢 Fila: Turno #${r.turno_sala}</span>` : `<span class="badge-final">⚪ Finalizada</span>`;
@@ -87,7 +75,7 @@
         });
 
         function marcarSalida(idReserva, idMesa) {
-            if(confirm("¿El cliente ya desocupó la mesa? Los turnos de los clientes que esperan detrás de él avanzarán automáticamente.")) {
+            if(confirm("¿El cliente ya desocupó la mesa? Los turnos avanzarán automáticamente.")) {
                 socket.emit('marcar-salida-reserva', { id: idReserva, mesa_id: idMesa });
             }
         }

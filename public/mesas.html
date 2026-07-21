@@ -5,7 +5,6 @@
     <title>Monitor de Sala</title>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // ESCUDO DE SEGURIDAD
         if (!sessionStorage.getItem('usuarioLogueado')) {
             window.top.location.href = '/login.html';
         }
@@ -25,16 +24,12 @@
     <div class="grid" id="mesas-box"></div>
     <script>
         const socket = io();
-        
-        // --- SEGURIDAD SAAS: CONECTAR SOLO A LA SALA DE ESTE LOCAL ---
         const miTenant = sessionStorage.getItem('tenant_id');
 
-        // CORRECCIÓN: Unificamos el evento de conexión en uno solo
         socket.on('connect', () => {
             if (miTenant) {
                 socket.emit('unirse-a-restaurante', miTenant);
             } else {
-                console.error("No hay tenant activo, cerrando sesión...");
                 window.top.location.href = '/login.html';
             }
         });
@@ -43,9 +38,7 @@
         socket.on('mesas-actualizadas', drawMesas);
         
         function drawMesas(mesas) {
-            const c = document.getElementById('mesas-box'); 
-            c.innerHTML = "";
-            
+            const c = document.getElementById('mesas-box'); c.innerHTML = "";
             mesas.forEach(m => {
                 c.innerHTML += `<div class="box ${m.estado}">
                         <h3>Mesa ${m.numero}</h3>
@@ -59,10 +52,7 @@
                     </div>`;
             });
         }
-        
-        function updateMesa(n, est) { 
-            socket.emit('cambiar-estado-mesa', { numero: n, estado: est }); 
-        }
+        function updateMesa(n, est) { socket.emit('cambiar-estado-mesa', { numero: n, estado: est }); }
     </script>
 </body>
 </html>
