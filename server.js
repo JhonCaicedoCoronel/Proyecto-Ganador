@@ -5,9 +5,16 @@ const { Server } = require('socket.io');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
-// Inicializar cliente de Supabase
+// Validar variables de entorno
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ Error crítico: Faltan SUPABASE_URL o SUPABASE_ANON_KEY en el archivo .env');
+    process.exit(1);
+}
+
+// Inicializar cliente de Supabase
 const supabase = createClient(supabaseUrl, supabaseKey);
 const app = express();
 const server = http.createServer(app);
@@ -23,14 +30,12 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
     let currentTenant = 'tenant_costenita';
 
-    // Unirse a la sala de la franquicia y cargar datos desde Supabase
     socket.on('unirse-a-restaurante', async (tenantId) => {
         const tid = tenantId || 'tenant_costenita';
         currentTenant = tid;
         socket.join(tid);
 
         try {
-            // Consultas paralelas a Supabase
             const [menuRes, mesasRes, cocinaRes, historialRes, reservasRes] = await Promise.all([
                 supabase.from('menu').select('*').eq('tenant_id', tid),
                 supabase.from('mesas').select('*').eq('tenant_id', tid),
@@ -140,7 +145,6 @@ io.on('connection', (socket) => {
         const tenantKey = pedido.tenant_id || currentTenant;
         const sucursal = pedido.datosReserva ? pedido.datosReserva.sucursal : 'Urdesa';
 
-        // Obtener reservas activas para calcular el turno
         const { data: activas } = await supabase
             .from('pedidos')
             .select('*')
@@ -178,7 +182,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Historiales y Carga de Datos explícita
     socket.on('obtener-historial-reservas', async (tenantId) => {
         const tid = tenantId || currentTenant;
         const { data } = await supabase.from('pedidos').select('*').eq('tenant_id', tid);
@@ -197,7 +200,6 @@ io.on('connection', (socket) => {
         socket.emit('cargar-pedidos-cocina', data || []);
     });
 
-    // Despacho de Cocina
     socket.on('pedido-despachado-cocina', async (idPedido) => {
         await supabase
             .from('pedidos')
@@ -211,7 +213,6 @@ io.on('connection', (socket) => {
         io.to(currentTenant).emit('cargar-historial', historialVentas);
     });
 
-    // Salida de mesa
     socket.on('marcar-salida-reserva', async ({ id, mesa_id, tenant_id }) => {
         const tid = tenant_id || currentTenant;
         
