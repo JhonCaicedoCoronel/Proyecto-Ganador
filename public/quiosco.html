@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>La Costeñita - Reserva y Menú</title>
+    <title id="page-title">Book&Bite - Reserva y Menú</title>
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a3d62">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="La Costeñita">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081075.png">
 
     <script src="/socket.io/socket.io.js"></script>
@@ -98,16 +97,16 @@
 
     <div id="pantalla-reserva">
         <div class="reserva-box">
-            <h1>🌊 La Costeñita</h1>
-            <p class="slogan">El auténtico sabor de nuestra costa ecuatoriana.</p>
+            <h1 id="brand-title">🌊 La Costeñita</h1>
+            <p class="slogan" id="brand-slogan">El auténtico sabor de nuestra costa ecuatoriana.</p>
             
             <div class="form-grid-main">
                 <div class="form-grupo">
                     <label>📍 Sucursal de preferencia</label>
                     <select id="res-sucursal" onchange="solicitarHorarios()">
-                        <option value="Urdesa">Urdesa (V.E. Estrada)</option>
-                        <option value="Samborondón">Samborondón (Plaza Lagos)</option>
-                        <option value="Sur">Sur (Barrio del Centenario)</option>
+                        <option value="Urdesa">Urdesa (Principal)</option>
+                        <option value="Samborondón">Samborondón</option>
+                        <option value="Sur">Sur</option>
                     </select>
                 </div>
                 <div class="form-grupo"><label>Fecha de tu visita</label><input type="date" id="res-fecha" required></div>
@@ -130,7 +129,7 @@
     <div class="modal-overlay" id="modal-eleccion">
         <div class="modal-content" style="text-align: center;">
             <h2 style="color:#0a3d62; margin-bottom: 10px;">🎉 ¡Mesa Disponible!</h2>
-            <p style="color:#57606f; margin-bottom: 25px;">Tenemos una mesa lista para tu grupo en <strong>La Costeñita (<span id="lbl-sucursal"></span>)</strong>.</p>
+            <p style="color:#57606f; margin-bottom: 25px;">Tenemos una mesa lista para tu grupo en <strong id="lbl-franquicia-modal"></strong> (<span id="lbl-sucursal"></span>).</p>
             <p style="font-weight: bold; font-size: 18px; margin-bottom: 15px;">¿Qué deseas hacer ahora?</p>
             
             <button class="btn-verificar" onclick="irAlMenu()">Ver Menú y Pre-ordenar 🤤</button>
@@ -156,7 +155,7 @@
     <div id="pantalla-menu">
         <div class="header">
             <div>
-                <h1 style="color:#e15f41;">🌊 La Costeñita</h1>
+                <h1 id="brand-title-menu" style="color:#e15f41;">🌊 La Costeñita</h1>
                 <p style="color:#666; font-size:14px;">
                     <span id="txt-resumen-reserva">Armando tu pre-orden...</span>
                     <a href="#" onclick="volverAReserva()" style="color:#e15f41; font-weight:bold; margin-left:10px; text-decoration:underline;">✏️ Cambiar</a>
@@ -201,27 +200,25 @@
             <div style="font-size: 48px; font-weight: bold; color: #e15f41; background: #fff1f2; padding: 15px; border-radius: 12px; border: 2px dashed #e15f41; margin: 15px 0;">#<span id="txt-turno">00</span></div>
             
             <div class="encuesta-card">
-                <strong style="color:#0a3d62; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Gana una porción de chifles</strong>
+                <strong style="color:#0a3d62; display:block; font-size:14px; margin-bottom:12px; text-align:center;">🎁 Gana una cortesía del chef</strong>
                 <div class="form-grupo"><label>¿Padeces alguna alergia? (Opcional)</label><input type="text" id="encuesta-alergia" placeholder="Ej. Mariscos, Maní"></div>
                 <div class="form-grupo">
-                    <label>¿Tu plato costeño favorito? (Opcional)</label>
+                    <label>¿Qué te pareció el sistema Book&Bite?</label>
                     <select id="encuesta-gusto">
-                        <option value="Encebollado">El Buen Encebollado 🍲</option>
-                        <option value="Ceviche">Ceviche Mixto 🍤</option>
-                        <option value="Bolon">Bolón de Chicharrón 🧀</option>
-                        <option value="Arroz Marinero">Arroz Marinero 🥘</option>
+                        <option value="Excelente">Excelente y Rápido 🌟</option>
+                        <option value="Bueno">Muy Práctico 👍</option>
                     </select>
                 </div>
-                <button class="btn-confirmar" style="margin-top: 5px;" onclick="guardarEncuestaOpcional()">Enviar y Reclamar Premio 🎁</button>
+                <button class="btn-confirmar" style="margin-top: 5px;" onclick="guardarEncuestaOpcional()">Enviar y Reclamar 🎁</button>
             </div>
             <button class="btn-saltar" onclick="reiniciarKiosco()">Terminar y Volver al inicio</button>
         </div>
     </div>
 
-    <div class="chatbot-bubble" id="chat-bubble" onclick="abrirChat()">🦀</div>
+    <div class="chatbot-bubble" id="chat-bubble" onclick="abrirChat()">💬</div>
     <div class="chatbot-container" id="chat-container">
-        <div class="chatbot-header"><span>🦀 Asistente Costeñito</span><button type="button" class="btn-cerrar-chat" onclick="cerrarChat()">✕</button></div>
-        <div class="chatbot-messages" id="chat-mensajes"><div class="msg-bot">¡Qué más, ve! Soy el asistente de La Costeñita. Te puedo ayudar con información sobre:<br>📍 <strong>Locales y horarios</strong><br>🚗 <strong>Parqueos y mascotas</strong><br>🍲 <strong>Menú y reservas</strong><br>Pregúntame con confianza.</div></div>
+        <div class="chatbot-header"><span id="chat-header-title">💬 Asistente Virtual</span><button type="button" class="btn-cerrar-chat" onclick="cerrarChat()">✕</button></div>
+        <div class="chatbot-messages" id="chat-mensajes"><div class="msg-bot" id="chat-welcome-msg">¡Hola! Soy tu asistente virtual. ¿En qué te puedo ayudar hoy con tu reserva o menú?</div></div>
         <div class="chatbot-input"><input type="text" id="chat-input" placeholder="Pregunta lo que sea..." onkeypress="if(event.key === 'Enter') enviarMensajeBot()"><button onclick="enviarMensajeBot()">Enviar</button></div>
     </div>
 
@@ -231,6 +228,29 @@
         const urlParams = new URLSearchParams(window.location.search);
         let miTenant = urlParams.get('local') || sessionStorage.getItem('tenant_id') || 'tenant_costenita'; 
         sessionStorage.setItem('tenant_id', miTenant);
+
+        // Configuración dinámica según la franquicia seleccionada
+        const configFranquicia = {
+            'tenant_costenita': {
+                nombre: 'La Costeñita',
+                slogan: 'El auténtico sabor de nuestra costa ecuatoriana.',
+                icono: '🌊'
+            },
+            'tenant_negroni': {
+                nombre: 'Negroni',
+                slogan: 'Cocktails & Italian Kitchen.',
+                icono: '🍸'
+            }
+        };
+
+        const infoActual = configFranquicia[miTenant] || configFranquicia['tenant_costenita'];
+
+        // Aplicamos la marca visual correspondiente
+        document.getElementById('page-title').innerText = `${infoActual.nombre} - Book&Bite`;
+        document.getElementById('brand-title').innerText = `${infoActual.icono} ${infoActual.nombre}`;
+        document.getElementById('brand-slogan').innerText = infoActual.slogan;
+        document.getElementById('brand-title-menu').innerText = `${infoActual.icono} ${infoActual.nombre}`;
+        document.getElementById('chat-header-title').innerText = `${infoActual.icono} Asistente ${infoActual.nombre}`;
 
         socket.on('connect', () => {
             if(miTenant) {
@@ -247,11 +267,11 @@
 
         function guardarEstado() {
             const estado = { pantallaActual, datosReservaConfirmada, carrito, ultimoNombreCliente, miIdReserva, turnoActual };
-            sessionStorage.setItem('costenitaEstado', JSON.stringify(estado));
+            sessionStorage.setItem('bookbiteEstado', JSON.stringify(estado));
         }
 
         function recuperarEstado() {
-            const guardado = sessionStorage.getItem('costenitaEstado');
+            const guardado = sessionStorage.getItem('bookbiteEstado');
             if (guardado) {
                 const estado = JSON.parse(guardado);
                 pantallaActual = estado.pantallaActual;
@@ -278,7 +298,6 @@
         
         recuperarEstado();
 
-        // Función clave para limpiar todo y reiniciar el quiosco
         function limpiarTodoYKiosco() {
             carrito = [];
             datosReservaConfirmada = {};
@@ -288,7 +307,7 @@
             turnoActual = "00";
             
             sessionStorage.clear();
-            sessionStorage.setItem('tenant_id', miTenant); // Mantiene el tenant actual si se desea conservar la sucursal/franquicia
+            sessionStorage.setItem('tenant_id', miTenant);
             window.location.href = window.location.pathname + window.location.search;
         }
 
@@ -317,7 +336,7 @@
                 
                 alertaPre.innerHTML = `
                     <div style="font-size: 60px; margin-bottom: 20px;">🏃‍♂️⏰</div>
-                    <h1 style="font-size: 32px; font-weight: 900; margin-bottom: 15px;">¡Ya casi es hora, ñaño!</h1>
+                    <h1 style="font-size: 32px; font-weight: 900; margin-bottom: 15px;">¡Ya casi es hora!</h1>
                     <p style="font-size: 18px; margin-bottom: 30px; font-weight: 500;">Faltan aprox. <strong>${data.minutosRestantes} minutos</strong> para tu reserva en<br><span style="font-size: 24px; font-weight: bold; display: block; margin-top: 10px;">🏢 ${data.sucursal}</span></p>
                     <p style="font-size: 14px; margin-bottom: 40px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">⚠️ Recuerda que guardaremos tu mesa por 10 minutos de tolerancia.</p>
                     <button id="btn-entendido" style="background: white; color: #e15f41; border: none; padding: 15px 40px; border-radius: 30px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">¡Entendido, voy en camino! 🚗</button>
@@ -333,7 +352,7 @@
                 turnoActual = data.nuevoTurno;
                 document.getElementById('txt-turno').innerText = turnoActual;
                 guardarEstado(); 
-                if (data.nuevoTurno === 1) { mostrarNotificacionFila(`🎉 ¡ERES EL TURNO #1! <br>Tu mesa ya está limpia y lista. Pasa adelante.`, true); } 
+                if (data.nuevoTurno === 1) { mostrarNotificacionFila(`🎉 ¡ERES EL TURNO #1! <br>Tu mesa ya está lista. Pasa adelante.`, true); } 
                 else { mostrarNotificacionFila(`🔔 ¡La fila se movió! <br>Avanzaste al puesto #${data.nuevoTurno}.`, false); }
             }
         });
@@ -366,7 +385,9 @@
         socket.on('resultado-disponibilidad', (res) => {
             if (res.disponible) {
                 datosReservaConfirmada = { fecha: document.getElementById('res-fecha').value, hora: res.horaExacta, personas: document.getElementById('res-pax').value, mesa: res.mesa, sucursal: res.sucursal };
-                document.getElementById('lbl-sucursal').innerText = res.sucursal; document.getElementById('modal-eleccion').style.display = 'flex';
+                document.getElementById('lbl-franquicia-modal').innerText = infoActual.nombre;
+                document.getElementById('lbl-sucursal').innerText = res.sucursal; 
+                document.getElementById('modal-eleccion').style.display = 'flex';
             } else {
                 solicitarHorarios(); document.getElementById('alerta-lleno').style.display = 'block'; const contAlt = document.getElementById('opciones-alternativas'); contAlt.innerHTML = "";
                 if (res.alternativas.length === 0) contAlt.innerHTML = "<span style='color:red;'>No hay mesas disponibles.</span>"; else res.alternativas.forEach(alt => { contAlt.innerHTML += `<button class="horario-btn" onclick="seleccionarAlternativa('${alt}')">${alt}</button>`; });
@@ -431,7 +452,7 @@
         }
 
         function guardarEncuestaOpcional() {
-            alert("¡Gracias por tus respuestas! Tu premio ha sido registrado.");
+            alert("¡Gracias por tus respuestas! Tu cortesía ha sido registrada.");
         }
 
         function dibujarBotonesFiltro() {
@@ -490,7 +511,7 @@
                             <img src="${p.img}" onerror="this.onerror=null; this.src='https://placehold.co/220x140?text=Sin+Foto'">
                             <div class="info-producto">
                                 <strong style="font-size:16px; display:block; height:22px; overflow:hidden; color:#0a3d62;">${p.nombre}</strong>
-                                <p style="color:#747d8c; font-size:12px; height:38px; overflow:hidden; margin: 5px 0; line-height:1.3;">${p.descripcion || 'Especialidad costeña.'}</p>
+                                <p style="color:#747d8c; font-size:12px; height:38px; overflow:hidden; margin: 5px 0; line-height:1.3;">${p.descripcion || 'Especialidad de la casa.'}</p>
                                 <p style="color:#e15f41; font-weight:bold; margin-top:5px; font-size:16px;">$${p.precio.toFixed(2)}</p>
                                 <button class="btn-agregar" onclick="addToCart(${p.id})">Añadir 🤤</button>
                             </div>
@@ -565,25 +586,14 @@
             if(textUser === "") return;
             const chatBox = document.getElementById('chat-mensajes'); chatBox.innerHTML += `<div class="msg-user">${textOrig}</div>`; inputField.value = ""; chatBox.scrollTop = chatBox.scrollHeight;
             setTimeout(() => {
-                let resp = "Chuta, no te entendí bien, ñaño. 😅 Pregúntame sobre <strong>nuestros platos, horarios, locales, parqueo o reservas</strong>.";
-                if (["hola", "que mas", "buenas", "saludos"].some(w => textUser.includes(w))) { resp = "¡Qué más, ve! Bienvenido a La Costeñita 🌊. ¿En qué te puedo ayudar hoy?"; }
-                else if (["direccion", "ubicacion", "donde", "sucursal", "locales"].some(w => textUser.includes(w))) { resp = "📍 Tenemos 3 huecas en Guayaquil:<br>🦀 <strong>Urdesa:</strong> V.E. Estrada y Las Monjas<br>🍤 <strong>Samborondón:</strong> Km 2.5<br>🐟 <strong>Sur:</strong> Barrio del Centenario."; }
-                else if (["horario", "hora", "abren", "cierran"].some(w => textUser.includes(w))) { resp = "⏰ Abrimos todos los días:<br>- Lunes a Jueves: 08:00 AM - 10:00 PM<br>- Viernes a Domingo: 07:00 AM - 11:00 PM."; }
+                let resp = `Hola, te puedo ayudar con información sobre el menú, horarios o reservas de ${infoActual.nombre}. 😅`;
+                if (["hola", "que mas", "buenas", "saludos"].some(w => textUser.includes(w))) { resp = `¡Hola! Bienvenido a ${infoActual.nombre} en Book&Bite. ¿En qué te puedo ayudar hoy?`; }
+                else if (["direccion", "ubicacion", "donde", "sucursal", "locales"].some(w => textUser.includes(w))) { resp = `📍 Contamos con sucursales habilitadas para ${infoActual.nombre}. Selecciona la de tu preferencia al inicio.`; }
+                else if (["horario", "hora", "abren", "cierran"].some(w => textUser.includes(w))) { resp = "⏰ Abrimos todos los días en horario regular de atención al público."; }
                 else if (["reserva", "mesa", "puesto"].some(w => textUser.includes(w))) { resp = "🗓️ ¡Es facilito! Solo elige tu sucursal, la fecha y la hora al inicio de la página."; }
-                else if (["pago", "pagar", "tarjeta", "efectivo"].some(w => textUser.includes(w))) { resp = "💳 Aceptamos de todo: Puedes pagar con Tarjeta o Efectivo."; }
-                else if (["menu", "comida", "plato", "encebollado", "ceviche"].some(w => textUser.includes(w))) { resp = "🍲 ¡La mejor sazón! Nuestro plato estrella es el <strong>Encebollado Mixto</strong>."; }
-                else if (["parqueo", "carro", "vehiculo"].some(w => textUser.includes(w))) { resp = "🚗 Nuestras 3 sucursales cuentan con parqueo privado, sin costo y con guardia."; }
-                else if (["mascota", "perro", "pet friendly"].some(w => textUser.includes(w))) { resp = "🐶 ¡Claro que sí! Nuestros locales tienen terrazas Pet Friendly."; }
-                else if (["domicilio", "delivery", "llevar"].some(w => textUser.includes(w))) { resp = "🛵 Busca en UberEats o PedidosYa como 'La Costeñita'."; }
+                else if (["pago", "pagar", "tarjeta", "efectivo"].some(w => textUser.includes(w))) { resp = "💳 Aceptamos pagos con Tarjeta o en Efectivo directamente en el local."; }
                 chatBox.innerHTML += `<div class="msg-bot">${resp}</div>`; chatBox.scrollTop = chatBox.scrollHeight;
             }, 600);
-        }
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(err => console.log('Falló SW', err));
-            });
         }
     </script>
 </body>
