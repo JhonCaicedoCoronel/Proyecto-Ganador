@@ -278,9 +278,22 @@
         
         recuperarEstado();
 
+        // Función clave para limpiar todo y reiniciar el quiosco
+        function limpiarTodoYKiosco() {
+            carrito = [];
+            datosReservaConfirmada = {};
+            ultimoNombreCliente = "";
+            miIdReserva = null;
+            pantallaActual = 'reserva';
+            turnoActual = "00";
+            
+            sessionStorage.clear();
+            sessionStorage.setItem('tenant_id', miTenant); // Mantiene el tenant actual si se desea conservar la sucursal/franquicia
+            window.location.href = window.location.pathname + window.location.search;
+        }
+
         function reiniciarKiosco() {
-            sessionStorage.removeItem('costenitaEstado');
-            window.location.href = '/';
+            limpiarTodoYKiosco();
         }
 
         function mostrarNotificacionFila(mensaje, esTurnoUno) {
@@ -389,7 +402,13 @@
 
             socket.emit('enviar-reserva-pedido', pedido);
             cerrarSoloReserva();
+            
+            document.getElementById('pantalla-reserva').style.display = 'none';
+            document.getElementById('pantalla-menu').style.display = 'none';
+            document.getElementById('modal-exito').style.display = 'flex';
+            pantallaActual = 'exito';
             guardarEstado();
+            
             document.getElementById('txt-exito-detalle').innerText = "Tu mesa está asegurada. Mantén esta pantalla abierta, te avisaremos cuando sea tu turno.";
         }
 
@@ -401,8 +420,18 @@
             const pedido = { id: miIdReserva, cliente: name, item: carrito.map(c => `${c.cantidad}x ${c.nombre}`).join(', '), pago: pago, datosReserva: datosReservaConfirmada, productosComprados: [], tenant_id: miTenant };
             
             socket.emit('enviar-reserva-pedido', pedido); cerrarCarrito();
+            
+            document.getElementById('pantalla-reserva').style.display = 'none';
+            document.getElementById('pantalla-menu').style.display = 'none';
+            document.getElementById('modal-exito').style.display = 'flex';
+            pantallaActual = 'exito';
             guardarEstado();
+            
             document.getElementById('txt-exito-detalle').innerText = "Mantén esta pantalla abierta. Te avisaremos aquí mismo si tu turno avanza.";
+        }
+
+        function guardarEncuestaOpcional() {
+            alert("¡Gracias por tus respuestas! Tu premio ha sido registrado.");
         }
 
         function dibujarBotonesFiltro() {
