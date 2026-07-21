@@ -40,39 +40,32 @@
 
     <script>
         const socket = io();
-        
-        let miTenant = sessionStorage.getItem('tenant_id');
-        if (!miTenant || miTenant === "null" || miTenant === "undefined") {
-            miTenant = 'tenant_costenita';
-            sessionStorage.setItem('tenant_id', miTenant);
-        }
+        const miTenant = sessionStorage.getItem('tenant_id') || 'tenant_costenita';
 
         socket.on('connect', () => {
-            console.log("Conectado al servidor de historial, sincronizando local:", miTenant);
             socket.emit('unirse-a-restaurante', miTenant);
-            socket.emit('obtener-historial-dia', miTenant); // Consulta reactiva sin errores
+            socket.emit('obtener-historial-dia', miTenant);
         });
 
         socket.on('cargar-historial', (pedidos) => {
-            const tbody = document.getElementById('tabla-historial'); 
-            tbody.innerHTML = "";
-            
-            if (!pedidos || pedidos.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999; padding: 20px; font-size:16px;">Aún no se han despachado pedidos en este local el día de hoy.</td></tr>`; 
-                return; 
+            const tabla = document.getElementById('tabla-historial');
+            tabla.innerHTML = "";
+
+            if (!pedidos || pedidos.length === 0) {
+                tabla.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#a4b0be;">No hay registros de ventas facturadas hoy.</td></tr>`;
+                return;
             }
 
             pedidos.forEach(p => {
-                const sucursal = p.sucursal || (p.datos_reserva && p.datos_reserva.sucursal) || 'Urdesa';
-                tbody.innerHTML += `
+                tabla.innerHTML += `
                     <tr>
                         <td><strong>#${p.id}</strong></td>
                         <td>${p.cliente}</td>
                         <td>${p.item}</td>
-                        <td>🏢 ${sucursal}</td>
-                        <td>${p.pago || 'Tarjeta'}</td>
-                        <td><span class="badge">✅ Entregado / Despachado</span></td>
-                    </tr>`;
+                        <td>${p.pago || 'Efectivo'}</td>
+                        <td><span class="badge">✅ Entregado</span></td>
+                    </tr>
+                `;
             });
         });
     </script>

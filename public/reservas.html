@@ -41,56 +41,54 @@
         </tbody>
     </table>
 
-    <script>
+   <script>
         const socket = io();
-        
-        let miTenant = sessionStorage.getItem('tenant_id');
-        if (!miTenant || miTenant === "null" || miTenant === "undefined") {
-            miTenant = 'tenant_costenita';
-            sessionStorage.setItem('tenant_id', miTenant);
-        }
+        const miTenant = sessionStorage.getItem('tenant_id') || 'tenant_costenita';
 
-        // Al restablecer conexión por actualizar pantalla
         socket.on('connect', () => {
-            console.log("Libro de reservas conectado, sincronizando local:", miTenant);
             socket.emit('unirse-a-restaurante', miTenant);
-            socket.emit('obtener-historial-reservas', miTenant); // Carga fijos tus datos originales
+            socket.emit('obtener-historial-reservas', miTenant);
         });
 
         socket.on('cargar-historial-reservas', (reservas) => {
-            const tbody = document.getElementById('tabla-reservas');
-            tbody.innerHTML = "";
+            const cuerpoTabla = document.getElementById('tabla-reservas');
+            cuerpoTabla.innerHTML = "";
 
             if (!reservas || reservas.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding:30px; font-size:16px;">📅 No existen registros de reservas en este local comercial.</td></tr>`;
+                cuerpoTabla.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#a4b0be;">Sin registros en el libro de reservas.</td></tr>`;
                 return;
             }
 
             reservas.forEach(r => {
-                let estadoHTML = (r.estado === 'activa' || !r.estado) ? `<span class="badge-activa">🟢 Fila: Turno #${r.turno_sala || 1}</span>` : `<span class="badge-final">⚪ Finalizada</span>`;
-                let accionHTML = (r.estado === 'activa' || !r.estado) ? `<button class="btn-salida" onclick="marcarSalida(${r.id}, ${r.mesa_id})">🚪 Desocupó Mesa</button>` : `<span class="txt-salida">Salió a las: ${r.hora_salida || 'N/D'}</span>`;
-                let sucursalTxt = r.sucursal ? r.sucursal : "Urdesa";
+                let badgeEstado = "";
+                let columnaAccion = "";
 
-                tbody.innerHTML += `
+                if (r.estado === 'activa') {
+                    badgeEstado = `<span class="badge-activa">🟢 En Espera (Turno #${r.turno_sala})</span>`;
+                    columnaAccion = `<button class="btn-salida" onclick="desocuparMesa(${r.id})">🚪 Finalizar / Salió</button>`;
+                } else if (r.estado === 'completado') {
+                    badgeEstado = `<span style="background:#ffeaa7; color:#d63031; padding:4px 8px; border-radius:4px; font-weight:bold;">🍳 Comiendo</span>`;
+                    columnaAccion = `<button class="btn-salida" onclick="desocuparMesa(${r.id})">🚪 Finalizar / Salió</button>`;
+                } else {
+                    badgeEstado = `<span class="badge-final">⚪ Concluida</span>`;
+                    columnaAccion = `<span style="color:#747d8c; font-size:13px;">Servicio terminado</span>`;
+                }
+
+                cuerpoTabla.innerHTML += `
                     <tr>
-                        <td><strong>${r.fecha}</strong><br><span style="color:#a4b0be; font-size:12px;">Para las ${r.hora}</span></td>
-                        <td><strong style="font-size:16px;">${r.cliente}</strong><br>👤 ${r.personas} Personas</td>
-                        <td><strong style="color:#0a3d62;">🏢 ${sucursalTxt}</strong><br>Mesa #${r.mesa_id}</td>
-                        <td>${estadoHTML}</td>
-                        <td>${accionHTML}</td>
-                    </tr>`;
+                        <td><strong>${r.fecha}</strong><br><span style="color:#747d8c; font-size:12px;">Hora: ${r.hora}</span></td>
+                        <td><strong>${r.cliente}</strong><br><span style="font-size:12px; color:#57606f;">👥 ${r.personas} Pers.</span></td>
+                        <td><strong>🏢 ${r.sucursal || 'Principal'}</strong><br>Mesa #${r.mesa_id || '1'}</td>
+                        <td>${badgeEstado}</td>
+                        <td>${columnaAccion}</td>
+                    </tr>
+                `;
             });
         });
 
-        // Escucha en vivo si un cliente añade una reserva desde el quiosco
-        socket.on('reserva-confirmada-actualizar', () => {
-            socket.emit('obtener-historial-reservas', miTenant);
-        });
-
-        function marcarSalida(idReserva, idMesa) {
-            if (confirm("¿Confirmar que el comensal ha liberado y desocupado la mesa?")) {
-                // Mandamos el id, mesa y el tenant para el reajuste dinámico de turnos en Supabase
-                socket.emit('marcar-salida-reserva', { id: idReserva, mesa_id: idMesa, tenant_id: miTenant });
+        function desocuparMesa(idReserva) {
+            if (confirm("¿Confirmar que el cliente ha concluido su servicio y se retira del establecimiento?")) {
+                socket.emit('marcar-salida-reserva', { id: idReserva, tenant_id: miTenant });
             }
         }
     </script>
