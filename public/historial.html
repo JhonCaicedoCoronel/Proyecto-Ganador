@@ -44,7 +44,7 @@
         socket.on('connect', () => {
             if (miTenant) {
                 socket.emit('unirse-a-restaurante', miTenant);
-                socket.emit('obtener-historial-dia');
+                socket.emit('obtener-historial-dia', tenantIdActual);
             } else {
                 window.top.location.href = '/login.html';
             }
