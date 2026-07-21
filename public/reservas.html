@@ -15,53 +15,55 @@
         table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; font-size: 14px; }
         th { background: #2f3542; color: white; text-transform: uppercase; font-size: 13px; }
-        .badge-activa { background: #e8fcf0; color: #2ed573; padding: 6px 12px; border-radius: 20px; font-weight: bold; border: 1px solid #2ed573; display: inline-block;}
-        .badge-final { background: #f1f2f6; color: #a4b0be; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-block; }
-        .btn-salida { background: #e15f41; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-salida:hover { background: #c44527; transform: scale(1.05); }
-        .txt-salida { font-size: 13px; color: #57606f; font-weight: bold; }
+        .badge-activa { background: #e8fcf0; color: #2ed573; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-block; }
+        .badge-final { background: #f1f2f6; color: #747d8c; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-block; }
+        .btn-salida { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.3s ease; }
+        .btn-salida:hover { background: #ff6b81; }
+        .txt-salida { font-size: 12px; color: #747d8c; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>📅 Libro Global de Reservas</h1>
+    <h1>📅 Libro de Reservas Activas</h1>
 
     <table>
         <thead>
             <tr>
-                <th>Llegada</th>
+                <th>Llegada Estimada</th>
                 <th>Cliente</th>
-                <th>Sucursal y Mesa</th>
-                <th>Estado Actual</th>
-                <th>Check-out (Desocupar)</th>
+                <th>Ubicación / Mesa</th>
+                <th>Estado del Turno</th>
+                <th>Acción Operativa</th>
             </tr>
         </thead>
         <tbody id="tabla-reservas">
-            <tr><td colspan="5" style="text-align:center; padding: 20px;">Cargando...</td></tr>
+            <tr><td colspan="5" style="text-align:center; color:#999; padding:30px; font-size:16px;">Sincronizando reservas con Supabase...</td></tr>
         </tbody>
     </table>
 
     <script>
         const socket = io();
+        
         let miTenant = sessionStorage.getItem('tenant_id');
         if (!miTenant || miTenant === "null" || miTenant === "undefined") {
             miTenant = 'tenant_costenita';
             sessionStorage.setItem('tenant_id', miTenant);
         }
 
+        // Al restablecer conexión por actualizar pantalla
         socket.on('connect', () => {
-            console.log("Conectado al servidor de reservas, sincronizando tenant:", miTenant);
+            console.log("Libro de reservas conectado, sincronizando local:", miTenant);
             socket.emit('unirse-a-restaurante', miTenant);
-            socket.emit('obtener-historial-reservas', miTenant);
+            socket.emit('obtener-historial-reservas', miTenant); // Carga fijos tus datos originales
         });
 
         socket.on('cargar-historial-reservas', (reservas) => {
-            const tbody = document.getElementById('tabla-reservas'); 
+            const tbody = document.getElementById('tabla-reservas');
             tbody.innerHTML = "";
-            
-            if (!reservas || reservas.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">No hay reservas registradas para este local.</td></tr>`; 
-                return; 
+
+            if (!reservas || reservas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding:30px; font-size:16px;">📅 No existen registros de reservas en este local comercial.</td></tr>`;
+                return;
             }
 
             reservas.forEach(r => {
@@ -80,8 +82,14 @@
             });
         });
 
+        // Escucha en vivo si un cliente añade una reserva desde el quiosco
+        socket.on('reserva-confirmada-actualizar', () => {
+            socket.emit('obtener-historial-reservas', miTenant);
+        });
+
         function marcarSalida(idReserva, idMesa) {
-            if(confirm("¿El cliente ya desocupó la mesa? Los turnos avanzarán automáticamente.")) {
+            if (confirm("¿Confirmar que el comensal ha liberado y desocupado la mesa?")) {
+                // Mandamos el id, mesa y el tenant para el reajuste dinámico de turnos en Supabase
                 socket.emit('marcar-salida-reserva', { id: idReserva, mesa_id: idMesa, tenant_id: miTenant });
             }
         }

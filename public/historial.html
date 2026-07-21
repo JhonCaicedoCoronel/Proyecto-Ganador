@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Historial de Ventas</title>
+    <title>Historial de Ventas y Despachos</title>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         if (!sessionStorage.getItem('usuarioLogueado')) {
@@ -15,30 +15,32 @@
         table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f2f6; font-size: 14px; }
         th { background: #2f3542; color: white; text-transform: uppercase; font-size: 13px; }
-        .badge { background: #2ed573; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge { background: #2ed573; color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>📈 Historial de Platos Despachados</h1>
+    <h1>📈 Historial de Pre-Órdenes Despachadas</h1>
 
     <table>
         <thead>
             <tr>
-                <th>ID Orden</th>
+                <th>ID Pedido</th>
                 <th>Cliente</th>
-                <th>Artículos Preparados</th>
-                <th>Pago / Modalidad</th>
+                <th>Resumen de la Orden</th>
+                <th>Sucursal</th>
+                <th>Tipo de Pago</th>
                 <th>Estado</th>
             </tr>
         </thead>
         <tbody id="tabla-historial">
-            <tr><td colspan="5" style="text-align:center; padding: 20px;">Cargando ventas...</td></tr>
+            <tr><td colspan="6" style="text-align:center; color:#999; padding: 20px; font-size:16px;">Sincronizando registros con Supabase...</td></tr>
         </tbody>
     </table>
 
     <script>
         const socket = io();
+        
         let miTenant = sessionStorage.getItem('tenant_id');
         if (!miTenant || miTenant === "null" || miTenant === "undefined") {
             miTenant = 'tenant_costenita';
@@ -46,9 +48,9 @@
         }
 
         socket.on('connect', () => {
-            console.log("Conectado al servidor de historial, sincronizando tenant:", miTenant);
+            console.log("Conectado al servidor de historial, sincronizando local:", miTenant);
             socket.emit('unirse-a-restaurante', miTenant);
-            socket.emit('obtener-historial-dia', miTenant);
+            socket.emit('obtener-historial-dia', miTenant); // Consulta reactiva sin errores
         });
 
         socket.on('cargar-historial', (pedidos) => {
@@ -56,18 +58,20 @@
             tbody.innerHTML = "";
             
             if (!pedidos || pedidos.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999; padding: 20px;">Aún no se han despachado pedidos en este local.</td></tr>`; 
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999; padding: 20px; font-size:16px;">Aún no se han despachado pedidos en este local el día de hoy.</td></tr>`; 
                 return; 
             }
 
             pedidos.forEach(p => {
+                const sucursal = p.sucursal || (p.datos_reserva && p.datos_reserva.sucursal) || 'Urdesa';
                 tbody.innerHTML += `
                     <tr>
                         <td><strong>#${p.id}</strong></td>
                         <td>${p.cliente}</td>
                         <td>${p.item}</td>
-                        <td>${p.pago}</td>
-                        <td><span class="badge">✅ Entregado</span></td>
+                        <td>🏢 ${sucursal}</td>
+                        <td>${p.pago || 'Tarjeta'}</td>
+                        <td><span class="badge">✅ Entregado / Despachado</span></td>
                     </tr>`;
             });
         });
