@@ -40,6 +40,9 @@
     <a href="/login.html" class="btn-admin">🔐 Acceso Administrativo (Staff)</a>
 
     <script>
+        // Limpiamos cualquier sesión previa al volver al selector principal
+        sessionStorage.clear();
+
         function elegirFranquicia(tenantId, nombreFranquicia) {
             // Guardamos el tenant corporativo en la sesión
             sessionStorage.setItem('tenant_id', tenantId);
