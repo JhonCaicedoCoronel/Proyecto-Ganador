@@ -5,11 +5,12 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http, { cors: { origin: "*" } });
 const { createClient } = require('@supabase/supabase-js');
 
+// Conexión con Supabase usando tus variables originales
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 app.use(express.static('public'));
 
-// --- RUTA RAÍZ: AHORA MUESTRA EL SELECTOR DE SUCURSALES ---
+// --- RUTA RAÍZ ---
 app.get('/', (req, res) => { 
     res.sendFile(__dirname + '/public/index.html'); 
 });
