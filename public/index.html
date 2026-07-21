@@ -3,49 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selecciona tu Sucursal - La Costeñita</title>
+    <title>Selecciona tu Franquicia - Sistema Multi-tenant</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: linear-gradient(rgba(10, 61, 98, 0.85), rgba(10, 61, 98, 0.85)), url('https://images.unsplash.com/photo-1559742811-822873691fc8?w=1600') center/cover; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; padding: 20px; }
-        h1 { color: #e15f41; font-size: 38px; font-weight: 800; margin-bottom: 5px; }
-        p { color: #f1f2f6; margin-bottom: 35px; font-size: 16px; font-weight: 500; }
-        .card-container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 800px; }
-        .sucursal-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; cursor: pointer; transition: 0.3s; width: 220px; color: #2f3542; border-bottom: 4px solid #e15f41; }
+        h1 { color: #e15f41; font-size: 38px; font-weight: 800; margin-bottom: 5px; text-align: center; }
+        p { color: #f1f2f6; margin-bottom: 35px; font-size: 16px; font-weight: 500; text-align: center; }
+        .card-container { display: flex; gap: 25px; flex-wrap: wrap; justify-content: center; max-width: 800px; }
+        .sucursal-card { background: white; padding: 40px 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; cursor: pointer; transition: 0.3s; width: 260px; color: #2f3542; border-bottom: 4px solid #e15f41; }
         .sucursal-card:hover { transform: translateY(-8px); box-shadow: 0 15px 35px rgba(0,0,0,0.4); background: #fdfdfd; }
-        .sucursal-card h3 { margin: 0 0 8px 0; color: #0a3d62; font-size: 22px; font-weight: 700; }
-        .sucursal-card span { font-size: 13px; color: #747d8c; font-weight: 600; }
+        .sucursal-card h3 { margin: 0 0 8px 0; color: #0a3d62; font-size: 24px; font-weight: 700; }
+        .sucursal-card span { font-size: 13px; color: #747d8c; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
         .btn-admin { margin-top: 40px; background: transparent; color: white; border: 2px solid white; padding: 10px 25px; border-radius: 30px; font-weight: bold; cursor: pointer; text-decoration: none; transition: 0.2s; font-size: 14px; }
         .btn-admin:hover { background: white; color: #0a3d62; }
     </style>
 </head>
 <body>
 
-    <h1>🌊 La Costeñita</h1>
-    <p>Selecciona la sucursal a la que deseas ingresar:</p>
+    <h1>🍽️ Selección de Franquicia</h1>
+    <p>Elige el restaurante al que deseas ingresar:</p>
 
     <div class="card-container">
-        <div class="sucursal-card" onclick="elegirSucursal('Urdesa')">
-            <h3>Urdesa</h3>
-            <span>Matriz Principal</span>
+        <!-- Opción La Costeñita -->
+        <div class="sucursal-card" onclick="elegirFranquicia('tenant_costenita', 'La Costeñita')">
+            <h3>🌊 La Costeñita</h3>
+            <span>Franquicia Principal</span>
         </div>
-        <div class="sucursal-card" onclick="elegirSucursal('Samborondón')">
-            <h3>Samborondón</h3>
-            <span>Zona Comercial</span>
-        </div>
-        <div class="sucursal-card" onclick="elegirSucursal('Sur')">
-            <h3>Sur</h3>
-            <span>Barrio del Centenario</span>
+
+        <!-- Opción Negroni -->
+        <div class="sucursal-card" onclick="elegirFranquicia('tenant_negroni', 'Negroni')">
+            <h3>🍸 Negroni</h3>
+            <span>Franquicia Asociada</span>
         </div>
     </div>
 
     <a href="/login.html" class="btn-admin">🔐 Acceso Administrativo (Staff)</a>
 
     <script>
-        function elegirSucursal(nombreSucursal) {
-            // Guardamos el tenant corporativo y enviamos la sucursal por URL al quiosco
-            sessionStorage.setItem('tenant_id', 'tenant_costenita');
-            sessionStorage.setItem('sucursal_activa', nombreSucursal);
-            window.location.href = `/quiosco.html?local=tenant_costenita`;
+        function elegirFranquicia(tenantId, nombreFranquicia) {
+            // Guardamos el tenant corporativo en la sesión
+            sessionStorage.setItem('tenant_id', tenantId);
+            sessionStorage.setItem('franquicia_activa', nombreFranquicia);
+            
+            // Redirigimos al quiosco pasando el parámetro de la franquicia correspondiente
+            window.location.href = `/quiosco.html?local=${tenantId}`;
         }
     </script>
 </body>
