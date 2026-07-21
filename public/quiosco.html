@@ -229,23 +229,13 @@
         let miTenant = urlParams.get('local') || sessionStorage.getItem('tenant_id') || 'tenant_costenita'; 
         sessionStorage.setItem('tenant_id', miTenant);
 
-        // Configuración dinámica según la franquicia seleccionada
         const configFranquicia = {
-            'tenant_costenita': {
-                nombre: 'La Costeñita',
-                slogan: 'El auténtico sabor de nuestra costa ecuatoriana.',
-                icono: '🌊'
-            },
-            'tenant_negroni': {
-                nombre: 'Negroni',
-                slogan: 'Cocktails & Italian Kitchen.',
-                icono: '🍸'
-            }
+            'tenant_costenita': { nombre: 'La Costeñita', slogan: 'El auténtico sabor de nuestra costa ecuatoriana.', icono: '🌊' },
+            'tenant_negroni': { nombre: 'Negroni', slogan: 'Cocktails & Italian Kitchen.', icono: '🍸' }
         };
 
         const infoActual = configFranquicia[miTenant] || configFranquicia['tenant_costenita'];
 
-        // Aplicamos la marca visual correspondiente
         document.getElementById('page-title').innerText = `${infoActual.nombre} - Book&Bite`;
         document.getElementById('brand-title').innerText = `${infoActual.icono} ${infoActual.nombre}`;
         document.getElementById('brand-slogan').innerText = infoActual.slogan;
@@ -253,9 +243,7 @@
         document.getElementById('chat-header-title').innerText = `${infoActual.icono} Asistente ${infoActual.nombre}`;
 
         socket.on('connect', () => {
-            if(miTenant) {
-                socket.emit('unirse-a-restaurante', miTenant);
-            }
+            if(miTenant) { socket.emit('unirse-a-restaurante', miTenant); }
         });
 
         let productos = []; let carrito = [];
@@ -299,21 +287,14 @@
         recuperarEstado();
 
         function limpiarTodoYKiosco() {
-            carrito = [];
-            datosReservaConfirmada = {};
-            ultimoNombreCliente = "";
-            miIdReserva = null;
-            pantallaActual = 'reserva';
-            turnoActual = "00";
-            
+            carrito = []; datosReservaConfirmada = {}; ultimoNombreCliente = "";
+            miIdReserva = null; pantallaActual = 'reserva'; turnoActual = "00";
             sessionStorage.clear();
             sessionStorage.setItem('tenant_id', miTenant);
             window.location.href = window.location.pathname + window.location.search;
         }
 
-        function reiniciarKiosco() {
-            limpiarTodoYKiosco();
-        }
+        function reiniciarKiosco() { limpiarTodoYKiosco(); }
 
         function mostrarNotificacionFila(mensaje, esTurnoUno) {
             const toast = document.createElement('div');
