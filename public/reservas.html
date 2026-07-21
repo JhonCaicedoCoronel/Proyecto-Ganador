@@ -48,7 +48,7 @@
         socket.on('connect', () => {
             if (miTenant) {
                 socket.emit('unirse-a-restaurante', miTenant);
-                socket.emit('obtener-historial-reservas', tenantIdActual);
+                socket.emit('obtener-historial-reservas', miTenant); // CORREGIDO: Se envía miTenant de manera correcta
             } else {
                 window.top.location.href = '/login.html';
             }
