@@ -67,11 +67,11 @@
         
         .header-menu { 
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            padding: 18px 25px; display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.06); position: sticky; top: 15px; z-index: 100; 
             margin: 15px; border-radius: 24px; 
         }
-        .header-menu h1 { font-size: 20px; color: var(--primary); font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0; }
+        .header-menu h1 { font-size: 20px; color: var(--primary); font-weight: 800; margin: 0; }
         
         .filtros-container { padding: 5px 15px; display: flex; gap: 12px; overflow-x: auto; white-space: nowrap; margin: 15px 0; scroll-behavior: smooth; }
         .filtros-container::-webkit-scrollbar { display: none; }
@@ -83,10 +83,7 @@
         .btn-filtro.activo { background: var(--primary); color: white; box-shadow: 0 8px 20px rgba(10, 61, 98, 0.25); transform: translateY(-2px); }
 
         /* TÍTULOS DE SECCIÓN */
-        .section-title {
-            font-size: 22px; font-weight: 800; color: var(--primary); 
-            margin: 35px 20px 15px; display: flex; align-items: center; gap: 10px;
-        }
+        .section-title { font-size: 22px; font-weight: 800; color: var(--primary); margin: 35px 20px 15px; display: flex; align-items: center; gap: 10px; }
 
         .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; padding: 0 20px; }
         .card-producto { 
@@ -161,6 +158,14 @@
     <div id="toast-container"></div>
 
     <div id="pantalla-reserva">
+        
+        <div style="width: 100%; max-width: 420px; display: flex; justify-content: flex-start; margin-bottom: 20px;">
+            <button onclick="window.location.href='/'" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 13px; backdrop-filter: blur(10px); display: flex; align-items: center; gap: 5px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                Cambiar Local
+            </button>
+        </div>
+
         <div class="brand-header">
             <h1 id="brand-title" style="font-size: 38px; font-weight: 800; letter-spacing: -1px;">🌊 La Costeñita</h1>
             <p id="brand-slogan" style="font-size: 16px; opacity: 0.9; font-weight: 400;">El auténtico sabor de nuestra costa.</p>
@@ -228,7 +233,12 @@
 
     <div id="pantalla-menu">
         <div class="header-menu">
-            <h1 id="brand-title-menu">Menú</h1>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button onclick="volverAReserva()" style="background: var(--bg); border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <h1 id="brand-title-menu">Menú</h1>
+            </div>
             <span style="font-size: 12px; color: var(--success); font-weight: 700; background: #e8fcf0; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px;">
                 <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block;"></span> Mesa Asegurada
             </span>
@@ -450,7 +460,7 @@
             selectHora.innerHTML = ""; let hayOpciones = false;
             horarios.forEach(h => { 
                 if(h.lleno) {
-                    selectHora.innerHTML += `<option value="${h.hora}" disabled>❌ ${h.hora} (Agotado)</option>`; 
+                    selectHora.innerHTML += `<option value="${h.hora}" disabled>❌ ${h.hora} (Agotado - Máx. 3 mesas)</option>`; 
                 } else { 
                     selectHora.innerHTML += `<option value="${h.hora}">✅ ${h.hora} (Libre)</option>`; 
                     hayOpciones = true; 
@@ -477,7 +487,7 @@
             }
         });
 
-        // Funciones Modales
+        // Funciones Modales y Navegación
         function abrirModal(id) { 
             const m = document.getElementById(id);
             m.style.display = 'flex';
@@ -497,6 +507,13 @@
             pantallaActual = 'menu'; guardarEstado(); 
             dibujarBotonesFiltro(); dibujarProductos();
             window.scrollTo(0,0);
+        }
+
+        function volverAReserva() {
+            document.getElementById('pantalla-menu').style.display = 'none';
+            document.getElementById('pantalla-reserva').style.display = 'flex';
+            pantallaActual = 'reserva';
+            guardarEstado();
         }
 
         function abrirSoloReserva() { 

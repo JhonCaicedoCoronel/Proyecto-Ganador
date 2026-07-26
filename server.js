@@ -100,7 +100,7 @@ io.on('connection', (socket) => {
                     .eq('estado', 'activa')
                     .gt('turno_sala', resSale.turno_sala);
 
-                // Hacer avanzar la fila
+                // Hacer avanzar la fila dinámicamente
                 if (reservasAfectadas && reservasAfectadas.length > 0) {
                     for (const r of reservasAfectadas) {
                         const nuevoTurno = r.turno_sala - 1;
@@ -138,24 +138,25 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 4. VERIFICACIÓN DE DISPONIBILIDAD
+    // 4. VERIFICACIÓN DE DISPONIBILIDAD (LÍMITE EXACTO DE 3 MESAS POR HORA)
     socket.on('consultar-horarios', async (datos) => {
         try {
             const tenantId = socket.tenantId || 'tenant_costenita';
-            const personasRequeridas = parseInt(datos.personas) || 1;
+            const MAX_MESAS_POR_HORA = 3; // Límite estricto solicitado
             
-            const { data: reservasDB } = await supabase.from('reservas').select('*').eq('tenant_id', tenantId).eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
-            const { data: mesasDB } = await supabase.from('mesas').select('*');
+            const { data: reservasDB } = await supabase.from('reservas')
+                .select('*')
+                .eq('tenant_id', tenantId)
+                .eq('fecha', datos.fecha)
+                .eq('estado', 'activa')
+                .eq('sucursal', datos.sucursal);
             
             const reservasGlobales = reservasDB || []; 
-            const mesasTotales = mesasDB || [];
 
             const horariosEstado = horariosDisponibles.map(hora => {
                 const reservasTurno = reservasGlobales.filter(r => r.hora === hora);
-                const mesasOcupadasIds = reservasTurno.map(r => r.mesa_id);
-                const mesasLibres = mesasTotales.filter(m => !mesasOcupadasIds.includes(m.numero));
-                const mesasAptas = mesasLibres.filter(m => m.capacidad >= personasRequeridas);
-                return { hora: hora, lleno: mesasAptas.length === 0, disponibles: mesasAptas.length };
+                const disponibles = MAX_MESAS_POR_HORA - reservasTurno.length;
+                return { hora: hora, lleno: disponibles <= 0, disponibles: Math.max(0, disponibles) };
             });
             socket.emit('horarios-para-fecha', horariosEstado);
         } catch (error) {
@@ -166,29 +167,31 @@ io.on('connection', (socket) => {
     socket.on('verificar-disponibilidad', async (datos) => {
         try {
             const tenantId = socket.tenantId || 'tenant_costenita';
-            const personasRequeridas = parseInt(datos.personas) || 1;
+            const MAX_MESAS_POR_HORA = 3; // Límite estricto solicitado
             
-            const { data: reservasDB } = await supabase.from('reservas').select('*').eq('tenant_id', tenantId).eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
-            const { data: mesasDB } = await supabase.from('mesas').select('*');
+            const { data: reservasDB } = await supabase.from('reservas')
+                .select('*')
+                .eq('tenant_id', tenantId)
+                .eq('fecha', datos.fecha)
+                .eq('estado', 'activa')
+                .eq('sucursal', datos.sucursal);
             
             const reservasGlobales = reservasDB || []; 
-            const mesasTotales = mesasDB || [];
-
             const reservasTurno = reservasGlobales.filter(r => r.hora === datos.hora);
-            const mesasOcupadasIds = reservasTurno.map(r => r.mesa_id);
-            const mesasLibres = mesasTotales.filter(m => !mesasOcupadasIds.includes(m.numero));
-            const mesasAptas = mesasLibres.filter(m => m.capacidad >= personasRequeridas);
 
-            if (mesasAptas.length > 0) {
-                mesasAptas.sort((a, b) => a.capacidad - b.capacidad);
-                socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora, mesa: mesasAptas[0], sucursal: datos.sucursal });
+            if (reservasTurno.length < MAX_MESAS_POR_HORA) {
+                // Asignar número de mesa lógico correlativo (1, 2 o 3)
+                const mesasOcupadas = reservasTurno.map(r => r.mesa_id);
+                let mesaAsignada = 1;
+                for (let i = 1; i <= MAX_MESAS_POR_HORA; i++) {
+                    if (!mesasOcupadas.includes(i)) {
+                        mesaAsignada = i;
+                        break;
+                    }
+                }
+                socket.emit('resultado-disponibilidad', { disponible: true, horaExacta: datos.hora, mesa: { numero: mesaAsignada }, sucursal: datos.sucursal });
             } else {
-                let alternativas = horariosDisponibles.filter(h => {
-                    const resTurnoAlt = reservasGlobales.filter(r => r.hora === h);
-                    const ocupIdsAlt = resTurnoAlt.map(r => r.mesa_id);
-                    const libresAlt = mesasTotales.filter(m => !ocupIdsAlt.includes(m.numero));
-                    return libresAlt.some(m => m.capacidad >= personasRequeridas);
-                });
+                let alternativas = horariosDisponibles.filter(h => reservasGlobales.filter(r => r.hora === h).length < MAX_MESAS_POR_HORA);
                 socket.emit('resultado-disponibilidad', { disponible: false, alternativas: alternativas.slice(0, 3) });
             }
         } catch (error) {
@@ -203,19 +206,14 @@ io.on('connection', (socket) => {
             const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
             pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
             
-            // BUSCAR EL ÚLTIMO TURNO DE LA FILA (Máximo)
-            const { data: reservasActivas } = await supabase.from('reservas').select('turno_sala')
+            // Asignación de Turno basada en cantidad de activos (Para que se acomoden a la fila actual)
+            const { data: reservasActivas } = await supabase.from('reservas').select('id')
                 .eq('tenant_id', tenantId)
                 .eq('sucursal', pedido.datosReserva.sucursal)
                 .eq('fecha', pedido.datosReserva.fecha)
                 .eq('estado', 'activa');
 
-            let turnoAsignado = 1;
-            if (reservasActivas && reservasActivas.length > 0) {
-                // Obtener el número de turno más alto en la sala
-                const maxTurno = Math.max(...reservasActivas.map(r => r.turno_sala || 0));
-                turnoAsignado = maxTurno + 1; // Asignar el siguiente
-            }
+            let turnoAsignado = (reservasActivas ? reservasActivas.length : 0) + 1;
             pedido.turnoFila = turnoAsignado; 
 
             // Registrar Reserva
