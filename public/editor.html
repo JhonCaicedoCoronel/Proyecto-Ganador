@@ -112,11 +112,7 @@
                 <div class="form-grupo completo">
                     <label>📍 Disponibilidad por Sucursal</label>
                     <div class="sucursales-box" id="prod-sucursales">
-                        <label><input type="checkbox" value="Todas" id="cb-todas" onchange="toggleTodas(this)"> Todas las Sedes</label>
-                        <label><input type="checkbox" value="Urdesa" class="sucursal-cb"> Urdesa</label>
-                        <label><input type="checkbox" value="Samborondón" class="sucursal-cb"> Samborondón</label>
-                        <label><input type="checkbox" value="Sur" class="sucursal-cb"> Sur</label>
-                    </div>
+                        </div>
                 </div>
             </div>
             <button id="btn-accion" class="btn-guardar" onclick="guardarProducto()">Guardar y Publicar 🚀</button>
@@ -135,7 +131,24 @@
 
     <script>
         const socket = io();
-        const miTenant = sessionStorage.getItem('tenant_id');
+        const miTenant = sessionStorage.getItem('tenant_id') || 'tenant_costenita';
+        
+        // Configurador Multi-Franquicia para Sucursales
+        const configFranquicia = {
+            'tenant_costenita': { sucursales: ['Urdesa', 'Samborondón', 'Sur'] },
+            'tenant_negroni': { sucursales: ['Guayaquil', 'Quito', 'Cuenca'] } // SUCURSALES ACTUALIZADAS
+        };
+        const infoActual = configFranquicia[miTenant] || configFranquicia['tenant_costenita'];
+
+        // Llenar dinámicamente las sucursales al cargar la vista
+        document.addEventListener('DOMContentLoaded', () => {
+            const boxSucursales = document.getElementById('prod-sucursales');
+            boxSucursales.innerHTML = `<label><input type="checkbox" value="Todas" id="cb-todas" onchange="toggleTodas(this)" checked> Todas las Sedes</label>`;
+            infoActual.sucursales.forEach(sucursal => {
+                boxSucursales.innerHTML += `<label><input type="checkbox" value="${sucursal}" class="sucursal-cb"> ${sucursal}</label>`;
+            });
+        });
+
         let cacheProductos = [];
         let idEdicion = null;
 
