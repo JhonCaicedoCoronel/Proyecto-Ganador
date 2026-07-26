@@ -92,19 +92,9 @@
                 
                 <div class="form-grupo">
                     <label>Categoría</label>
-                    <select id="prod-cat">
-                        <option value="Combos">Combos</option>
-                        <option value="Bebidas">Bebidas</option>
-                        <option value="Encebollados">Encebollados</option>
-                        <option value="Promos Típicos">Promos Típicos</option>
-                        <option value="Para Compartir">Para Compartir</option>
-                        <option value="Bolones">Bolones</option>
-                        <option value="Bolones Especiales">Bolones Especiales</option>
-                        <option value="Secos">Secos</option>
-                        <option value="Promos De Desayunos">Promos De Desayunos</option>
-                        <option value="Aguántate Un Chance">Aguántate Un Chance</option>
-                        <option value="Tongas">Tongas</option>
-                    </select>
+                    <input type="text" id="prod-cat" list="categorias-dinamicas" placeholder="Ej. Sushi & Rolls, Bebidas...">
+                    <datalist id="categorias-dinamicas">
+                        </datalist>
                 </div>
                 <div class="form-grupo"><label>URL de Imagen</label><input type="text" id="prod-img" placeholder="https://ejemplo.com/foto.jpg"></div>
                 <div class="form-grupo completo"><label>Descripción / Detalles del Plato</label><input type="text" id="prod-descripcion" placeholder="Ej. Con chicharrón, queso manaba y huevo frito..."></div>
@@ -164,6 +154,10 @@
         socket.on('menu-actualizado-completo', (data) => { cacheProductos = data; renderizarTabla(data); });
 
         function renderizarTabla(productos) {
+            // NUEVO: Llenar la lista de sugerencias de categorías dinámicamente
+            const categoriasUnicas = [...new Set(productos.map(p => p.category))];
+            document.getElementById('categorias-dinamicas').innerHTML = categoriasUnicas.map(cat => `<option value="${cat}">`).join('');
+
             const tbody = document.getElementById('lista-menu'); tbody.innerHTML = '';
             if(!productos || productos.length === 0) { 
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Tu menú está vacío. ¡Agrega tu primer plato arriba!</td></tr>'; 
