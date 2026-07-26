@@ -4,52 +4,99 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book&Bite - Selección de Franquicia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: linear-gradient(rgba(10, 61, 98, 0.85), rgba(10, 61, 98, 0.85)), url('https://images.unsplash.com/photo-1559742811-822873691fc8?w=1600') center/cover; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; padding: 20px; }
-        h1 { color: #e15f41; font-size: 38px; font-weight: 800; margin-bottom: 5px; text-align: center; }
-        p { color: #f1f2f6; margin-bottom: 35px; font-size: 16px; font-weight: 500; text-align: center; }
-        .card-container { display: flex; gap: 25px; flex-wrap: wrap; justify-content: center; max-width: 800px; }
-        .sucursal-card { background: white; padding: 40px 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; cursor: pointer; transition: 0.3s; width: 260px; color: #2f3542; border-bottom: 4px solid #e15f41; }
-        .sucursal-card:hover { transform: translateY(-8px); box-shadow: 0 15px 35px rgba(0,0,0,0.4); background: #fdfdfd; }
-        .sucursal-card h3 { margin: 0 0 8px 0; color: #0a3d62; font-size: 24px; font-weight: 700; }
-        .sucursal-card span { font-size: 13px; color: #747d8c; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        .btn-admin { margin-top: 40px; background: transparent; color: white; border: 2px solid white; padding: 10px 25px; border-radius: 30px; font-weight: bold; cursor: pointer; text-decoration: none; transition: 0.2s; font-size: 14px; }
-        .btn-admin:hover { background: white; color: #0a3d62; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { 
+            background: linear-gradient(rgba(10, 25, 47, 0.85), rgba(10, 25, 47, 0.95)), url('https://images.unsplash.com/photo-1559742811-822873691fc8?w=1600') center/cover fixed; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            min-height: 100vh; color: white; padding: 20px; 
+        }
+        
+        .header-brand { text-align: center; margin-bottom: 40px; animation: fadeInDown 0.8s ease; }
+        .header-brand h1 { color: #ff6b6b; font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-bottom: 10px; }
+        .header-brand p { color: #c8d6e5; font-size: 16px; font-weight: 400; }
+
+        .card-container { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; max-width: 900px; width: 100%; z-index: 2; }
+        
+        /* Glassmorphism Cards */
+        .sucursal-card { 
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px 30px; border-radius: 24px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4); text-align: center; cursor: pointer; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); width: 280px; 
+            position: relative; overflow: hidden;
+        }
+        
+        .sucursal-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            opacity: 0; transition: 0.3s;
+        }
+
+        .sucursal-card:hover { transform: translateY(-12px); background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .sucursal-card:hover::before { opacity: 1; }
+        
+        .sucursal-card .icon { font-size: 50px; margin-bottom: 15px; display: inline-block; transition: 0.3s; }
+        .sucursal-card:hover .icon { transform: scale(1.1); }
+        
+        .sucursal-card h3 { margin: 0 0 10px 0; color: #ffffff; font-size: 26px; font-weight: 700; }
+        .sucursal-card span { font-size: 12px; color: #a4b0be; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; }
+        
+        .btn-admin { 
+            margin-top: 50px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.2); 
+            color: #c8d6e5; padding: 12px 30px; border-radius: 30px; font-weight: 600; 
+            cursor: pointer; text-decoration: none; transition: 0.3s; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-admin:hover { background: white; color: #0a3d62; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 
-    <h1>📖 Book&Bite</h1>
-    <p>Selecciona la franquicia a la que deseas ingresar:</p>
+    <div class="header-brand">
+        <h1>📖 Book&Bite</h1>
+        <p>Selecciona tu destino gastronómico</p>
+    </div>
 
     <div class="card-container">
-        <!-- Opción La Costeñita -->
         <div class="sucursal-card" onclick="elegirFranquicia('tenant_costenita', 'La Costeñita')">
-            <h3>🌊 La Costeñita</h3>
+            <div class="icon">🌊</div>
+            <h3>La Costeñita</h3>
             <span>Franquicia Principal</span>
         </div>
 
-        <!-- Opción Negroni -->
         <div class="sucursal-card" onclick="elegirFranquicia('tenant_negroni', 'Negroni')">
-            <h3>🍸 Negroni</h3>
+            <div class="icon">🍸</div>
+            <h3>Negroni</h3>
             <span>Franquicia Asociada</span>
         </div>
     </div>
 
-    <a href="/login.html" class="btn-admin">🔐 Acceso Administrativo (Staff)</a>
+    <a href="/login.html" class="btn-admin">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Acceso Staff
+    </a>
 
     <script>
-        // Limpiamos cualquier sesión previa al volver al selector principal
+        // Limpieza de sesión al llegar al index
         sessionStorage.clear();
 
         function elegirFranquicia(tenantId, nombreFranquicia) {
-            // Guardamos el tenant corporativo en la sesión
             sessionStorage.setItem('tenant_id', tenantId);
             sessionStorage.setItem('franquicia_activa', nombreFranquicia);
             
-            // Redirigimos al quiosco pasando el parámetro de la franquicia correspondiente
-            window.location.href = `/quiosco.html?local=${tenantId}`;
+            // Efecto visual antes de redirigir
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.4s ease';
+            
+            setTimeout(() => {
+                window.location.href = `/quiosco.html?local=${tenantId}`;
+            }, 400);
         }
     </script>
 </body>
