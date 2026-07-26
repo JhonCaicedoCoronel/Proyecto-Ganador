@@ -76,7 +76,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 3. GESTIÓN OPERATIVA: SALIDA DE RESERVAS
+    // 3. GESTIÓN OPERATIVA: SALIDA Y AVANCE DE FILA
     socket.on('marcar-salida-reserva', async (datos) => {
         try {
             const tenantId = socket.tenantId || 'tenant_costenita';
@@ -87,39 +87,54 @@ io.on('connection', (socket) => {
             if (errGet) throw errGet;
 
             if (resSale) {
-                // Actualizar reserva y mesa
+                // Actualizar reserva a finalizada y mesa a sucia
                 await supabase.from('reservas').update({ estado: 'finalizada', hora_salida: horaActual }).eq('id', datos.id);
                 await supabase.from('mesas').update({ estado: 'sucia' }).eq('numero', resSale.mesa_id);
 
-                // Recorrer turnos
+                // Buscar a todos los clientes que estaban DETRÁS en la fila
                 const { data: reservasAfectadas } = await supabase.from('reservas')
                     .select('*')
                     .eq('tenant_id', tenantId)
                     .eq('sucursal', resSale.sucursal)
                     .eq('fecha', resSale.fecha)
-                    .eq('hora', resSale.hora)
                     .eq('estado', 'activa')
                     .gt('turno_sala', resSale.turno_sala);
 
+                // Hacer avanzar la fila
                 if (reservasAfectadas && reservasAfectadas.length > 0) {
                     for (const r of reservasAfectadas) {
                         const nuevoTurno = r.turno_sala - 1;
+                        // Actualizar BD de Reservas
                         await supabase.from('reservas').update({ turno_sala: nuevoTurno }).eq('id', r.id);
+                        // Actualizar BD de Cocina (KDS)
+                        await supabase.from('pedidos_cocina').update({ turno_fila: nuevoTurno }).eq('id', r.id);
+                        
+                        // Notificar al celular del cliente
                         io.to(tenantId).emit('notificacion-avance-turno', { idReserva: r.id, nuevoTurno: nuevoTurno });
+                    }
+                    
+                    // Forzar refresco en la pantalla de la cocina
+                    const { data: pedidosRefresh } = await supabase.from('pedidos_cocina').select('*').eq('tenant_id', tenantId).eq('estado', 'pendiente').order('id', { ascending: true });
+                    if(pedidosRefresh) {
+                        const pedidosPendientes = pedidosRefresh.map(p => ({
+                            id: p.id, cliente: p.cliente, item: p.item, pago: p.pago, tipo: p.tipo,
+                            turnoFila: p.turno_fila, esFantasma: p.es_fantasma, horaRegistro: p.hora_registro,
+                            horaLlegadaEstimada: p.hora_llegada_estimada, estadoCocinaTexto: p.estado_cocina_texto, datosReserva: p.datos_reserva
+                        }));
+                        io.to(tenantId).emit('cargar-pedidos-cocina', pedidosPendientes);
                     }
                 }
             }
 
             await emitirMesasActualizadas(tenantId);
             
-            // Refrescar panel de reservas
             const { data: reservasActualizadas } = await supabase.from('reservas')
                 .select('*').eq('tenant_id', tenantId)
                 .order('fecha', { ascending: false }).order('hora', { ascending: false });
             io.to(tenantId).emit('cargar-historial-reservas', reservasActualizadas || []);
 
         } catch (error) {
-            console.error('⚠️ Error al marcar salida:', error.message);
+            console.error('⚠️ Error al marcar salida y avanzar fila:', error.message);
         }
     });
 
@@ -181,18 +196,26 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 5. FLUJO PRINCIPAL: CHECKOUT DE PEDIDOS (OMNICANAL)
+    // 5. FLUJO PRINCIPAL: CHECKOUT DE PEDIDOS Y GENERACIÓN DE TURNOS
     socket.on('enviar-reserva-pedido', async (pedido) => {
         try {
             const tenantId = pedido.tenant_id || socket.tenantId || 'tenant_costenita';
             const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
             pedido.horaRegistro = new Date().toLocaleTimeString('en-US', opciones);
             
-            const { data: reservasMismoTurno } = await supabase.from('reservas').select('id')
+            // BUSCAR EL ÚLTIMO TURNO DE LA FILA (Máximo)
+            const { data: reservasActivas } = await supabase.from('reservas').select('turno_sala')
                 .eq('tenant_id', tenantId)
-                .eq('sucursal', pedido.datosReserva.sucursal).eq('fecha', pedido.datosReserva.fecha).eq('hora', pedido.datosReserva.hora).eq('estado', 'activa');
+                .eq('sucursal', pedido.datosReserva.sucursal)
+                .eq('fecha', pedido.datosReserva.fecha)
+                .eq('estado', 'activa');
 
-            let turnoAsignado = (reservasMismoTurno ? reservasMismoTurno.length : 0) + 1;
+            let turnoAsignado = 1;
+            if (reservasActivas && reservasActivas.length > 0) {
+                // Obtener el número de turno más alto en la sala
+                const maxTurno = Math.max(...reservasActivas.map(r => r.turno_sala || 0));
+                turnoAsignado = maxTurno + 1; // Asignar el siguiente
+            }
             pedido.turnoFila = turnoAsignado; 
 
             // Registrar Reserva
@@ -218,7 +241,7 @@ io.on('connection', (socket) => {
             if (errCocina) throw errCocina;
 
             // Emitir respuestas OMNICANAL
-            socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
+            socket.emit('reserva-confirmada-turno', { idReserva: pedido.id, turno: pedido.turnoFila });
             io.to(tenantId).emit('notificar-cocina', pedido);
             
             // Actualizar historiales
@@ -256,7 +279,6 @@ io.on('connection', (socket) => {
             await supabase.from('pedidos_cocina').update({ estado: 'entregado' }).eq('id', pedidoId); 
             io.to(tenantId).emit('pedido-listo', { idReserva: pedidoId });
             
-            // Actualizar el historial del día
             const { data: historialDB } = await supabase.from('pedidos_cocina').select('*').eq('tenant_id', tenantId).eq('estado', 'entregado').order('id', { ascending: false }).limit(100);
             io.to(tenantId).emit('cargar-historial', historialDB || []);
         } catch (error) {

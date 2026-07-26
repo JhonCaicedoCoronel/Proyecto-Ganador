@@ -6,7 +6,7 @@
     <title id="page-title">Book&Bite - Reserva y Menú</title>
     
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#f5f6fa">
+    <meta name="theme-color" content="#f0f2f5">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -69,7 +69,7 @@
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             padding: 18px 25px; display: flex; justify-content: space-between; align-items: center; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.06); position: sticky; top: 15px; z-index: 100; 
-            margin: 15px; border-radius: 24px; /* Flotante y sin tocar bordes */
+            margin: 15px; border-radius: 24px; 
         }
         .header-menu h1 { font-size: 20px; color: var(--primary); font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0; }
         
@@ -118,12 +118,12 @@
         .floating-cart:active { transform: translateX(-50%) scale(0.96); }
         .cart-badge { background: var(--secondary); color: white; padding: 2px 10px; border-radius: 20px; font-size: 14px; font-weight: 800; }
 
-        /* MODALES FLOTANTES (CENTRADOS Y SIN FILOS) */
+        /* MODALES FLOTANTES */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(10, 25, 47, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-            display: none; justify-content: center; align-items: center; /* Centrado absoluto */ z-index: 1000; opacity: 0; transition: opacity 0.3s ease;
-            padding: 20px; /* Evita que el modal toque los filos de la pantalla */
+            display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease;
+            padding: 20px;
         }
         .modal-overlay.active { opacity: 1; }
         
@@ -171,8 +171,7 @@
             <div class="input-group">
                 <label>Sucursal a visitar</label>
                 <select id="res-sucursal">
-                    <option value="Principal">Local Principal</option>
-                    <option value="Norte">Sucursal Norte</option>
+                    <option value="">Cargando locales...</option>
                 </select>
             </div>
             <div class="input-group">
@@ -327,10 +326,23 @@
         sessionStorage.setItem('tenant_id', miTenant);
 
         const configFranquicia = {
-            'tenant_costenita': { nombre: 'La Costeñita', slogan: 'El auténtico sabor de nuestra costa.', icono: '🌊' },
-            'tenant_negroni': { nombre: 'Negroni', slogan: 'Cocktails & Italian Kitchen.', icono: '🍸' }
+            'tenant_costenita': { 
+                nombre: 'La Costeñita', slogan: 'El auténtico sabor de nuestra costa.', icono: '🌊',
+                sucursales: ['Urdesa', 'Samborondón', 'Sur']
+            },
+            'tenant_negroni': { 
+                nombre: 'Negroni', slogan: 'Cocktails & Italian Kitchen.', icono: '🍸',
+                sucursales: ['Plaza Lagos', 'Puerto Santa Ana', 'Urdesa']
+            }
         };
         const infoActual = configFranquicia[miTenant] || configFranquicia['tenant_costenita'];
+
+        // Cargar nombres de Sucursales Dinámicamente
+        const selectSucursales = document.getElementById('res-sucursal');
+        selectSucursales.innerHTML = '';
+        infoActual.sucursales.forEach(sucursal => {
+            selectSucursales.innerHTML += `<option value="${sucursal}">📍 Sucursal ${sucursal}</option>`;
+        });
 
         // Aplicar Branding
         document.getElementById('page-title').innerText = `${infoActual.nombre} - Book&Bite`;
@@ -431,6 +443,7 @@
         
         document.getElementById('res-fecha').addEventListener('change', solicitarHorarios); 
         document.getElementById('res-pax').addEventListener('change', solicitarHorarios);
+        document.getElementById('res-sucursal').addEventListener('change', solicitarHorarios);
         
         socket.on('horarios-para-fecha', (horarios) => {
             const selectHora = document.getElementById('res-hora'); 
@@ -588,10 +601,8 @@
                 const prodsEnCategoria = productosValidos.filter(p => p.category === cat);
                 
                 if (prodsEnCategoria.length > 0) {
-                    // Título de la sección
                     html += `<h2 class="section-title">${cat}</h2>`;
                     
-                    // Grid de productos para esa sección
                     html += `<div class="grid-productos">`;
                     prodsEnCategoria.forEach(p => {
                         const desc = p.descripcion ? p.descripcion : 'Sabor auténtico preparado al momento.';
