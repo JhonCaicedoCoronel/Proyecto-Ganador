@@ -17,6 +17,7 @@
             --card-dark: #1e293b;
             --primary: #3b82f6;
             --success: #10b981;
+            --warning: #f59e0b;
             --danger: #ef4444;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
@@ -56,8 +57,14 @@
         .mesa-badge { font-weight: 700; color: #cbd5e1; font-size: 14px; }
         
         .card-body { padding: 20px; flex-grow: 1; }
-        .cliente-txt { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .cliente-txt { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
         
+        /* Badges de Pago en Tarjeta de KDS */
+        .badge-pago { margin-bottom: 15px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; }
+        .pago-tarjeta { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.5); }
+        .pago-efectivo { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.5); }
+        .pago-reserva { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.5); }
+
         .detalle-plato { background: var(--bg-dark); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
         .detalle-plato span { color: var(--success); font-size: 12px; font-weight: 700; margin-bottom: 5px; display: block; text-transform: uppercase; }
         .detalle-plato p { font-size: 18px; font-weight: 700; line-height: 1.4; color: white; }
@@ -149,7 +156,6 @@
                 return;
             }
 
-            // Remover estado vacío si existe
             const empty = contenedorKDS.querySelector('.empty-state');
             if (empty) empty.remove();
 
@@ -157,9 +163,18 @@
             tarjeta.id = `comanda-${p.id}`;
             tarjeta.className = "card-kds";
             
-            // Compatibilidad con los nombres de variables mapeadas en el backend
             const turnoData = p.turnoFila || p.turno_sala || "00";
             const mesaData = p.datosReserva ? p.datosReserva.mesa.numero : (p.mesa_id || 'Barra');
+            
+            // Lógica para diferenciar métodos de pago visualmente
+            let htmlPago = "";
+            if (p.pago === 'Tarjeta') {
+                htmlPago = `<span class="badge-pago pago-tarjeta">💳 COMPLETADO (Pagado Web)</span>`;
+            } else if (p.pago === 'Efectivo') {
+                htmlPago = `<span class="badge-pago pago-efectivo">💵 PENDIENTE (Cobrar en Local)</span>`;
+            } else {
+                htmlPago = `<span class="badge-pago pago-reserva">🪑 SOLO RESERVA (Pedirá en Mesa)</span>`;
+            }
             
             tarjeta.innerHTML = `
                 <div class="card-header">
@@ -171,6 +186,9 @@
                         <span class="v-turno" id="badge-turno-${p.id}">TURNO #${turnoData}</span>
                     </div>
                     <div class="cliente-txt">👤 Cliente: ${p.cliente}</div>
+                    
+                    ${htmlPago}
+
                     <div class="detalle-plato">
                         <span>📝 DETALLE DE LA ORDEN</span>
                         <p>${p.item}</p>
@@ -179,16 +197,14 @@
                 <div class="card-footer">
                     <button class="btn-ready" onclick="completarDespacho(${p.id})">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-                        Despachar Plato
+                        Despachar Orden
                     </button>
                 </div>
             `;
 
             if (esNuevo) {
-                // Alerta sonora profesional
                 new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(()=>{});
                 showToast(`Nueva orden de ${p.cliente}`, 'success');
-                // Efecto visual de nueva tarjeta
                 tarjeta.style.animation = 'slideLeft 0.5s ease-out';
             }
             contenedorKDS.appendChild(tarjeta);
@@ -204,7 +220,6 @@
                 socket.emit('pedido-despachado-cocina', { id: idPedido, tenant_id: miTenant });
                 showToast('Orden despachada', 'success');
                 
-                // Si ya no quedan tarjetas, mostrar estado vacío
                 setTimeout(() => {
                     if(contenedorKDS.children.length === 0) {
                         solicitarDatosSupabase();
