@@ -2,7 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KDS - Cocina en Vivo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="/socket.io/socket.io.js"></script>
     <script>
         if (!sessionStorage.getItem('usuarioLogueado')) {
@@ -10,41 +12,109 @@
         }
     </script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1e222b; color: white; padding: 20px; margin: 0; }
-        .header-kds { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-historial { background: #57606f; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; border: none; cursor: pointer; }
-        .btn-historial:hover { background: #747d8c; }
-        .grid-kds { display: flex; flex-wrap: wrap; gap: 20px; }
-        .card-kds { background: #2f3542; padding: 15px; border-radius: 12px; width: 330px; border-left: 8px solid #a8a8ff; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; flex-direction: column; justify-content: space-between; }
-        .btn-ready { background: #2ed573; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; font-size: 15px; margin-top: 10px; }
-        .btn-ready:hover { background: #26c267; }
-        .v-turno { background: #ff4757; padding: 4px 10px; border-radius: 5px; font-weight: bold; font-size: 14px; }
+        :root {
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background: var(--bg-dark); color: var(--text-main); padding: 25px; min-height: 100vh; }
+        
+        /* TOAST NOTIFICATIONS */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 300px; }
+        .toast { background: white; color: #1e293b; padding: 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; animation: slideLeft 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; border-left: 5px solid var(--primary); }
+        .toast.success { border-left-color: var(--success); }
+        .toast-icon { font-size: 20px; }
+        @keyframes slideLeft { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
+
+        .header-kds { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: var(--card-dark); padding: 20px 30px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-bottom: 4px solid var(--primary); }
+        .header-kds h2 { font-weight: 800; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+        .header-kds .live-badge { background: rgba(16, 185, 129, 0.2); color: var(--success); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1px solid var(--success); animation: pulse 2s infinite; }
+        
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
+        .btn-historial { background: #334155; color: white; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: 600; border: none; cursor: pointer; transition: 0.3s; font-size: 14px; }
+        .btn-historial:hover { background: #475569; transform: translateY(-2px); }
+
+        .grid-kds { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+        
+        .card-kds { 
+            background: var(--card-dark); border-radius: 16px; border-top: 6px solid #6366f1; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; justify-content: space-between;
+            overflow: hidden; transition: 0.3s;
+        }
+        .card-kds:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
+        
+        .card-header { padding: 15px 20px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .v-turno { background: var(--danger); padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 16px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
+        .mesa-badge { font-weight: 700; color: #cbd5e1; font-size: 14px; }
+        
+        .card-body { padding: 20px; flex-grow: 1; }
+        .cliente-txt { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        
+        .detalle-plato { background: var(--bg-dark); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .detalle-plato span { color: var(--success); font-size: 12px; font-weight: 700; margin-bottom: 5px; display: block; text-transform: uppercase; }
+        .detalle-plato p { font-size: 18px; font-weight: 700; line-height: 1.4; color: white; }
+        
+        .card-footer { padding: 15px 20px; }
+        .btn-ready { 
+            background: var(--success); color: white; border: none; padding: 14px; border-radius: 10px; 
+            width: 100%; font-weight: 700; cursor: pointer; font-size: 15px; transition: 0.2s;
+            display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .btn-ready:hover { background: #059669; transform: scale(0.98); }
+        
+        .empty-state { grid-column: 1 / -1; text-align: center; padding: 80px 20px; color: var(--text-muted); }
+        .empty-state svg { width: 64px; height: 64px; margin-bottom: 20px; opacity: 0.5; }
+        .empty-state h3 { font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
+    <div id="toast-container"></div>
+
     <div class="header-kds">
-        <h2>👨‍🍳 Panel de Cocina (KDS) - <span style="color:#2ed573">En Vivo</span></h2>
+        <h2>👨‍🍳 Panel de Cocina <span class="live-badge">EN VIVO</span></h2>
         <div>
             <a href="historial.html" class="btn-historial" target="mainFrame">Ver Historial del Día</a>
         </div>
     </div>
     
     <div class="grid-kds" id="contenedor-pedidos">
-        <div style="grid-column:1/-1; text-align:center; padding:50px; color:#a4b0be; font-size:18px;">
-            Sincronizando con la base de datos de Supabase...
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+            <h3>Sincronizando Sistema...</h3>
+            <p>Conectando con la base de datos de Supabase.</p>
         </div>
     </div>
 
     <script>
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? '✅' : '🔔';
+            toast.innerHTML = `<span class="toast-icon">${icon}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.4s forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+
         const socket = io();
         const miTenant = sessionStorage.getItem('tenant_id') || 'tenant_costenita';
-        const contenedorKDS = document.getElementById('kds-contenedor');
+        const contenedorKDS = document.getElementById('contenedor-pedidos');
 
         socket.on('connect', () => {
             if (miTenant) {
                 socket.emit('unirse-a-restaurante', miTenant);
-                // BLINDAJE ABSOLUTO: Consultamos el estado exacto de Supabase al conectar o refrescar
                 solicitarDatosSupabase();
             } else {
                 window.top.location.href = '/login.html';
@@ -58,7 +128,12 @@
         socket.on('cargar-pedidos-cocina', (pedidos) => {
             contenedorKDS.innerHTML = "";
             if (!pedidos || pedidos.length === 0) {
-                contenedorKDS.innerHTML = "<p style='padding:25px; color:#cbd5e1; font-size:18px;'>🎉 ¡Cocina impecable! Sin comandas pendientes.</p>";
+                contenedorKDS.innerHTML = `
+                    <div class="empty-state">
+                        <span style="font-size: 64px; margin-bottom: 20px; display: inline-block;">🎉</span>
+                        <h3>¡Cocina Impecable!</h3>
+                        <p>No hay comandas pendientes. Todo está despachado.</p>
+                    </div>`;
                 return;
             }
             pedidos.forEach(p => dibujarTarjetaComanda(p, false));
@@ -69,34 +144,52 @@
         });
 
         function dibujarTarjetaComanda(p, esNuevo) {
-            // Si el elemento ya existe en la pantalla, solo actualizamos su badge de turno por si se movió la fila
             if (document.getElementById(`comanda-${p.id}`)) {
-                document.getElementById(`badge-turno-${p.id}`).innerText = `TURNO #${p.turno_sala}`;
+                document.getElementById(`badge-turno-${p.id}`).innerText = `TURNO #${p.turnoFila || p.turno_sala}`;
                 return;
             }
+
+            // Remover estado vacío si existe
+            const empty = contenedorKDS.querySelector('.empty-state');
+            if (empty) empty.remove();
 
             const tarjeta = document.createElement('div');
             tarjeta.id = `comanda-${p.id}`;
             tarjeta.className = "card-kds";
             
+            // Compatibilidad con los nombres de variables mapeadas en el backend
+            const turnoData = p.turnoFila || p.turno_sala || "00";
+            const mesaData = p.datosReserva ? p.datosReserva.mesa.numero : (p.mesa_id || 'Barra');
+            
             tarjeta.innerHTML = `
-                <div>
-                    <div class="mesa-badge">🪑 MESA #${p.mesa_id || 'Barra'} <span class="sucursal-txt">🏢 ${p.sucursal || 'Sucursal'}</span></div>
-                    <div style="display:flex; justify-content:space-between; margin-top:8px; border-bottom:1px solid #4b5261; padding-bottom:6px;">
-                        <span class="v-turno" id="badge-turno-${p.id}">TURNO #${p.turno_sala}</span>
-                        <span style="font-size:12px; color:#a4b0be;">⏱️ ${p.hora || 'Ahora'}</span>
+                <div class="card-header">
+                    <span class="mesa-badge">🪑 Mesa #${mesaData}</span>
+                    <span style="font-size:12px; color:var(--text-muted);">⏱️ ${p.horaRegistro || 'Ahora'}</span>
+                </div>
+                <div class="card-body">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                        <span class="v-turno" id="badge-turno-${p.id}">TURNO #${turnoData}</span>
                     </div>
-                    <p style="margin:10px 0 4px 0;"><strong>Cliente:</strong> ${p.cliente}</p>
-                    <div style="background:#1e222b; padding:12px; border-radius:6px; margin:10px 0; font-weight:bold; color:#2ed573; border:1px solid #4b5261;">
-                        📝 DETALLE DEL PLATO:<br>
-                        <span style="color:white; font-size:16px; display:block; margin-top:5px;">${p.item}</span>
+                    <div class="cliente-txt">👤 Cliente: ${p.cliente}</div>
+                    <div class="detalle-plato">
+                        <span>📝 DETALLE DE LA ORDEN</span>
+                        <p>${p.item}</p>
                     </div>
                 </div>
-                <div><button class="btn-ready" onclick="completarDespacho(${p.id})">✓ Plato Listo / Despachar</button></div>
+                <div class="card-footer">
+                    <button class="btn-ready" onclick="completarDespacho(${p.id})">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                        Despachar Plato
+                    </button>
+                </div>
             `;
 
             if (esNuevo) {
+                // Alerta sonora profesional
                 new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(()=>{});
+                showToast(`Nueva orden de ${p.cliente}`, 'success');
+                // Efecto visual de nueva tarjeta
+                tarjeta.style.animation = 'slideLeft 0.5s ease-out';
             }
             contenedorKDS.appendChild(tarjeta);
         }
@@ -104,9 +197,19 @@
         function completarDespacho(idPedido) {
             const card = document.getElementById(`comanda-${idPedido}`);
             if (card) {
+                card.style.transform = 'scale(0.95)';
                 card.style.opacity = '0.4';
-                // Emitimos el despacho enviando el ID correlativo a Supabase
+                setTimeout(() => card.remove(), 300);
+                
                 socket.emit('pedido-despachado-cocina', { id: idPedido, tenant_id: miTenant });
+                showToast('Orden despachada', 'success');
+                
+                // Si ya no quedan tarjetas, mostrar estado vacío
+                setTimeout(() => {
+                    if(contenedorKDS.children.length === 0) {
+                        solicitarDatosSupabase();
+                    }
+                }, 350);
             }
         }
     </script>
