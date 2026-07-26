@@ -4,7 +4,7 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { cors: { origin: "*" } });
 const { createClient } = require('@supabase/supabase-js');
-
+app.use('/img', express.static('img'));
 // Verificación de variables de entorno
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
     console.error("❌ ERROR CRÍTICO: Faltan credenciales de Supabase en el archivo .env");
