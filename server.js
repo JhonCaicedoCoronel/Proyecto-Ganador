@@ -23,7 +23,7 @@ async function emitirMesasActualizadas(tenantId) {
 
 io.on('connection', async (socket) => {
     
-    // Capturamos el evento de unión a la sala de la franquicia correspondiente
+    // Conexión y asignación a la sala de la franquicia (Tenant)
     socket.on('unirse-a-restaurante', async (tenantId) => {
         socket.join(tenantId);
         socket.tenantId = tenantId || 'tenant_costenita';
@@ -37,7 +37,7 @@ io.on('connection', async (socket) => {
 
     socket.on('obtener-historial-reservas', async (tenantId) => {
         const tId = tenantId || socket.tenantId || 'tenant_costenita';
-        const { data: reservasDB } = await supabase.from('reservas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('tenant_id', tId).order('fecha', { ascending: false }).order('hora', { ascending: false });
         socket.emit('cargar-historial-reservas', reservasDB || []);
     });
 
@@ -54,6 +54,7 @@ io.on('connection', async (socket) => {
 
             const { data: reservasAfectadas } = await supabase
                 .from('reservas').select('*')
+                .eq('tenant_id', tenantId)
                 .eq('sucursal', resSale.sucursal).eq('fecha', resSale.fecha).eq('hora', resSale.hora)
                 .eq('estado', 'activa').gt('turno_sala', resSale.turno_sala);
 
@@ -67,13 +68,14 @@ io.on('connection', async (socket) => {
         }
 
         await emitirMesasActualizadas(tenantId);
-        const { data: reservasDB } = await supabase.from('reservas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('tenant_id', tenantId).order('fecha', { ascending: false }).order('hora', { ascending: false });
         io.to(tenantId).emit('cargar-historial-reservas', reservasDB || []);
     });
 
     socket.on('consultar-horarios', async (datos) => {
+        const tenantId = socket.tenantId || 'tenant_costenita';
         const personasRequeridas = parseInt(datos.personas) || 1;
-        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('tenant_id', tenantId).eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
         const { data: mesasDB } = await supabase.from('mesas').select('*');
         const reservasGlobales = reservasDB || []; const mesasTotales = mesasDB || [];
 
@@ -88,8 +90,9 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('verificar-disponibilidad', async (datos) => {
+        const tenantId = socket.tenantId || 'tenant_costenita';
         const personasRequeridas = parseInt(datos.personas) || 1;
-        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
+        const { data: reservasDB } = await supabase.from('reservas').select('*').eq('tenant_id', tenantId).eq('fecha', datos.fecha).eq('estado', 'activa').eq('sucursal', datos.sucursal);
         const { data: mesasDB } = await supabase.from('mesas').select('*');
         const reservasGlobales = reservasDB || []; const mesasTotales = mesasDB || [];
 
@@ -112,6 +115,7 @@ io.on('connection', async (socket) => {
         }
     });
 
+    // Canal principal del quiosco que distribuye hacia Reservas y Cocina
     socket.on('enviar-reserva-pedido', async (pedido) => {
         const tenantId = pedido.tenant_id || socket.tenantId || 'tenant_costenita';
         const opciones = { timeZone: 'America/Guayaquil', hour: '2-digit', minute: '2-digit', hour12: true };
@@ -119,13 +123,15 @@ io.on('connection', async (socket) => {
         
         const { data: reservasMismoTurno } = await supabase
             .from('reservas').select('id')
+            .eq('tenant_id', tenantId)
             .eq('sucursal', pedido.datosReserva.sucursal).eq('fecha', pedido.datosReserva.fecha).eq('hora', pedido.datosReserva.hora).eq('estado', 'activa');
 
         let turnoAsignado = (reservasMismoTurno ? reservasMismoTurno.length : 0) + 1;
         pedido.turnoFila = turnoAsignado; 
 
+        // Registro de la reserva en Supabase
         await supabase.from('reservas').insert([{ 
-            id: pedido.id, cliente: pedido.cliente, fecha: pedido.datosReserva.fecha, 
+            id: pedido.id, tenant_id: tenantId, cliente: pedido.cliente, fecha: pedido.datosReserva.fecha, 
             hora: pedido.datosReserva.hora, personas: pedido.datosReserva.personas, 
             mesa_id: pedido.datosReserva.mesa.numero, estado: 'activa', sucursal: pedido.datosReserva.sucursal,
             turno_sala: turnoAsignado
@@ -135,20 +141,25 @@ io.on('connection', async (socket) => {
         pedido.horaLlegadaEstimada = `${pedido.datosReserva.fecha} a las ${pedido.datosReserva.hora}`;
         pedido.estadoCocinaTexto = (pedido.pago === 'Solo Reserva') ? "Reservó Mesa (Pedirá en Local) 🪑" : ((pedido.pago === 'Tarjeta') ? "Pre-orden Pagada Web ✅" : "Pre-orden Pendiente 💵");
 
+        // Registro del pedido en la cocina en Supabase
         await supabase.from('pedidos_cocina').insert([{
-            id: pedido.id, cliente: pedido.cliente, item: pedido.item, pago: pedido.pago, tipo: "Reserva en Local",
+            id: pedido.id, tenant_id: tenantId, cliente: pedido.cliente, item: pedido.item, pago: pedido.pago, tipo: "Reserva en Local",
             turno_fila: pedido.turnoFila, es_fantasma: pedido.esFantasma, hora_registro: pedido.horaRegistro,
             hora_llegada_estimada: pedido.horaLlegadaEstimada, estado_cocina_texto: pedido.estadoCocinaTexto, datos_reserva: pedido.datosReserva,
             estado: 'pendiente'
         }]);
 
+        // Emitimos la confirmación al quiosco del cliente
         socket.emit('confirmacion-turno-cliente', { turno: pedido.turnoFila });
+        
+        // Emitimos el evento en tiempo real hacia la cocina de la misma franquicia (Sala)
         io.to(tenantId).emit('notificar-cocina', pedido);
         io.to(tenantId).emit('reserva-confirmada-actualizar', pedido.datosReserva.fecha);
     });
 
-    socket.on('obtener-pedidos-cocina', async (tenantId) => {
-        const { data: pedidosDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'pendiente').order('id', { ascending: true });
+    socket.on('obtener-pedidos-cocina', async (tenantIdInput) => {
+        const tenantId = tenantIdInput || socket.tenantId || 'tenant_costenita';
+        const { data: pedidosDB } = await supabase.from('pedidos_cocina').select('*').eq('tenant_id', tenantId).eq('estado', 'pendiente').order('id', { ascending: true });
         const pedidosPendientes = (pedidosDB || []).map(p => ({
             id: p.id, cliente: p.cliente, item: p.item, pago: p.pago, tipo: p.tipo,
             turnoFila: p.turno_fila, esFantasma: p.es_fantasma, horaRegistro: p.hora_registro,
@@ -157,13 +168,15 @@ io.on('connection', async (socket) => {
         socket.emit('cargar-pedidos-cocina', pedidosPendientes);
     });
 
-    socket.on('obtener-historial-dia', async (tenantId) => {
-        const { data: historialDB } = await supabase.from('pedidos_cocina').select('*').eq('estado', 'entregado').order('id', { ascending: false }).limit(100);
+    socket.on('obtener-historial-dia', async (tenantIdInput) => {
+        const tenantId = tenantIdInput || socket.tenantId || 'tenant_costenita';
+        const { data: historialDB } = await supabase.from('pedidos_cocina').select('*').eq('tenant_id', tenantId).eq('estado', 'entregado').order('id', { ascending: false }).limit(100);
         socket.emit('cargar-historial', historialDB || []);
     });
 
     socket.on('guardar-encuesta-opcional', async (datos) => { 
-        await supabase.from('clientes_perfil').insert([{ cliente: datos.cliente, alergias: datos.alergias, preferencias: datos.preferencias }]); 
+        const tenantId = socket.tenantId || 'tenant_costenita';
+        await supabase.from('clientes_perfil').insert([{ tenant_id: tenantId, cliente: datos.cliente, alergias: datos.alergias, preferencias: datos.preferencias }]); 
     });
 
     socket.on('pedido-despachado-cocina', async (id) => { 
@@ -180,7 +193,7 @@ io.on('connection', async (socket) => {
     
     socket.on('agregar-nuevo-producto', async (p) => { 
         const tenantId = socket.tenantId || 'tenant_costenita';
-        await supabase.from('menu').insert([{ nombre: p.nombre, precio: p.precio, category: p.category, img: p.img, descripcion: p.descripcion, sucursal: p.sucursal }]); 
+        await supabase.from('menu').insert([{ tenant_id: tenantId, nombre: p.nombre, precio: p.precio, category: p.category, img: p.img, descripcion: p.descripcion, sucursal: p.sucursal }]); 
         await emitirMenuActualizado(tenantId); 
     });
     
@@ -219,13 +232,14 @@ setInterval(async () => {
             let diferenciaMinutos = totalMinutosReserva - totalMinutosActuales;
 
             if (diferenciaMinutos === 15 || diferenciaMinutos === 14) {
-                io.emit('alerta-proxima-reserva', {
+                const tenantAlerta = reserva.tenant_id || 'tenant_costenita';
+                io.to(tenantAlerta).emit('alerta-proxima-reserva', {
                     idReserva: reserva.id,
                     sucursal: reserva.sucursal,
                     minutosRestantes: diferenciaMinutos
                 });
                 
-                console.log(`🔔 Alerta enviada para la reserva #${reserva.id} (Faltan ${diferenciaMinutos} min)`);
+                console.log(`🔔 Alerta enviada para la reserva #${reserva.id} en ${tenantAlerta} (Faltan ${diferenciaMinutos} min)`);
             }
         });
     }
