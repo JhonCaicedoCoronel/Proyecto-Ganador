@@ -1,12 +1,11 @@
-// Nombre de la memoria caché
-const CACHE_NAME = 'book-and-bite-v1';
+const CACHE_NAME = 'bookandbite-v1';
 
-// Archivos que queremos guardar para que cargue más rápido
+// Archivos básicos a guardar en caché
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/img/app-icon.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './img/app-icon.png'
 ];
 
 // Instalación del Service Worker
@@ -14,18 +13,39 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
+        console.log('Caché abierta');
         return cache.addAll(urlsToCache);
       })
   );
+  self.skipWaiting(); // Obliga a activar el SW inmediatamente
 });
 
-// Requisito indispensable para que el celular permita instalar la app
+// Interceptar peticiones (Necesario para instalar la app)
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Devuelve el archivo guardado si existe, si no, lo pide a internet
-        return response || fetch(event.request);
+        if (response) {
+          return response; // Devuelve desde caché
+        }
+        return fetch(event.request); // Pide a la red si no está en caché
       })
   );
+});
+
+// Limpieza de cachés antiguas
+self.addEventListener('activate', event => {
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
 });
