@@ -1,0 +1,96 @@
+[33m90d6416[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Arreglar de rutas estaticas explicitas en server.jsfinalistassssa
+[33m72b5038[m Arreglar de rutas estaticas explicitas en server.jsfinalistassss
+[33maa4525f[m Arreglar de rutas estaticas explicitas en server.jsfinalistasss
+[33m527a768[m Arreglar de rutas estaticas explicitas en server.jsfinalistass
+[33me7ebc94[m Arreglar de rutas estaticas explicitas en server.jsfinalistas
+[33md66ef9a[m Arreglar de rutas estaticas explicitas en server.jsfinalista
+[33mced75d1[m Arreglar de rutas estaticas explicitas en server.jsfinallll
+[33me5473cc[m Arreglar de rutas estaticas explicitas en server.jsfinalll
+[33mb2c7630[m Arreglar de rutas estaticas explicitas en server.jsfinall
+[33m216c0d7[m Arreglar de rutas estaticas explicitas en server.jsfina
+[33me8c365a[m Arreglar de rutas estaticas explicitas en server.jsfin
+[33m3461b2f[m Arreglar de rutas estaticas explicitas en server.jsfi
+[33m4c3d5d9[m Arreglar de rutas estaticas explicitas en server.jsf
+[33mc7bf488[m Arreglar de rutas estaticas explicitas en server.js
+[33m78e0e92[m Arreglar rutas estaticas explicitas en server.js final12345678
+[33mca8c19b[m Arreglar rutas estaticas explicitas en server.js final1234567
+[33mc173b3b[m Arreglar rutas estaticas explicitas en server.js final123456
+[33m8e428e5[m Arreglar rutas estaticas explicitas en server.js final123
+[33m2499dd6[m Arreglar rutas estaticas explicitas en server.js final1
+[33m25075e5[m Arreglar rutas estaticas explicitas en server.js final
+[33m3597123[m Arreglar rutas estaticas explicitas en server.js210000
+[33m9c5d5d3[m Arreglar rutas estaticas explicitas en server.js10000
+[33m4be0b79[m Arreglar rutas estaticas explicitas en server.js1000
+[33m244ad76[m Arreglar rutas estaticas explicitas en server.js100
+[33mb17eb9e[m Arreglar rutas estaticas explicitas en server.js10
+[33m8511ed3[m Arreglar rutas estaticas explicitas en server.js20
+[33m07350c7[m Arreglar rutas estaticas explicitas en server.js2
+[33m5c94db5[m Arreglar rutas estaticas explicitas en server.jsa
+[33m911eec5[m Arreglar rutas estaticas explicitas en server.js
+[33ma3d2a9e[m Actualizado BookBite con seleccion dinamica para Negroni y Costenita, junto con limpieza de sesion2
+[33mfee00c6[m Actualizado BookBite con seleccion dinamica para Negroni y Costenita, junto con limpieza de sesion
+[33m1104404[m Actualizado index.html con el nombre BookBite y opciones de Negroni y Costenita, junto con limpieza total de carrito efectivo
+[33me10d33e[m Actualizado index.html para selector exclusivo entre Negroni y Costeñita2
+[33m6cf732c[m Actualizado index.html para selector exclusivo entre Negroni y Costeñita
+[33m0c50e50[m Corrección integral de la arquitectura SaaS, sockets y vistas multi-tenant2
+[33m3a28601[m Corrección integral de la arquitectura SaaS, sockets y vistas multi-tenant
+[33mf4c931a[m Migración a plataforma corporativa SaaS Multi-inquilino
+[33mb011b4e[m espero que funciones
+[33m8e2cb23[m actualizacion
+[33m659cf82[m actualizacion de sucursales
+[33ma0059cd[m Menu independiente por cada sucursal
+[33mc8f20bf[m Actualizacion del quiosco
+[33m5150282[m Estabilizador de imagenes (espero)
+[33m8d4b523[m Estabilizador de imagenes
+[33mc1069e8[m Arquitectura SaaS Completa: Proteccion de rutas por login, persistencia en PWA y omnicanalidad activada (con fe)
+[33mc9ae8eb[m Arquitectura SaaS Completa: Proteccion de rutas por login, persistencia en PWA y omnicanalidad activada (espero)
+[33m723310f[m espero que funciones
+[33md411265[m Código unificado profesional
+[33ma7249d9[m Fix: socket URL
+[33m8dd7ec0[m Estructura modular final (espero)
+[33me5a599e[m Estructura modular final
+[33ma61a565[m actualizacion de estructura
+[33m06eb0aa[m Arquitectura SaaS Completa: Proteccion de rutas por login, persistencia en PWA y omnicanalidad activada
+[33m5a65f70[m ¡Despliegue final!
+[33m026247e[m Arquitectura 2.0: Turnos de Hospital, Fechas bloqueadas y Enlace de Mesas automático
+[33mc7c22fe[m UI Fix: Agregados Badges y Boton para modificar reserva
+[33m9833af9[m Arquitectura SaaS Completa: Proteccion de rutas por login, persistencia en PWA y omnicanalidad activada
+[33mbe92bf7[m Actualizacion de usuarios
+[33ma03af86[m Auth All Roles
+[33m7b451d4[m Auth Roles
+[33ma46a2f6[m Build Final: La Costenita v1.0. Cola de espera dinamica, sockets en tiempo real y menu completo
+[33me58e303[m Feat: Bot de asistencia reconfigurado con multiples respuestas, control de ventanas y FAQs
+[33mfced058[m Feat: Buscador de menu, seleccion de sucursal (Urdesa/Sambo/Sur) y opcion Solo Reserva
+[33m6fe3c2e[m UI: Rebranding del quiosco a La Costenita, con direcciones en Guayaquil, nuevos colores y bot tropical
+[33me4cfefc[m Arquitectura Definitiva: Limpieza de codigo, integracion de todo el ecosistema
+[33m2c5cf79[m Fix: Sistema de stock eliminado, simplificando editor y mejorando rendimiento
+[33m40d77bd[m Feat: Sistema de categorias dinamicas implementado para especialidades locales
+[33m37b0586[m Arquitectura final: Panel maestro, monitor independiente y logica de check-out completada
+[33m16534b8[m UI: Panel admin finalizado con navegacion fluida y botones activos
+[33m4477f19[m Arquitectura: Creado Panel Maestro (iframe) para el administrador aislando vistas
+[33m1c0b330[m UI: pantallas operativas independizadas, navegacion mantenida solo en panel admin
+[33m8c3af4a[m Fix: Compilacion final, barra global integrada en todos los archivos del administrador
+[33mc412efc[m UI: Panel de administracion unificado y con barra de navegacion global
+[33mf65ea1b[m Fix: agregando radar de diagnostico a server.js para rastrear Supabase
+[33m994c076[m UI Fix: boton de cerrar chat resuelto y logica de visibilidad corregida
+[33mc8ba5e6[m UI: chatbot transformado en componente flotante colapsable tipo burbuja
+[33m6096cd2[m Fix: persistencia forzada en cocina al recargar pagina y nuevo modulo de historial
+[33m61b8a6a[m Feat: persistencia crash-proof para la pantalla de cocina
+[33m2e8a27e[m Arquitectura: migracion a Supabase completada para persistencia de datos
+[33m1ebbd1d[m Feat: actualizacion final con motor de asignacion estricta y codigo completo
+[33me149d53[m Feat: implementada la reaccion en tiempo real para bloquear reservas de mesas agotadas
+[33m485b7b3[m Feat: ecosistema completo de reservas con chat IA y KDS sincronizado
+[33m8a354b9[m Brand: renombrado el quiosco oficial a J & J Foods
+[33m248cc84[m Feat: implementado cronometro inteligente en KDS para transformacion de pre-orden a orden activa
+[33m999493a[m Brand: renombrado el quiosco oficial a J & J Foods
+[33me5d4296[m Design: apartados de menu y carrito totalmente independientes con fila virtual corregida
+[33m37d2b72[m Fix: solucionado canal de pedidos fantasma y reestructurado el carrito y la encuesta opcional con turno
+[33mceddd5c[m Feat: sistema integral v3.0 con base de datos de clientes, bot integrado y estados avanzados de kds
+[33m8bf8f2f[m Feat: implementado el modulo de pedidos fantasma y control de porciones modificado
+[33m1db7ded[m Fix: corregida sintaxis en quiosco e inyectado control de stock definitivo
+[33m57a7c67[m Feat: actualización de platos existentes y control dinámico de porciones en tiempo real
+[33m8ccc79e[m Feat: actualización de platos existentes y control dinámico de porciones en tiempo real
+[33mde0db53[m Feat: menú dinámico controlado 100% por el servidor
+[33md6abe69[m Feat: Panel de administración y control de stock en tiempo real
+[33mfaa37b9[m Fix: código unificado y limpio para despliegue
+[33md3c2b90[m Proyecto de emprendimiento
