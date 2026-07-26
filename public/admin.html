@@ -3,36 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Control - La Costeñita</title>
+    <title>Panel de Control - Book&Bite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         if (!sessionStorage.getItem('usuarioLogueado') || sessionStorage.getItem('usuarioLogueado') !== 'admin') {
             window.location.href = '/login.html';
         }
     </script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body, html { height: 100vh; overflow: hidden; background: #1e222b; }
-        
-        .admin-header { background: #2f3542; height: 70px; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10; position: relative; }
-        .logo-text { color: #e15f41; font-size: 22px; font-weight: bold; margin-right: 30px; letter-spacing: 1px; }
-        
-        .nav-links { display: flex; gap: 10px; }
-        .nav-btn { text-decoration: none; color: white; font-weight: bold; padding: 10px 18px; background: rgba(255,255,255,0.1); border-radius: 8px; transition: 0.2s; font-size: 14px; cursor: pointer; border: none; }
-        .nav-btn:hover { background: rgba(255,255,255,0.2); }
-        .nav-btn.activo { background: #e15f41; box-shadow: 0 2px 5px rgba(225,95,65,0.4); }
-        
-        .btn-quiosco { margin-left: auto; background: transparent; border: 2px solid #2ed573; color: #2ed573; }
-        .btn-quiosco:hover { background: #2ed573; color: #1e222b; }
-        
-        .btn-logout { background: #ff4757; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-left: 10px; transition: 0.2s;}
-        .btn-logout:hover { background: #c44527; }
+        :root {
+            --primary: #0a3d62;
+            --secondary: #ff6b6b;
+            --success: #1dd1a1;
+            --nav-bg: #0f172a;
+            --nav-hover: #1e293b;
+            --bg: #f4f6f8;
+        }
 
-        #visor-central { width: 100%; height: calc(100vh - 70px); border: none; background: #f4f6f8; display: block; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body, html { height: 100vh; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; }
+        
+        /* Barra de Navegación Moderna */
+        .admin-header { 
+            background: var(--nav-bg); height: 75px; display: flex; align-items: center; padding: 0 30px; 
+            box-shadow: 0 4px 25px rgba(0,0,0,0.15); z-index: 10; position: relative; 
+        }
+        
+        .logo-text { 
+            color: white; font-size: 22px; font-weight: 800; margin-right: 40px; letter-spacing: -0.5px; 
+            display: flex; align-items: center; gap: 8px;
+        }
+        .logo-text span { color: var(--secondary); }
+        
+        .nav-links { display: flex; gap: 8px; height: 100%; align-items: center; }
+        .nav-btn { 
+            text-decoration: none; color: #94a3b8; font-weight: 600; padding: 10px 18px; border-radius: 12px; 
+            transition: 0.3s; font-size: 14px; cursor: pointer; border: none; display: flex; align-items: center; gap: 6px;
+        }
+        .nav-btn:hover { background: var(--nav-hover); color: white; }
+        .nav-btn.activo { background: rgba(255, 107, 107, 0.1); color: var(--secondary); font-weight: 700; }
+        
+        .btn-quiosco { 
+            margin-left: auto; background: transparent; border: 1.5px solid var(--success); 
+            color: var(--success); padding: 8px 20px; border-radius: 20px;
+        }
+        .btn-quiosco:hover { background: var(--success); color: white; box-shadow: 0 4px 15px rgba(29, 209, 161, 0.3); transform: translateY(-2px); }
+        
+        .btn-logout { 
+            background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 12px; 
+            font-weight: 600; font-size: 14px; cursor: pointer; margin-left: 15px; transition: 0.3s;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .btn-logout:hover { background: #dc2626; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); transform: translateY(-2px); }
+
+        #visor-central { width: 100%; flex-grow: 1; border: none; background: var(--bg); display: block; }
     </style>
 </head>
 <body>
     <header class="admin-header">
-        <div class="logo-text">🌊 ADMIN COSTEÑITA</div>
+        <div class="logo-text">🏢 <span id="nombre-franquicia">ADMIN</span></div>
         <nav class="nav-links">
             <a href="/editor.html" target="visor-central" class="nav-btn activo" onclick="cambiarPestana(this)">🍔 Menú</a>
             <a href="/mesas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">🪑 Mesas</a>
@@ -40,8 +69,11 @@
             <a href="/historial.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📈 Ventas</a>
             <a href="/reservas.html" target="visor-central" class="nav-btn" onclick="cambiarPestana(this)">📅 Reservas</a>
         </nav>
-        <a href="/quiosco.html" target="_blank" class="nav-btn btn-quiosco">👀 Simular Cliente ↗</a>
-        <button class="btn-logout" onclick="cerrarSesion()">Salir 🚪</button>
+        <a href="/quiosco.html" target="_blank" class="nav-btn btn-quiosco">👀 Ver Quiosco</a>
+        <button class="btn-logout" onclick="cerrarSesion()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Salir
+        </button>
     </header>
 
     <iframe name="visor-central" id="visor-central" src=""></iframe>
@@ -63,7 +95,7 @@
             const nombreLocal = sessionStorage.getItem('nombre_local');
             
             if (nombreLocal) {
-                document.querySelector('.logo-text').innerText = `🏢 ADMIN ${nombreLocal.toUpperCase()}`;
+                document.getElementById('nombre-franquicia').innerText = nombreLocal.toUpperCase();
             }
 
             if (miTenant) {
