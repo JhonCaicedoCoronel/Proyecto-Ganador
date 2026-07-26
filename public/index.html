@@ -5,21 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book&Bite | Inicio</title>
     
-    <!-- ========================================== -->
-    <!-- MOTOR PWA: MANIFEST E ICONOS EXTERNOS      -->
-    <!-- ========================================== -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="img/app-icon.png">
-    <link rel="apple-touch-icon" href="img/app-icon.png">
-    <meta name="theme-color" content="#128293">
-
-    <!-- Tipografía Moderna -->
+    <!-- Tipografía Moderna y Profesional -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* Variables de Color */
+        /* Paleta de colores Premium */
         :root {
             --primary: #128293;
+            --secondary: #F49320;
             --bg-gradient: linear-gradient(135deg, #e0f2fe, #ffedd5);
         }
 
@@ -45,47 +38,34 @@
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 24px;
-            padding: 40px;
+            padding: 45px 40px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             text-align: center;
             max-width: 420px;
             width: 90%;
         }
 
-        /* ========================================== */
-        /* DISEÑO RECUPERADO: LOGO + TEXTO            */
-        /* ========================================== */
+        /* Contenedor de la marca solo con texto */
         .brand-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .app-icon-nav {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 14px; /* Borde curvo tipo App Nativa */
-            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15); /* Sombra flotante */
-            transition: transform 0.3s ease;
-        }
-
-        .app-icon-nav:hover {
-            transform: scale(1.05); /* Efecto interactivo al pasar el mouse */
+            margin-bottom: 10px;
         }
 
         .brand-container h1 {
-            font-size: 2.2rem;
+            font-size: 2.8rem;
             color: #1e293b;
             font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .brand-container h1 span {
+            color: var(--secondary);
         }
 
         .subtitle {
             color: #64748b;
             margin-bottom: 35px;
             font-size: 0.95rem;
+            font-weight: 400;
         }
 
         /* Botones de Franquicias (Degradados Premium) */
@@ -105,8 +85,13 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        .btn-costenita { background: linear-gradient(to right, #0284c7, #2563eb); }
-        .btn-negroni { background: linear-gradient(to right, #ea580c, #dc2626); }
+        .btn-costenita {
+            background: linear-gradient(to right, #0284c7, #2563eb);
+        }
+
+        .btn-negroni {
+            background: linear-gradient(to right, #ea580c, #dc2626);
+        }
 
         .btn-franchise:hover {
             opacity: 0.95;
@@ -114,44 +99,29 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         }
 
+        /* Enlace de Administración */
         .admin-link {
             display: inline-block;
-            margin-top: 15px;
+            margin-top: 20px;
             color: var(--primary);
             text-decoration: none;
             font-weight: 600;
             font-size: 0.9rem;
+            transition: color 0.3s ease;
         }
         
-        .admin-link:hover { text-decoration: underline; }
-
-        /* Botón de Instalación App (PWA) */
-        #btn-instalar {
-            display: none; /* Se mantiene oculto hasta que el navegador lo apruebe */
-            width: 100%;
-            margin-top: 25px;
-            background: #1e293b;
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: background 0.3s ease;
+        .admin-link:hover {
+            color: #0f6c7a;
+            text-decoration: underline;
         }
-
-        #btn-instalar:hover { background: #0f172a; }
     </style>
 </head>
 <body>
 
     <div class="glass-panel">
-        <!-- Contenedor de Marca (Logo y Nombre Restablecidos) -->
+        <!-- Diseño Tipográfico Limpio (Sin imágenes) -->
         <div class="brand-container">
-            <img src="img/app-icon.png" alt="Book&Bite App" class="app-icon-nav">
-            <h1>Book&Bite</h1>
+            <h1>Book<span>&</span>Bite</h1>
         </div>
         
         <p class="subtitle">Selecciona tu restaurante para comenzar.</p>
@@ -160,47 +130,9 @@
         <a href="quiosco.html?tenant=costenita" class="btn-franchise btn-costenita">🦐 La Costeñita</a>
         <a href="quiosco.html?tenant=negroni" class="btn-franchise btn-negroni">🍣 Negroni</a>
 
+        <!-- Acceso al Staff -->
         <a href="login.html" class="admin-link">Acceso para Staff ➔</a>
-
-        <!-- Botón de instalación dinámico PWA -->
-        <button id="btn-instalar">⬇️ Instalar App Book&Bite</button>
     </div>
 
-    <!-- ========================================== -->
-    <!-- SCRIPTS: INSTALACIÓN PWA Y SERVICE WORKER  -->
-    <!-- ========================================== -->
-    <script>
-        let eventoInstalacion = null;
-        const btnInstalar = document.getElementById('btn-instalar');
-
-        // 1. Registrar Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('✅ Service Worker registrado', reg.scope))
-                    .catch(err => console.log('❌ Error en Service Worker:', err));
-            });
-        }
-
-        // 2. Escuchar evento de Chrome para permitir instalación
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            eventoInstalacion = e;
-            btnInstalar.style.display = 'block'; // Aparece el botón de descargar
-        });
-
-        // 3. Lógica al hacer clic en instalar
-        btnInstalar.addEventListener('click', async () => {
-            if (eventoInstalacion) {
-                eventoInstalacion.prompt();
-                const { outcome } = await eventoInstalacion.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('El usuario aceptó la instalación');
-                    btnInstalar.style.display = 'none'; // Se oculta tras instalar
-                }
-                eventoInstalacion = null;
-            }
-        });
-    </script>
 </body>
 </html>
