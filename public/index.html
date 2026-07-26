@@ -13,16 +13,22 @@
     <link rel="apple-touch-icon" href="img/app-icon.png">
     <meta name="theme-color" content="#128293">
 
-    <!-- Tipografía -->
+    <!-- Tipografía Moderna -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <style>
+        /* Variables de Color */
         :root {
             --primary: #128293;
             --bg-gradient: linear-gradient(135deg, #e0f2fe, #ffedd5);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
 
         body {
             background: var(--bg-gradient);
@@ -32,6 +38,7 @@
             justify-content: center;
         }
 
+        /* Efecto Glassmorphism (Cristalizado) */
         .glass-panel {
             background: rgba(255, 255, 255, 0.65);
             backdrop-filter: blur(16px);
@@ -45,12 +52,32 @@
             width: 90%;
         }
 
+        /* ========================================== */
+        /* DISEÑO RECUPERADO: LOGO + TEXTO            */
+        /* ========================================== */
         .brand-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
             margin-bottom: 25px;
         }
 
+        .app-icon-nav {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 14px; /* Borde curvo tipo App Nativa */
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15); /* Sombra flotante */
+            transition: transform 0.3s ease;
+        }
+
+        .app-icon-nav:hover {
+            transform: scale(1.05); /* Efecto interactivo al pasar el mouse */
+        }
+
         .brand-container h1 {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             color: #1e293b;
             font-weight: 700;
         }
@@ -61,6 +88,7 @@
             font-size: 0.95rem;
         }
 
+        /* Botones de Franquicias (Degradados Premium) */
         .btn-franchise {
             display: block;
             width: 100%;
@@ -71,49 +99,75 @@
             font-size: 1.1rem;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
             text-decoration: none;
             color: white;
-            transition: transform 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .btn-costenita { background: linear-gradient(to right, #0284c7, #2563eb); }
         .btn-negroni { background: linear-gradient(to right, #ea580c, #dc2626); }
 
-        .btn-franchise:hover { transform: translateY(-3px); }
+        .btn-franchise:hover {
+            opacity: 0.95;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .admin-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
         
-        /* Botón de instalación dinámico (Oculto por defecto) */
+        .admin-link:hover { text-decoration: underline; }
+
+        /* Botón de Instalación App (PWA) */
         #btn-instalar {
-            display: none;
-            margin-top: 20px;
-            background: #128293;
+            display: none; /* Se mantiene oculto hasta que el navegador lo apruebe */
+            width: 100%;
+            margin-top: 25px;
+            background: #1e293b;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 14px;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: background 0.3s ease;
         }
+
+        #btn-instalar:hover { background: #0f172a; }
     </style>
 </head>
 <body>
 
     <div class="glass-panel">
-        <!-- Interfaz visual limpia (Solo texto, sin imagen del icono aquí adentro) -->
+        <!-- Contenedor de Marca (Logo y Nombre Restablecidos) -->
         <div class="brand-container">
+            <img src="img/app-icon.png" alt="Book&Bite App" class="app-icon-nav">
             <h1>Book&Bite</h1>
         </div>
         
         <p class="subtitle">Selecciona tu restaurante para comenzar.</p>
 
+        <!-- Navegación Multi-Franquicia -->
         <a href="quiosco.html?tenant=costenita" class="btn-franchise btn-costenita">🦐 La Costeñita</a>
         <a href="quiosco.html?tenant=negroni" class="btn-franchise btn-negroni">🍣 Negroni</a>
 
-        <!-- Este botón aparecerá si el navegador permite instalar la app -->
+        <a href="login.html" class="admin-link">Acceso para Staff ➔</a>
+
+        <!-- Botón de instalación dinámico PWA -->
         <button id="btn-instalar">⬇️ Instalar App Book&Bite</button>
     </div>
 
     <!-- ========================================== -->
-    <!-- REGISTRO DEL SERVICE WORKER Y BOTÓN PWA    -->
+    <!-- SCRIPTS: INSTALACIÓN PWA Y SERVICE WORKER  -->
     <!-- ========================================== -->
     <script>
         let eventoInstalacion = null;
@@ -128,11 +182,11 @@
             });
         }
 
-        // 2. Escuchar evento para permitir instalación (Chrome/Android)
+        // 2. Escuchar evento de Chrome para permitir instalación
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             eventoInstalacion = e;
-            btnInstalar.style.display = 'inline-block'; // Mostrar botón de instalación
+            btnInstalar.style.display = 'block'; // Aparece el botón de descargar
         });
 
         // 3. Lógica al hacer clic en instalar
@@ -141,8 +195,8 @@
                 eventoInstalacion.prompt();
                 const { outcome } = await eventoInstalacion.userChoice;
                 if (outcome === 'accepted') {
-                    console.log('Usuario aceptó la instalación');
-                    btnInstalar.style.display = 'none';
+                    console.log('El usuario aceptó la instalación');
+                    btnInstalar.style.display = 'none'; // Se oculta tras instalar
                 }
                 eventoInstalacion = null;
             }
